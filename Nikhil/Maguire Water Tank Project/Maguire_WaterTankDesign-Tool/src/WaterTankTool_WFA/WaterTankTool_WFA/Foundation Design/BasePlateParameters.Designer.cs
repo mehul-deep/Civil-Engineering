@@ -109,7 +109,7 @@ namespace WaterTankTool_WFA.Foundation_Design
             label15.Location = new Point(270, 243);
             label15.Name = "label15";
             label15.Size = new Size(100, 15);
-            label15.Text = "Shell Radius (ft)";
+            label15.Text = "Overturning Moment Mu (kip-ft)";
             // 
             // textBox15
             // 

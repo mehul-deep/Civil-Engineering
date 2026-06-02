@@ -336,58 +336,94 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             // --- Structural Design Equations ---
 
-            // Bearing Stress Demand: fp = Pu / A1
-            public double BearingStress(double axialLoadKips, double plateAreaSqIn)
+            // 1. Geometry Inputs Derived from These
+            public double OuterRadius(double coneDiameterFt, double widthOfRingWallFt)
             {
-                if (plateAreaSqIn <= 0) return 0;
-                return Math.Round(axialLoadKips / plateAreaSqIn, 5);
+                return Math.Round((coneDiameterFt / 2.0) + (widthOfRingWallFt / 4.0), 5);
             }
 
-            // Design Bearing Strength: phi_Pp = phi * 0.85 * fc' * A1 * sqrt(A2/A1) <= phi * 1.7 * fc' * A1
-            public double DesignBearingStrength(double fc_prime_psi, double areaA1, double areaA2, double phi = 0.65)
+            public double InnerRadius(double coneDiameterFt, double widthOfRingWallFt)
             {
-                if (areaA1 <= 0) return 0;
-
-                double fc_ksi = fc_prime_psi / 1000.0;
-                
-                // ACI 318-19 Section 22.8: sqrt(A2/A1) limit is 2.0
-                double ratio = areaA2 / areaA1;
-                double sqrtFactor = Math.Sqrt(ratio);
-                if (sqrtFactor > 2.0) sqrtFactor = 2.0;
-                if (sqrtFactor < 1.0) sqrtFactor = 1.0;
-
-                double nominalStrength = 0.85 * fc_ksi * areaA1 * sqrtFactor;
-                return Math.Round(phi * nominalStrength, 5);
+                return Math.Round((coneDiameterFt / 2.0) - (widthOfRingWallFt / 4.0), 5);
             }
 
-            // Cantilever Length: l = max(Ro - Rshell, Rshell - Ri)
-            public double CantileverLength(double outsideRadiusInches, double insideRadiusInches, double? shellRadiusInches = null)
+            // 2.0. Design Against Moment
+            // 2.1. Determine Factored Load and Moment
+            // Convert kip-ft to kip-in
+            public double ConvertMomentToKipIn(double momentKipFt)
             {
-                if (shellRadiusInches.HasValue && shellRadiusInches.Value > 0)
-                {
-                    double l_out = outsideRadiusInches - shellRadiusInches.Value;
-                    double l_in = shellRadiusInches.Value - insideRadiusInches;
-                    return Math.Round(Math.Max(l_out, l_in), 5);
-                }
-
-                // Default to centered assumption if shell radius is not provided
-                return Math.Round((outsideRadiusInches - insideRadiusInches) / 2.0, 5);
+                return Math.Round(momentKipFt * 12.0, 5);
             }
 
-            // Bending Moment: Mu = (fp * l^2) / 2
-            public double BendingMoment(double bearingStressKsi, double cantileverLengthInches)
+            // 2.2. Determine Circumferential Moment per Unit Strip (kip-in/in)
+            public double CircumferentialMomentPerUnitStrip(double momentKipIn, double coneDiameterFt)
             {
-                return Math.Round((bearingStressKsi * Math.Pow(cantileverLengthInches, 2)) / 2.0, 5);
+                if (coneDiameterFt <= 0) return 0;
+                double mStripFt = momentKipIn / (Math.PI * coneDiameterFt); // kip-in/ft
+                return Math.Round(mStripFt / 12.0, 5); // kip-in/in
             }
 
-            // Required Thickness: t_req = l * sqrt( (2 * fp) / (phi * Fy) )
-            // This is the standard AISC/AWWA formula for base plate thickness
-            public double RequiredThickness(double cantileverLengthInches, double bearingStressKsi, double steelYieldKsi, double phi = 0.9)
+            // 2.3. Determine the maximum design bearing stress
+            public double MaximumDesignBearingStress(double fcPrimeKsi, double x2WidthOfRingWall, double x1WidthOfBasePlate, double phi = 0.90)
             {
-                if (phi * steelYieldKsi <= 0) return 0;
-                
-                double term = (2.0 * bearingStressKsi) / (phi * steelYieldKsi);
-                return Math.Round(cantileverLengthInches * Math.Sqrt(term), 5);
+                if (x1WidthOfBasePlate <= 0) return 0;
+                double ratio = x2WidthOfRingWall / x1WidthOfBasePlate;
+                // ACI 318 limits sqrt(A2/A1) to 2.0. Also, if X1 > X2, ratio shouldn't be less than 1.0.
+                if (ratio < 1.0) ratio = 1.0;
+                if (ratio > 4.0) ratio = 4.0; // max sqrt is 2.0
+
+                double sqrtRatio = Math.Sqrt(ratio);
+
+                double fp = 0.85 * phi * fcPrimeKsi * sqrtRatio;
+                double maxFp = 1.7 * fcPrimeKsi;
+                return Math.Round(Math.Min(fp, maxFp), 5);
+            }
+
+            // 3. Determine Equivalent Eccentricity
+            // Pstrip = P / (pi * Dcone * 12)
+            // e = Mstrip / Pstrip
+            public double EquivalentEccentricity(double mStripKipInPerIn, double totalVerticalLoadKips, double coneDiameterFt)
+            {
+                if (coneDiameterFt <= 0) return 0;
+                double pStrip = totalVerticalLoadKips / (Math.PI * coneDiameterFt * 12.0);
+                if (pStrip == 0) return 0;
+                return Math.Round(mStripKipInPerIn / pStrip, 5);
+            }
+
+            // 3.1 Check Bearing Condition
+            // N/6
+            public double BearingConditionLimit(double designStripN)
+            {
+                return Math.Round(designStripN / 6.0, 5);
+            }
+
+            // 3.2 Determine Critical Section
+            // m = B / 2
+            public double CriticalSection(double designStripB)
+            {
+                return Math.Round(designStripB / 2.0, 5);
+            }
+
+            // 3.3 & 3.4 Determine Strip Plastic Moment
+            // Approximate factored strip moment Mplu = Mstrip
+            public double StripPlasticMoment(double mStrip)
+            {
+                return mStrip;
+            }
+
+            // 3.5 Determine Required Thickness
+            public double RequiredThickness(double mPlu, double fyKsi, double phi = 0.90)
+            {
+                if (fyKsi <= 0 || phi <= 0) return 0;
+                return Math.Round(Math.Sqrt((4.0 * mPlu) / (phi * fyKsi)), 5);
+            }
+
+            // 5.0 Local Plate Stability / Buckling Check
+            // B / tp
+            public double CompactnessRatio(double designStripB, double tp)
+            {
+                if (tp <= 0) return 0;
+                return Math.Round(designStripB / tp, 5);
             }
 
             // Utilization Ratios

@@ -98,7 +98,7 @@ public class WaterTankDbContext : DbContext
                 // List of columns to add if they don't exist
                 string[] columns = new string[]
                 {
-                    "Fy", "Fc_prime", "A2", "Pu", "ShellRadius",
+                    "Fy", "Fc_prime", "A2", "Pu", "ShellRadius", "OverturningMoment",
                     "Fp", "Phi_Pp", "BearingUtilization",
                     "L", "Mu", "T_req", "ThicknessUtilization"
                 };

@@ -58,7 +58,7 @@ namespace WaterTankTool_WFA.Foundation_Design
                 textBox12.Text = _existingBasePlate.Fc_prime.ToString(CultureInfo.InvariantCulture);
                 textBox13.Text = _existingBasePlate.A2?.ToString(CultureInfo.InvariantCulture) ?? "";
                 textBox14.Text = _existingBasePlate.Pu?.ToString(CultureInfo.InvariantCulture) ?? "";
-                textBox15.Text = _existingBasePlate.ShellRadius?.ToString(CultureInfo.InvariantCulture) ?? "";
+                textBox15.Text = _existingBasePlate.OverturningMoment?.ToString(CultureInfo.InvariantCulture) ?? "";
 
                 SavedBasePlate = _existingBasePlate;
             }
@@ -93,7 +93,7 @@ namespace WaterTankTool_WFA.Foundation_Design
                 entity.Fc_prime = ParseDoubleRequired(textBox12, "Concrete Strength (f'c)");
                 entity.A2 = ParseDoubleNullable(textBox13);
                 entity.Pu = ParseDoubleNullable(textBox14);
-                entity.ShellRadius = ParseDoubleNullable(textBox15);
+                entity.OverturningMoment = ParseDoubleNullable(textBox15);
 
                 // fixed value from design input
                 entity.Rs = 490;

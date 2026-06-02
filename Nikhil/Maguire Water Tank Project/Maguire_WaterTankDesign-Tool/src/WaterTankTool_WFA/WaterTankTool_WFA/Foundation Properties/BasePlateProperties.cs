@@ -61,37 +61,40 @@ namespace WaterTankTool_WFA.Foundation_Properties
             textBox10.Text = centroidAngle.ToString("F4");
 
             // Structural results
-            double areaA1 = grossArea * 144.0; 
-            double areaA2 = _entity.A2 ?? areaA1; 
+            double coneDiameterFt = _entity.Dbp; // cone diameter Dcone
+            double momentKipFt = _entity.OverturningMoment ?? 0;
             double pu = _entity.Pu ?? 0;
 
-            double fp = eq.BearingStress(pu, areaA1);
-            double phiPp = eq.DesignBearingStrength(_entity.Fc_prime, areaA1, areaA2);
+            double mKipIn = eq.ConvertMomentToKipIn(momentKipFt);
+            double mStrip = eq.CircumferentialMomentPerUnitStrip(mKipIn, coneDiameterFt);
+
+            double areaA1 = grossArea * 144.0; 
+            double areaA2 = _entity.A2 ?? areaA1; 
+            double x1 = (_entity.Ro - _entity.Ri) * 12.0; // width of base plate (in)
             
-            double capacityStress = phiPp / areaA1;
-            // 3. Utilization (fp / capacityStress)
-            double bearingUtil = eq.Utilization(fp, capacityStress);
+            double fp = eq.MaximumDesignBearingStress(_entity.Fc_prime / 1000.0, areaA2, areaA1, 0.90);
 
-            // 4. Required Thickness (Refined logic)
-            double shellRadiusIn = (_entity.ShellRadius ?? (_entity.Ro + _entity.Ri) / 2.0) * 12.0;
-            double roIn = _entity.Ro * 12.0;
-            double riIn = _entity.Ri * 12.0;
+            double eVal = eq.EquivalentEccentricity(mStrip, pu, coneDiameterFt);
+            
+            double designStripN = x1; // Base plate width N = Ro - Ri
+            double bearingLimit = eq.BearingConditionLimit(designStripN);
 
-            double l_refined = eq.CantileverLength(roIn, riIn, shellRadiusIn);
-            double mu = eq.BendingMoment(fp, l_refined);
-            double treq = eq.RequiredThickness(l_refined, fp, _entity.Fy);
-            double thicknessUtil = eq.Utilization(treq, _entity.T);
+            double mCritical = eq.CriticalSection(designStripN);
+            double mPlu = eq.StripPlasticMoment(mStrip);
+            double treq = eq.RequiredThickness(mPlu, _entity.Fy, 0.90);
+            
+            double compactness = eq.CompactnessRatio(designStripN, _entity.T);
 
             textBox11.Text = fp.ToString("F4");
-            textBox12.Text = phiPp.ToString("F4");
+            textBox12.Text = eVal.ToString("F4");
             textBox13.Text = treq.ToString("F4");
-            textBox14.Text = (bearingUtil * 100).ToString("F2") + " %";
+            textBox14.Text = compactness.ToString("F4");
 
-            textBox21.Text = l_refined.ToString("F4");
-            textBox22.Text = (thicknessUtil * 100).ToString("F2") + " %";
+            textBox21.Text = mStrip.ToString("F4");
+            textBox22.Text = mCritical.ToString("F4");
 
-            textBox17.Text = capacityStress.ToString("F4");
-            textBox18.Text = mu.ToString("F4");
+            textBox17.Text = bearingLimit.ToString("F4");
+            textBox18.Text = mPlu.ToString("F4");
 
             // Centroid
             double xc = eq.CentroidX(_entity.Ro, _entity.Ri, _entity.Theta, _entity.A ?? 0);
@@ -101,11 +104,12 @@ namespace WaterTankTool_WFA.Foundation_Properties
 
             // Save results back to entity
             _entity.Fp = fp;
-            _entity.Phi_Pp = phiPp;
-            _entity.BearingUtilization = bearingUtil;
-            _entity.L = l_refined;
+            _entity.Phi_Pp = eVal; // Saved eccentricity temporarily
+            _entity.BearingUtilization = compactness;
+            _entity.L = mCritical;
+            _entity.Mu = mPlu;
             _entity.T_req = treq;
-            _entity.ThicknessUtilization = eq.Utilization(treq, _entity.T);
+            _entity.ThicknessUtilization = mStrip;
 
             _context.SaveChanges();
         }

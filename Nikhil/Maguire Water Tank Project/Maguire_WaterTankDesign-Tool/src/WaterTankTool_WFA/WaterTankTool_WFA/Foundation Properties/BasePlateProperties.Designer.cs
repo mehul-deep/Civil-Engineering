@@ -129,7 +129,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             groupBox1.Controls.Add(label1);
             groupBox1.Location = new Point(23, 17);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new Size(620, 330);
+            groupBox1.Size = new Size(650, 330);
             groupBox1.TabIndex = 0;
             groupBox1.TabStop = false;
             groupBox1.Text = "Base Plate Calculation Results";
@@ -140,11 +140,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label17.Location = new Point(330, 264);
             label17.Name = "label17";
             label17.Size = new Size(110, 15);
-            label17.Text = "Allow. Bearing (ksi)";
+            label17.Text = "Bearing Condition Limit N/6 (in)";
             // 
             // textBox17
             // 
-            textBox17.Location = new Point(500, 261);
+            textBox17.Location = new Point(530, 261);
             textBox17.Name = "textBox17";
             textBox17.ReadOnly = true;
             textBox17.Size = new Size(100, 23);
@@ -155,11 +155,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label18.Location = new Point(330, 293);
             label18.Name = "label18";
             label18.Size = new Size(110, 15);
-            label18.Text = "Bending Mu (k-in/in)";
+            label18.Text = "Strip Plastic Moment Mplu";
             // 
             // textBox18
             // 
-            textBox18.Location = new Point(500, 290);
+            textBox18.Location = new Point(530, 290);
             textBox18.Name = "textBox18";
             textBox18.ReadOnly = true;
             textBox18.Size = new Size(100, 23);
@@ -245,7 +245,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label11.Location = new Point(20, 177);
             label11.Name = "label11";
             label11.Size = new Size(106, 15);
-            label11.Text = "Bearing Stress (fp, ksi)";
+            label11.Text = "Max Design Bearing Stress (ksi)";
             // 
             // textBox11
             // 
@@ -260,7 +260,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label12.Location = new Point(20, 206);
             label12.Name = "label12";
             label12.Size = new Size(135, 15);
-            label12.Text = "Design Strength (phiPp, kips)";
+            label12.Text = "Equivalent Eccentricity e (in)";
             // 
             // textBox12
             // 
@@ -305,7 +305,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label21.Location = new Point(20, 293);
             label21.Name = "label21";
             label21.Size = new Size(125, 15);
-            label21.Text = "Cantilever Length (in)";
+            label21.Text = "Mstrip (kip-in/in)";
             // 
             // textBox21
             // 
@@ -324,7 +324,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             // textBox6
             // 
-            textBox6.Location = new Point(500, 32);
+            textBox6.Location = new Point(530, 32);
             textBox6.Name = "textBox6";
             textBox6.ReadOnly = true;
             textBox6.Size = new Size(100, 23);
@@ -339,7 +339,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             // textBox7
             // 
-            textBox7.Location = new Point(500, 61);
+            textBox7.Location = new Point(530, 61);
             textBox7.Name = "textBox7";
             textBox7.ReadOnly = true;
             textBox7.Size = new Size(100, 23);
@@ -354,7 +354,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             // textBox8
             // 
-            textBox8.Location = new Point(500, 87);
+            textBox8.Location = new Point(530, 87);
             textBox8.Name = "textBox8";
             textBox8.ReadOnly = true;
             textBox8.Size = new Size(100, 23);
@@ -369,7 +369,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             // textBox9
             // 
-            textBox9.Location = new Point(500, 116);
+            textBox9.Location = new Point(530, 116);
             textBox9.Name = "textBox9";
             textBox9.ReadOnly = true;
             textBox9.Size = new Size(100, 23);
@@ -384,7 +384,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             // textBox10
             // 
-            textBox10.Location = new Point(500, 145);
+            textBox10.Location = new Point(530, 145);
             textBox10.Name = "textBox10";
             textBox10.ReadOnly = true;
             textBox10.Size = new Size(100, 23);
@@ -399,7 +399,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             // textBox13
             // 
-            textBox13.Location = new Point(500, 174);
+            textBox13.Location = new Point(530, 174);
             textBox13.Name = "textBox13";
             textBox13.ReadOnly = true;
             textBox13.Size = new Size(100, 23);
@@ -410,11 +410,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label14.Location = new Point(330, 206);
             label14.Name = "label14";
             label14.Size = new Size(120, 15);
-            label14.Text = "Bearing Utilization (%)";
+            label14.Text = "Compactness Ratio B/tp";
             // 
             // textBox14
             // 
-            textBox14.Location = new Point(500, 203);
+            textBox14.Location = new Point(530, 203);
             textBox14.Name = "textBox14";
             textBox14.ReadOnly = true;
             textBox14.Size = new Size(100, 23);
@@ -425,11 +425,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label22.Location = new Point(330, 235);
             label22.Name = "label22";
             label22.Size = new Size(110, 15);
-            label22.Text = "Thickness Util (%)";
+            label22.Text = "Critical Section m (in)";
             // 
             // textBox22
             // 
-            textBox22.Location = new Point(500, 232);
+            textBox22.Location = new Point(530, 232);
             textBox22.Name = "textBox22";
             textBox22.ReadOnly = true;
             textBox22.Size = new Size(100, 23);
@@ -448,7 +448,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             groupBoxBoltDetail.Controls.Add(textBoxYCoordDetail);
             groupBoxBoltDetail.Location = new Point(23, 355);
             groupBoxBoltDetail.Name = "groupBoxBoltDetail";
-            groupBoxBoltDetail.Size = new Size(620, 110);
+            groupBoxBoltDetail.Size = new Size(650, 110);
             groupBoxBoltDetail.TabIndex = 1;
             groupBoxBoltDetail.TabStop = false;
             groupBoxBoltDetail.Text = "Base Plate Bolt Angles and Coordinates";
@@ -528,7 +528,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(670, 480);
+            ClientSize = new Size(700, 480);
             Controls.Add(groupBoxBoltDetail);
             Controls.Add(groupBox1);
             FormBorderStyle = FormBorderStyle.FixedDialog;

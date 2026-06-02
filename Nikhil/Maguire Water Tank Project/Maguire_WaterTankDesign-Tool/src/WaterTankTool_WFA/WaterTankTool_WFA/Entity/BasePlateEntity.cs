@@ -61,6 +61,9 @@ namespace WaterTankTool_WFA.Entity
         // Pu = factored axial load (kips)
         public double? Pu { get; set; }
 
+        // OverturningMoment = Governing overturning moment (kip-ft)
+        public double? OverturningMoment { get; set; }
+
         // ShellRadius = radius where the tank shell sits (ft)
         public double? ShellRadius { get; set; }
 
