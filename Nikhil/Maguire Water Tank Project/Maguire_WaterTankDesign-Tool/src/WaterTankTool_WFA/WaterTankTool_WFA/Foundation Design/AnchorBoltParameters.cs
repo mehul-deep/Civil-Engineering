@@ -28,9 +28,61 @@ namespace WaterTankTool_WFA.Foundation_Design
             this.Load += AnchorBoltParameters_Load;
         }
 
+        private TextBox txtPedestalSize, txtBoltSpacing, txtWasherSize, txtDcone, txtPu, txtAb;
+        private Label lblPedestalSize, lblBoltSpacing, lblWasherSize, lblDcone, lblPu, lblAb;
+
         private void AnchorBoltParameters_Load(object? sender, EventArgs e)
         {
+            SetupMultiColumnUI();
             LoadExistingData();
+        }
+
+        private void SetupMultiColumnUI()
+        {
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                // Hide Single-Column specific fields
+                label3.Visible = textBox3.Visible = false; // Hole Diameter
+                label4.Visible = textBox4.Visible = false; // Circle Radius
+                label5.Visible = textBox5.Visible = false; // Start Angle
+                label6.Visible = textBox6.Visible = false; // Segment Angle
+                label7.Visible = textBox7.Visible = false; // Num Segments
+                label8.Visible = textBox8.Visible = false; // Base Plate Thickness
+                label14.Visible = textBox14.Visible = false; // Edge Distance
+                label20.Visible = comboBox1.Visible = false; // Distribution Method
+
+                // Create new labels and textboxes
+                lblAb = new Label { Text = "Bolt Area (Ab) (in²)", Location = label3.Location, AutoSize = true };
+                txtAb = new TextBox { Location = textBox3.Location, Size = textBox3.Size };
+
+                lblPedestalSize = new Label { Text = "Pedestal Size (B x L) (in)", Location = label4.Location, AutoSize = true };
+                txtPedestalSize = new TextBox { Location = textBox4.Location, Size = textBox4.Size };
+
+                lblBoltSpacing = new Label { Text = "Bolt Spacing (b x l) (in)", Location = label5.Location, AutoSize = true };
+                txtBoltSpacing = new TextBox { Location = textBox5.Location, Size = textBox5.Size };
+
+                lblWasherSize = new Label { Text = "Washer Plate Size (in)", Location = label6.Location, AutoSize = true };
+                txtWasherSize = new TextBox { Location = textBox6.Location, Size = textBox6.Size };
+
+                lblDcone = new Label { Text = "Cone Diameter (Dcone) (ft)", Location = label7.Location, AutoSize = true };
+                txtDcone = new TextBox { Location = textBox7.Location, Size = textBox7.Size };
+
+                lblPu = new Label { Text = "Factored Axial Load (Pu) (kips)", Location = label8.Location, AutoSize = true };
+                txtPu = new TextBox { Location = textBox8.Location, Size = textBox8.Size };
+
+                groupBox1.Controls.Add(lblAb);
+                groupBox1.Controls.Add(txtAb);
+                groupBox1.Controls.Add(lblPedestalSize);
+                groupBox1.Controls.Add(txtPedestalSize);
+                groupBox1.Controls.Add(lblBoltSpacing);
+                groupBox1.Controls.Add(txtBoltSpacing);
+                groupBox1.Controls.Add(lblWasherSize);
+                groupBox1.Controls.Add(txtWasherSize);
+                groupBox1.Controls.Add(lblDcone);
+                groupBox1.Controls.Add(txtDcone);
+                groupBox1.Controls.Add(lblPu);
+                groupBox1.Controls.Add(txtPu);
+            }
         }
 
         private void LoadExistingData()
@@ -67,6 +119,16 @@ namespace WaterTankTool_WFA.Foundation_Design
                     if (index != -1) comboBox1.SelectedIndex = index;
                 }
 
+                if (AppState.CurrentTankType == TankType.MultiColumn)
+                {
+                    txtAb.Text = _existingAnchorBolt.Ab.ToString(CultureInfo.InvariantCulture) ?? "";
+                    txtPedestalSize.Text = _existingAnchorBolt.PedestalSize?.ToString(CultureInfo.InvariantCulture) ?? "";
+                    txtBoltSpacing.Text = _existingAnchorBolt.BoltSpacing?.ToString(CultureInfo.InvariantCulture) ?? "";
+                    txtWasherSize.Text = _existingAnchorBolt.WasherSize?.ToString(CultureInfo.InvariantCulture) ?? "";
+                    txtDcone.Text = _existingAnchorBolt.Dcone?.ToString(CultureInfo.InvariantCulture) ?? "";
+                    txtPu.Text = _existingAnchorBolt.Pu?.ToString(CultureInfo.InvariantCulture) ?? "";
+                }
+
                 SavedAnchorBolt = _existingAnchorBolt;
             }
             catch (Exception ex)
@@ -86,12 +148,30 @@ namespace WaterTankTool_WFA.Foundation_Design
 
                 entity.Nb = ParseIntRequired(textBox1, "Total Number");
                 entity.Db = ParseDoubleRequired(textBox2, "Nominal Diameter");
-                entity.Dh = ParseDoubleRequired(textBox3, "Hole Diameter");
-                entity.Rb = ParseDoubleRequired(textBox4, "Circle Radius");
-                entity.Ab = ParseDoubleRequired(textBox5, "Start Angle of first bolt");
+
+                if (AppState.CurrentTankType == TankType.MultiColumn)
+                {
+                    entity.Dh = ParseDoubleNullable(textBox3) ?? 1.0;
+                    entity.Rb = ParseDoubleNullable(textBox4) ?? 1.0;
+                    entity.Ab = ParseDoubleNullable(txtAb) ?? 0.0;
+                    entity.Tbp = ParseDoubleNullable(textBox8) ?? 1.0;
+                    
+                    entity.PedestalSize = ParseDoubleNullable(txtPedestalSize);
+                    entity.BoltSpacing = ParseDoubleNullable(txtBoltSpacing);
+                    entity.WasherSize = ParseDoubleNullable(txtWasherSize);
+                    entity.Dcone = ParseDoubleNullable(txtDcone);
+                    entity.Pu = ParseDoubleNullable(txtPu);
+                }
+                else
+                {
+                    entity.Dh = ParseDoubleRequired(textBox3, "Hole Diameter");
+                    entity.Rb = ParseDoubleRequired(textBox4, "Circle Radius");
+                    entity.Ab = ParseDoubleRequired(textBox5, "Start Angle of first bolt");
+                    entity.Tbp = ParseDoubleRequired(textBox8, "Base Plate Thickness");
+                }
+
                 entity.ThetaSeg = ParseDoubleNullable(textBox6);
                 entity.Ns = ParseIntNullable(textBox7);
-                entity.Tbp = ParseDoubleRequired(textBox8, "Base Plate Thickness");
 
                 entity.Fy = ParseDoubleNullable(textBox9);
                 entity.Fu = ParseDoubleNullable(textBox10);

@@ -683,7 +683,12 @@ namespace WaterTankTool_WFA
                         E       REAL,
                         S       REAL,
                         Nbs     INTEGER,
-                        DistributionMethod TEXT
+                        DistributionMethod TEXT,
+                        PedestalSize REAL,
+                        BoltSpacing REAL,
+                        WasherSize REAL,
+                        Dcone REAL,
+                        Pu REAL
                     );
 
                     CREATE TABLE IF NOT EXISTS BasePlateEntity (

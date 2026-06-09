@@ -994,7 +994,7 @@ namespace WaterTankTool_WFA
 
         private void textBox1_TextChanged_1(object sender, EventArgs e)
         {
-            DoCalculations();
+            // Removed DoCalculations() to prevent infinite loop
         }
 
         public void DoCalculations()

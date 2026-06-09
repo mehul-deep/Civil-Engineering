@@ -62,6 +62,12 @@ namespace WaterTankTool_WFA.Foundation_Properties
 
         private void CalculateAnchorBoltValues(AnchorBoltEntity anchorBolt)
         {
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                CalculateMultiColumnAnchorBoltValues(anchorBolt);
+                return;
+            }
+
             var eq = new FoundationEquations.AnchorBoltEquations();
 
             double area = eq.CrossSectionalArea(anchorBolt.Db);
@@ -321,6 +327,135 @@ namespace WaterTankTool_WFA.Foundation_Properties
                 labelStatus.Text = "FAIL";
                 labelStatus.ForeColor = Color.Red;
             }
+        }
+
+        private void CalculateMultiColumnAnchorBoltValues(AnchorBoltEntity anchorBolt)
+        {
+            var eq = new FoundationEquations.MultiColumnAnchorBoltEquations();
+
+            // Override labels for Multi-Column
+            label1.Text = "Tension Side Legs:";
+            label2.Text = "Leg Radius (in):";
+            label3.Text = "Tension Force (kips):";
+            label6.Text = "Tension per Bolt (kips):";
+            label7.Text = "Required Steel Area (in²):";
+            label8.Text = "Steel Tension Capacity (kips):";
+            label9.Text = "Steel Shear Capacity (kips):";
+            label18.Text = "Concrete Breakout (kips):";
+            label10.Text = "Pullout Capacity (kips):";
+            label11.Text = "Pryout Capacity (kips):";
+            label12.Text = "Interaction Check:";
+            label13.Text = "Edge Distance (in):";
+            label14.Text = "Required Min Edge (in):";
+
+            // Hide unused single column specific fields
+            label15.Visible = textBox15.Visible = false;
+            label16.Visible = textBox16.Visible = false;
+            label17.Visible = textBox17.Visible = false;
+            labelBreakoutStatus.Visible = false;
+            
+            labelTbp.Visible = textBoxTbp.Visible = false;
+            labelMu.Visible = textBoxMu.Visible = false;
+            labelFcPrime.Visible = textBoxFcPrime.Visible = false;
+            labelHef.Visible = textBoxHef.Visible = false;
+            labelDistMethod.Visible = textBoxDistMethod.Visible = false;
+            groupBoxBoltDetail.Visible = false;
+            
+            // Step 1
+            int totalColumns = AppState.NoOfColumns;
+            int tensionLegs = eq.TensionLegs(totalColumns);
+            
+            // Step 2
+            double dcone = anchorBolt.Dcone ?? 0;
+            double legRadius = eq.LegRadiusInches(dcone);
+            
+            // Step 3
+            double mu = anchorBolt.Mu ?? 0;
+            double totalTension = eq.TotalOverturningTension(mu, legRadius);
+            double tensionPerLeg = eq.TensionPerLeg(totalTension, tensionLegs);
+            
+            // Step 4
+            int nb = anchorBolt.Nb;
+            double tensionPerBolt = eq.TensionPerBolt(tensionPerLeg, nb);
+            
+            // Step 5
+            double phi = anchorBolt.Phi ?? 0.75;
+            double fy = anchorBolt.Fy ?? 36.0;
+            double requiredArea = eq.RequiredSteelArea(tensionPerBolt, phi, fy);
+            
+            // Step 6 / 7
+            double db = anchorBolt.Db;
+            double boltArea = anchorBolt.Ab > 0 ? anchorBolt.Ab : eq.BoltArea(db);
+            double tensionCapacity = eq.SteelTensionCapacity(phi, boltArea, fy);
+            
+            // Step 8
+            double vu = anchorBolt.Vu;
+            double shearPerLeg = eq.ShearPerLeg(vu, totalColumns);
+            double shearPerBolt = eq.ShearPerBolt(shearPerLeg, nb);
+            double shearCapacity = eq.SteelShearCapacity(phi, boltArea, fy);
+            
+            // Step 9
+            double hef = anchorBolt.Hef ?? 40.0;
+            double fcPrime = anchorBolt.FcPrime ?? 4000.0;
+            double kc = 24;
+            double breakoutCapacity = eq.ConcreteBreakoutStrength(phi, kc, fcPrime, hef);
+            
+            // Step 10
+            double washerSize = anchorBolt.WasherSize ?? 5.0;
+            double washerArea = Math.Pow(washerSize, 2);
+            double pulloutCapacity = eq.PulloutStrength(washerArea, fcPrime);
+            
+            // Step 11
+            double pryoutCapacity = eq.PryoutStrength(breakoutCapacity);
+            
+            // Step 12
+            double interaction = eq.InteractionRatio(tensionPerBolt, tensionCapacity, shearPerBolt, shearCapacity);
+            
+            // Step 13
+            double pedestalSize = anchorBolt.PedestalSize ?? 39.0;
+            double boltSpacing = anchorBolt.BoltSpacing ?? 12.0;
+            double edgeDistance = eq.EdgeDistance(pedestalSize, boltSpacing);
+            double minEdgeDistance = eq.MinimumEdgeDistance(db);
+
+            // Populate textboxes
+            textBox1.Text = tensionLegs.ToString();
+            textBox2.Text = legRadius.ToString("F2");
+            textBox3.Text = tensionPerLeg.ToString("F2");
+            textBox6.Text = tensionPerBolt.ToString("F2");
+            textBox7.Text = requiredArea.ToString("F2");
+            textBox8.Text = tensionCapacity.ToString("F2");
+            textBox9.Text = shearCapacity.ToString("F2");
+            textBox18.Text = breakoutCapacity.ToString("F2");
+            textBox10.Text = pulloutCapacity.ToString("F2");
+            textBox11.Text = pryoutCapacity.ToString("F2");
+            textBox12.Text = interaction.ToString("F3");
+            textBox13.Text = edgeDistance.ToString("F2");
+            textBox14.Text = minEdgeDistance.ToString("F2");
+            
+            // Status Check 
+            bool tensionPass = tensionCapacity > tensionPerBolt;
+            textBox8.BackColor = tensionPass ? Color.LightGreen : Color.LightCoral;
+            
+            bool shearPass = shearCapacity > shearPerBolt;
+            textBox9.BackColor = shearPass ? Color.LightGreen : Color.LightCoral;
+
+            bool breakoutPass = breakoutCapacity > tensionPerBolt;
+            textBox18.BackColor = breakoutPass ? Color.LightGreen : Color.LightCoral;
+
+            bool pulloutPass = pulloutCapacity > tensionPerBolt;
+            textBox10.BackColor = pulloutPass ? Color.LightGreen : Color.LightCoral;
+
+            bool pryoutPass = pryoutCapacity > shearPerBolt;
+            textBox11.BackColor = pryoutPass ? Color.LightGreen : Color.LightCoral;
+
+            bool interactionPass = interaction <= 1.0;
+            textBox12.BackColor = interactionPass ? Color.LightGreen : Color.LightCoral;
+            
+            bool edgePass = edgeDistance >= minEdgeDistance;
+            textBox13.BackColor = edgePass ? Color.LightGreen : Color.LightCoral;
+            
+            labelStatus.Text = interactionPass ? "PASS" : "FAIL";
+            labelStatus.ForeColor = interactionPass ? Color.Green : Color.Red;
         }
 
         private string BuildBoltAnglesText(FoundationEquations.AnchorBoltEquations eq, AnchorBoltEntity anchorBolt)

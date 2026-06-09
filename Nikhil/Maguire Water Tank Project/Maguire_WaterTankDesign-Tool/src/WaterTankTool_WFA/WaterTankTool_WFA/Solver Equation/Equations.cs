@@ -31,7 +31,7 @@ namespace WaterTankTool_WFA.Solver_Equation
 
         public Segment_Cylinder_Equations() {
             _context = WaterTankDbContext.GetInstance();
-            Qwind = _context.WindLoadEntity.FirstOrDefault();
+            Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
 
 
 
@@ -159,7 +159,7 @@ namespace WaterTankTool_WFA.Solver_Equation
         public Segment_Conical_Equations()
         {
             _context = WaterTankDbContext.GetInstance();
-            Qwind = _context.WindLoadEntity.FirstOrDefault();
+            Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
 
         }
 
@@ -340,7 +340,7 @@ namespace WaterTankTool_WFA.Solver_Equation
         public Multileg_Cylinders()
         {
             _context = WaterTankDbContext.GetInstance();
-            Qwind = _context.WindLoadEntity.FirstOrDefault();
+            Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
         }
 
 
@@ -416,6 +416,8 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             return weight;
         }
+
+
 
 
         public double kzi(double heightinitial)

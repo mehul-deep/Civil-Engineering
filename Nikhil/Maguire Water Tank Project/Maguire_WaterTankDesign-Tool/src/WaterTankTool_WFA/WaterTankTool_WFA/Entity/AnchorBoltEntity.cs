@@ -70,5 +70,12 @@ namespace WaterTankTool_WFA.Entity
         public int? Nbs { get; set; }
 
         public string? DistributionMethod { get; set; }
+
+        // Multi-Column Specific Fields
+        public double? PedestalSize { get; set; } // B x L (in) - assuming square so a single value
+        public double? BoltSpacing { get; set; } // b x l (in) - assuming square so a single value
+        public double? WasherSize { get; set; } // square plate washer side length (in)
+        public double? Dcone { get; set; } // Cone Diameter
+        public double? Pu { get; set; } // Factored axial load
     }
 }

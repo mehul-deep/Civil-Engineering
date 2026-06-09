@@ -32,6 +32,25 @@ The Base Plate module was overhauled to reflect the updated AISC LRFD annular st
     *   Redesigned the properties window to align all text boxes and correctly label the AISC-driven results.
     *   Fixed a bug where SQLite was throwing an error due to the missing `OverturningMoment` column by configuring Entity Framework to dynamically inject the column on startup.
 
+## 3. Multi-Column Anchor Bolt Updates
+The Anchor Bolt module was expanded to dynamically support Multi-Column (Multi-Leg) tank types, extracting complex overturning structural models from `Multi-Leg Anchor Bolt Updated.pdf`.
+
+*   **Architecture & Database (`AnchorBoltEntity.cs`)**:
+    *   Extended the entity to hold Multi-Column specific geometric inputs: `PedestalSize` (B x L), `BoltSpacing` (b x l), `WasherSize` (Plate Washer Area), `Dcone` (Cone Diameter), `Pu` (Factored Axial Load), and `Ab` (Explicit Bolt Area).
+    *   Updated `WaterTankDbContext` and `StartupForm.cs` to auto-migrate these new columns into SQLite (`project_data.db`) upon new project creation.
+*   **Solver Equations (`FoundationEquations.cs`)**:
+    *   Created an entirely separate class `MultiColumnAnchorBoltEquations` to sandbox Multi-Leg logic from Single-Pedestal logic.
+    *   Implemented formulas for Leg Radius calculation and determining tension-side legs (Legs / 2).
+    *   Added Overturning Uplift per Leg ($T_{leg} = \frac{M_u}{Radius}$) and Tension per Bolt.
+    *   Updated Steel Shear Capacity calculation to exactly match AISC table lookups by relying on explicit `Ab` input instead of gross circular area, ensuring capacities match engineering specs perfectly.
+    *   Implemented precise Concrete Breakout, Pullout, and Pryout capacities tailored for a multi-leg isolated pedestal geometry.
+*   **UI Integration (`AnchorBoltParameters.cs` & `AnchorBoltProperties.cs`)**:
+    *   Added `SetupMultiColumnUI()` to dynamically hide Single-Column circular array text boxes and inject the new Multi-Column inputs seamlessly into the same form.
+    *   Added `CalculateMultiColumnAnchorBoltValues()` to override the results panel, dynamically relabeling fields to present the 13-step PDF variables (e.g., Tension Force, Interaction Ratio, Required Min Edge Distance) when `AppState.CurrentTankType == TankType.MultiColumn`.
+*   **Geometry / Segment Engine Bug Fix (`SegmentDialogBox.cs` & `Equations.cs`)**:
+    *   Resolved an infinite calculation loop (UI freeze) that triggered when entering column height by disconnecting a `TextChanged` event that recursively fired `DoCalculations()`.
+    *   Implemented a safe fallback for the `Qwind` object in `Equations.cs` so geometry could be constructed and tested before wind loads were explicitly defined.
+
 ## Architectural Notes & Best Practices
 *   **Precision:** The application maintains 64-bit floating-point precision for all calculations. Output UI text boxes format this data to 4 decimal places (`"F4"`). Small discrepancies between the application's output and the PDF documentation are due to hand-calculated intermediate rounding in the PDF, whereas the software utilizes full mathematical precision.
 *   **Database Initialization:** We rely on `EnsureDatabaseCreated()` paired with custom `ALTER TABLE` execution inside `WaterTankDbContext.cs` to handle smooth schema evolutions without relying strictly on EF Migrations during development.

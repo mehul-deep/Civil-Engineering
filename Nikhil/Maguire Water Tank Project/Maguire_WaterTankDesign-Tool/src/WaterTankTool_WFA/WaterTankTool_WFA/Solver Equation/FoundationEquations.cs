@@ -811,5 +811,127 @@ namespace WaterTankTool_WFA.Solver_Equation
                 return utilizationRatio <= 1.0;
             }
         }
+
+        public class MultiColumnAnchorBoltEquations
+        {
+            private double R(double value) => Math.Round(value, 5);
+
+            // Step 1: Tension Side Legs (Assume half the columns are in tension)
+            public int TensionLegs(int totalColumns)
+            {
+                return Math.Max(1, totalColumns / 2);
+            }
+
+            // Step 2: Leg Radius in inches (from Cone Diameter in feet)
+            public double LegRadiusInches(double coneDiameterFt)
+            {
+                return R((coneDiameterFt * 12.0) / 2.0);
+            }
+
+            // Step 3: Tension Force From Overturning (T = Mu / r)
+            public double TotalOverturningTension(double momentKipFt, double radiusInches)
+            {
+                if (radiusInches <= 0) return 0;
+                double momentKipIn = momentKipFt * 12.0;
+                return R(momentKipIn / radiusInches);
+            }
+
+            public double TensionPerLeg(double totalTension, int tensionLegs)
+            {
+                if (tensionLegs <= 0) return 0;
+                return R(totalTension / tensionLegs);
+            }
+
+            // Step 4: Tension per Bolt
+            // Assumes half the bolts on the leg are in tension
+            public double TensionPerBolt(double tensionPerLeg, int totalBoltsPerLeg)
+            {
+                int tensionBolts = Math.Max(1, totalBoltsPerLeg / 2);
+                return R(tensionPerLeg / tensionBolts);
+            }
+
+            // Step 5: Required Steel Area
+            public double RequiredSteelArea(double tensionPerBolt, double phi, double fy)
+            {
+                if (phi <= 0 || fy <= 0) return 0;
+                return R(tensionPerBolt / (phi * fy));
+            }
+
+            public double BoltArea(double db)
+            {
+                return R(Math.PI * Math.Pow(db, 2) / 4.0);
+            }
+
+            // Step 7: Steel Tension Capacity
+            public double SteelTensionCapacity(double phi, double area, double fy)
+            {
+                return R(phi * area * fy);
+            }
+
+            // Step 8: Steel Shear Capacity
+            public double ShearPerLeg(double totalShear, int totalColumns)
+            {
+                if (totalColumns <= 0) return 0;
+                return R(totalShear / totalColumns);
+            }
+
+            public double ShearPerBolt(double shearPerLeg, int totalBoltsPerLeg)
+            {
+                if (totalBoltsPerLeg <= 0) return 0;
+                return R(shearPerLeg / totalBoltsPerLeg);
+            }
+
+            public double SteelShearCapacity(double phi, double area, double fy)
+            {
+                // PDF uses 0.6 * Fy
+                return R(phi * 0.6 * fy * area);
+            }
+
+            // Step 9: Concrete Breakout Check
+            // ACI approximate breakout
+            public double ConcreteBreakoutStrength(double phi, double kc, double fcPrime, double hef)
+            {
+                double Ncb = phi * kc * Math.Sqrt(fcPrime) * Math.Pow(hef, 1.5);
+                return R(Ncb / 1000.0); // Convert lb to kips
+            }
+
+            // Step 10: Pullout Check
+            // Np = 8 * Abrg * f'c
+            public double PulloutStrength(double washerArea, double fcPrime)
+            {
+                double Np = 8.0 * washerArea * fcPrime;
+                return R(Np / 1000.0); // Convert lb to kips
+            }
+
+            // Step 11: Pryout Check
+            // Vcp = 1.0 * Ncb
+            public double PryoutStrength(double ncbKips)
+            {
+                return R(1.0 * ncbKips);
+            }
+
+            // Step 12: Interaction Check
+            public double InteractionRatio(double tu, double phiNn, double vu, double phiVn)
+            {
+                if (phiNn <= 0 || phiVn <= 0) return 0;
+                return R(Math.Pow(tu / phiNn, 2) + Math.Pow(vu / phiVn, 2));
+            }
+
+            public bool InteractionPass(double interactionRatio)
+            {
+                return interactionRatio <= 1.0;
+            }
+
+            // Step 13: Edge Distance Check
+            public double EdgeDistance(double pedestalWidth, double boltSpacing)
+            {
+                return R((pedestalWidth - boltSpacing) / 2.0);
+            }
+
+            public double MinimumEdgeDistance(double db)
+            {
+                return R(7.0 * db);
+            }
+        }
     }
 }

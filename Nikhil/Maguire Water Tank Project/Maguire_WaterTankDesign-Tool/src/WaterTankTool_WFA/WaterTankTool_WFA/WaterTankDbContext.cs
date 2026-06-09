@@ -78,10 +78,43 @@ public class WaterTankDbContext : DbContext
         {
             Database.EnsureCreated();
             UpdateBasePlateSchema();
+            UpdateAnchorBoltSchema();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error ensuring database is created: {ex.Message}");
+        }
+    }
+
+    private void UpdateAnchorBoltSchema()
+    {
+        try
+        {
+            var connection = Database.GetDbConnection();
+            if (connection.State != System.Data.ConnectionState.Open)
+                connection.Open();
+
+            using (var command = connection.CreateCommand())
+            {
+                string[] columns = new string[]
+                {
+                    "PedestalSize", "BoltSpacing", "WasherSize", "Dcone", "Pu"
+                };
+
+                foreach (var col in columns)
+                {
+                    try
+                    {
+                        command.CommandText = $"ALTER TABLE AnchorBoltEntity ADD COLUMN {col} REAL NULL;";
+                        command.ExecuteNonQuery();
+                    }
+                    catch { /* Column probably already exists */ }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating AnchorBoltEntity schema: {ex.Message}");
         }
     }
 
