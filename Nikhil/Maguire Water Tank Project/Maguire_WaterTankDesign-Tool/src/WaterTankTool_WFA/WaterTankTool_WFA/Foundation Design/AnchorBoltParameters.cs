@@ -35,6 +35,34 @@ namespace WaterTankTool_WFA.Foundation_Design
         {
             SetupMultiColumnUI();
             LoadExistingData();
+
+            // Dynamically align info buttons right next to the labels
+            infoButtonHef.Location = new Point(label19.Right + 2, label19.Top - 1);
+            infoButtonEdge.Location = new Point(label14.Right + 2, label14.Top - 1);
+            
+            // Adjust text boxes dynamically if the buttons overlap them
+            if (infoButtonHef.Right + 5 > textBox19.Left)
+            {
+                int shift = (infoButtonHef.Right + 5) - textBox19.Left;
+                MoveControlsRight(shift, textBox1, textBox2, textBox3, textBox4, textBox5, textBox6, textBox7, textBox8, textBox17, textBox18, textBox19, comboBox1);
+            }
+            if (infoButtonEdge.Right + 5 > textBox14.Left)
+            {
+                int shift = (infoButtonEdge.Right + 5) - textBox14.Left;
+                MoveControlsRight(shift, textBox10, textBox12, textBox13, textBox14, textBox9);
+                
+                // Expand the GroupBox and Form so the textboxes don't get cut off on the right
+                groupBox1.Width += shift;
+                this.Width += shift;
+            }
+        }
+
+        private void MoveControlsRight(int shift, params Control[] controls)
+        {
+            foreach (var ctrl in controls)
+            {
+                if (ctrl != null) ctrl.Left += shift;
+            }
         }
 
         private void SetupMultiColumnUI()
@@ -307,6 +335,95 @@ namespace WaterTankTool_WFA.Foundation_Design
         {
             DialogResult = DialogResult.Cancel;
             Close();
+        }
+
+        private Panel imagePopupPanel;
+
+        private void infoButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (imagePopupPanel == null)
+                {
+                    // Find the image file
+                    string currentDir = AppDomain.CurrentDomain.BaseDirectory;
+                    string imagePath = null;
+                    while (!string.IsNullOrEmpty(currentDir))
+                    {
+                        string possiblePath = System.IO.Path.Combine(currentDir, "SS9.PNG");
+                        if (System.IO.File.Exists(possiblePath)) { imagePath = possiblePath; break; }
+                        string srcPath = System.IO.Path.Combine(currentDir, "src", "SS9.PNG");
+                        if (System.IO.File.Exists(srcPath)) { imagePath = srcPath; break; }
+                        var parent = System.IO.Directory.GetParent(currentDir);
+                        currentDir = parent?.FullName;
+                    }
+
+                    if (imagePath != null)
+                    {
+                        Image img = Image.FromFile(imagePath);
+                        int imgWidth = 250;
+                        int imgHeight = (int)((double)img.Height / img.Width * imgWidth);
+
+                        imagePopupPanel = new Panel();
+                        // Panel size is inner image size + 20px padding (10px on each side)
+                        imagePopupPanel.Size = new Size(imgWidth + 20, imgHeight + 20); 
+                        imagePopupPanel.BorderStyle = BorderStyle.FixedSingle;
+                        imagePopupPanel.BackColor = Color.White;
+                        imagePopupPanel.Padding = new Padding(10);
+                        
+                        PictureBox pb = new PictureBox();
+                        pb.Image = img;
+                        pb.SizeMode = PictureBoxSizeMode.Zoom;
+                        pb.Dock = DockStyle.Fill;
+                        pb.Cursor = Cursors.Hand;;
+                        
+                        // Close on click
+                        pb.Click += (s, ev) => { imagePopupPanel.Visible = false; };
+                        
+                        imagePopupPanel.Controls.Add(pb);
+                        this.Controls.Add(imagePopupPanel);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Could not find SS9.PNG.", "Information Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
+                // Toggle visibility and position
+                if (imagePopupPanel.Visible)
+                {
+                    imagePopupPanel.Visible = false;
+                }
+                else
+                {
+                    Control clickedControl = sender as Control;
+                    if (clickedControl != null)
+                    {
+                        // Position it near the button that was clicked
+                        int targetX = clickedControl.Location.X + clickedControl.Width + 5;
+                        int targetY = clickedControl.Location.Y;
+                        
+                        // Prevent going off screen
+                        if (targetX + imagePopupPanel.Width > this.ClientSize.Width)
+                            targetX = this.ClientSize.Width - imagePopupPanel.Width - 10;
+                        if (targetY + imagePopupPanel.Height > this.ClientSize.Height)
+                            targetY = this.ClientSize.Height - imagePopupPanel.Height - 10;
+
+                        // Account for grouping box offset since buttons are in groupBox1
+                        targetX += groupBox1.Location.X;
+                        targetY += groupBox1.Location.Y;
+
+                        imagePopupPanel.Location = new Point(targetX, targetY);
+                    }
+                    imagePopupPanel.BringToFront();
+                    imagePopupPanel.Visible = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error displaying information: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

@@ -47,7 +47,20 @@ Here is a detailed summary of everything we accomplished in this session, along 
   • What We Found: The original developer intentionally disabled (commented out) the button's code because the  Solver_Output  window was redesigned. It now explicitly requires the user to select a Load Combination ("A", "B", or "C").
   • What We Changed: Since you can easily access the Solver directly through the Load Combinations icon on the toolbar (which perfectly calculates  P  and  M  dynamically), we cleanly removed the broken "Solve" button from the main menu to prevent interface confusion.
   ──────
+
+  4. Anchor Bolt UI & Reference Table Implementation
+
+  • Custom Info Badges: Replaced generic "i" buttons on the  AnchorBoltParameters  form with aesthetic, modern blue  Label  badges next to the "Embedment Depth (hef) (in)" and "Edge Distance (in)" inputs.
+  • DPI-Independent Dynamic Alignment: Implemented mathematical dynamic alignment ( label.Right + 2 ) on form Load so the badges perfectly hug the text regardless of the user's monitor DPI or Windows font scaling.
+  • Anti-Overlap Smart Shifting: If the dynamic badge placement overlaps the input text boxes, the application seamlessly shifts the entire column of text boxes to the right. To prevent the shifted text boxes from getting cut off on the right-hand side, the  GroupBox
+  and the  Form  automatically expand their widths dynamically.
+  • Embedded Reference Table (SS9.PNG): Replaced clunky separate Form popups with a sleek, embedded dropdown  Panel  overlay to display the reference table image directly on the same window.
+  • Aspect Ratio & Uniform Padding: Re-wrote the image sizing logic to extract the exact aspect ratio of  SS9.PNG , downscaled the panel width to 250px for a smaller footprint, and applied a uniform 10px white padding to absolutely eliminate any uneven letterboxing or
+  pillarboxing gaps.
+
+
   ### 🚀 Hand-Off Prompt for Your Next Session
+
 
   Copy and paste the exact text below into your new session to bring the AI completely up to speed:
 

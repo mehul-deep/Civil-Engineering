@@ -36,6 +36,8 @@ namespace WaterTankTool_WFA.Foundation_Design
             label14 = new Label();
             label13 = new Label();
             label12 = new Label();
+            infoButtonHef = new Label();
+            infoButtonEdge = new Label();
             label10 = new Label();
             textBox9 = new TextBox();
             label9 = new Label();
@@ -74,6 +76,7 @@ namespace WaterTankTool_WFA.Foundation_Design
             groupBox1.Controls.Add(label20);
             groupBox1.Controls.Add(textBox19);
             groupBox1.Controls.Add(label19);
+            groupBox1.Controls.Add(infoButtonHef);
             groupBox1.Controls.Add(textBox18);
             groupBox1.Controls.Add(label18);
             groupBox1.Controls.Add(textBox17);
@@ -83,6 +86,7 @@ namespace WaterTankTool_WFA.Foundation_Design
             groupBox1.Controls.Add(textBox12);
             groupBox1.Controls.Add(textBox10);
             groupBox1.Controls.Add(label14);
+            groupBox1.Controls.Add(infoButtonEdge);
             groupBox1.Controls.Add(label13);
             groupBox1.Controls.Add(label12);
             groupBox1.Controls.Add(label10);
@@ -144,6 +148,20 @@ namespace WaterTankTool_WFA.Foundation_Design
             label19.Size = new Size(180, 15);
             label19.TabIndex = 36;
             label19.Text = "Embedment Depth (hef) (in)";
+            // 
+            // infoButtonHef
+            // 
+            infoButtonHef.Location = new Point(194, 318);
+            infoButtonHef.Name = "infoButtonHef";
+            infoButtonHef.Size = new Size(16, 16);
+            infoButtonHef.TabIndex = 100;
+            infoButtonHef.Text = "i";
+            infoButtonHef.BackColor = Color.DodgerBlue;
+            infoButtonHef.ForeColor = Color.White;
+            infoButtonHef.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+            infoButtonHef.TextAlign = ContentAlignment.MiddleCenter;
+            infoButtonHef.Cursor = Cursors.Hand;
+            infoButtonHef.Click += new EventHandler(this.infoButton_Click);
             // 
             // textBox18
             // 
@@ -213,6 +231,20 @@ namespace WaterTankTool_WFA.Foundation_Design
             label14.Size = new Size(130, 15);
             label14.TabIndex = 22;
             label14.Text = "Edge Distance (in)";
+            // 
+            // infoButtonEdge
+            // 
+            infoButtonEdge.Location = new Point(502, 140);
+            infoButtonEdge.Name = "infoButtonEdge";
+            infoButtonEdge.Size = new Size(16, 16);
+            infoButtonEdge.TabIndex = 101;
+            infoButtonEdge.Text = "i";
+            infoButtonEdge.BackColor = Color.DodgerBlue;
+            infoButtonEdge.ForeColor = Color.White;
+            infoButtonEdge.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+            infoButtonEdge.TextAlign = ContentAlignment.MiddleCenter;
+            infoButtonEdge.Cursor = Cursors.Hand;
+            infoButtonEdge.Click += new EventHandler(this.infoButton_Click);
             // 
             // label13
             // 
@@ -455,12 +487,14 @@ namespace WaterTankTool_WFA.Foundation_Design
         private TextBox textBox12;
         private TextBox textBox10;
         private Label label14;
+        private Label infoButtonEdge;
         private TextBox textBox17;
         private Label label17;
         private TextBox textBox18;
         private Label label18;
         private TextBox textBox19;
         private Label label19;
+        private Label infoButtonHef;
         private Label label20;
         private ComboBox comboBox1;
     }
