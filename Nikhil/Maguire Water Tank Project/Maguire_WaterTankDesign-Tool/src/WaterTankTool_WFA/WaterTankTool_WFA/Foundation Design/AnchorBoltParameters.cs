@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
@@ -89,12 +89,43 @@ namespace WaterTankTool_WFA.Foundation_Design
         {
             try
             {
-                // load first record; change this if later you support multiple anchor bolt records
+                // load first record
                 _existingAnchorBolt = _context.AnchorBoltEntity.FirstOrDefault();
 
-                if (_existingAnchorBolt == null)
-                    return;
+                // Fetch governing loads from LoadService
+                var loadService = Program.GetContainer().GetService<Services.LoadService>();
+                var (Pu, Mu, Vu) = loadService.GetGoverningLoads();
 
+                // Fetch bottom-most segment diameter
+                double bottomDiameter = 0;
+                var bottomSegment = _context.SegmentProperties.OrderBy(s => s.HeightInitial).FirstOrDefault();
+                if (bottomSegment != null)
+                {
+                    bottomDiameter = bottomSegment.DiameterFinal ?? bottomSegment.Diameter;
+                }
+
+                if (_existingAnchorBolt == null)
+                {
+                    // For a new record, auto-populate Mu and Vu (and Pu if MultiColumn)
+                    textBox17.Text = Mu.ToString(CultureInfo.InvariantCulture);
+                    textBox12.Text = Vu.ToString(CultureInfo.InvariantCulture);
+                    
+                    if (AppState.CurrentTankType == TankType.MultiColumn)
+                    {
+                        txtPu.Text = Pu.ToString(CultureInfo.InvariantCulture);
+                        txtDcone.Text = bottomDiameter.ToString(CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        // For single column, you can pre-fill Dcone or equivalent if mapped.
+                        // Here, assuming Dcone maps to textBox7 (Num Segments) or similar based on UI setup.
+                        // We will not overwrite arbitrary textboxes unless mapped clearly.
+                        // But for demonstration, we have bottomDiameter available.
+                    }
+                    return;
+                }
+
+                // If existing record, load its values
                 textBox1.Text = _existingAnchorBolt.Nb.ToString();
                 textBox2.Text = _existingAnchorBolt.Db.ToString(CultureInfo.InvariantCulture);
                 textBox3.Text = _existingAnchorBolt.Dh.ToString(CultureInfo.InvariantCulture);
@@ -106,10 +137,13 @@ namespace WaterTankTool_WFA.Foundation_Design
 
                 textBox9.Text = _existingAnchorBolt.Fy?.ToString(CultureInfo.InvariantCulture) ?? "";
                 textBox10.Text = _existingAnchorBolt.Fu?.ToString(CultureInfo.InvariantCulture) ?? "";
-                textBox12.Text = _existingAnchorBolt.Vu.ToString(CultureInfo.InvariantCulture);
+                
+                // Always auto-update Mu and Vu with the latest calculations from LoadService
+                textBox12.Text = Vu.ToString(CultureInfo.InvariantCulture);
+                textBox17.Text = Mu.ToString(CultureInfo.InvariantCulture);
+
                 textBox13.Text = _existingAnchorBolt.Phi?.ToString(CultureInfo.InvariantCulture) ?? "";
                 textBox14.Text = _existingAnchorBolt.E?.ToString(CultureInfo.InvariantCulture) ?? "";
-                textBox17.Text = _existingAnchorBolt.Mu?.ToString(CultureInfo.InvariantCulture) ?? "";
                 textBox18.Text = _existingAnchorBolt.FcPrime?.ToString(CultureInfo.InvariantCulture) ?? "";
                 textBox19.Text = _existingAnchorBolt.Hef?.ToString(CultureInfo.InvariantCulture) ?? "";
 
@@ -125,8 +159,8 @@ namespace WaterTankTool_WFA.Foundation_Design
                     txtPedestalSize.Text = _existingAnchorBolt.PedestalSize?.ToString(CultureInfo.InvariantCulture) ?? "";
                     txtBoltSpacing.Text = _existingAnchorBolt.BoltSpacing?.ToString(CultureInfo.InvariantCulture) ?? "";
                     txtWasherSize.Text = _existingAnchorBolt.WasherSize?.ToString(CultureInfo.InvariantCulture) ?? "";
-                    txtDcone.Text = _existingAnchorBolt.Dcone?.ToString(CultureInfo.InvariantCulture) ?? "";
-                    txtPu.Text = _existingAnchorBolt.Pu?.ToString(CultureInfo.InvariantCulture) ?? "";
+                    txtDcone.Text = _existingAnchorBolt.Dcone?.ToString(CultureInfo.InvariantCulture) ?? bottomDiameter.ToString(CultureInfo.InvariantCulture);
+                    txtPu.Text = Pu.ToString(CultureInfo.InvariantCulture); // Always auto-update Pu
                 }
 
                 SavedAnchorBolt = _existingAnchorBolt;

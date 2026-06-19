@@ -41,8 +41,16 @@ namespace WaterTankTool_WFA.Load
         }
         private void ShowInputField()
         {
-            Load_Combinations load_Combinations = new Load_Combinations();
-            var seismic_base_moment = load_Combinations.seismicBaseMoment;
+            double seismic_base_moment = 0.0;
+            try 
+            {
+                Load_Combinations load_Combinations = new Load_Combinations();
+                seismic_base_moment = load_Combinations.seismicBaseMoment;
+            }
+            catch 
+            {
+                // Safely ignore if Load_Combinations fails due to missing external data
+            }
 
             var existingData = _context.SeismicLoadEntity.FirstOrDefault();
             if (existingData != null)
@@ -66,6 +74,13 @@ namespace WaterTankTool_WFA.Load
             textBox16.Text = seismic_base_moment.ToString("F5");
         }
 
+
+        private double ParseDoubleSafe(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0.0;
+            if (double.TryParse(value, out double result)) return result;
+            return 0.0;
+        }
 
         private void button1_Click(object sender, EventArgs e)
         {

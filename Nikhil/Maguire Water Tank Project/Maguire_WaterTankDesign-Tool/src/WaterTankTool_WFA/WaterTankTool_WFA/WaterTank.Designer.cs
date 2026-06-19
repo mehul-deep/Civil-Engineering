@@ -1,4 +1,4 @@
-﻿namespace WaterTankTool_WFA;
+namespace WaterTankTool_WFA;
 
 partial class WaterTank
 {
@@ -175,7 +175,7 @@ partial class WaterTank
         // 
         // toolsToolStripMenuItem
         // 
-        toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { materialToolStripMenuItem, loadToolStripMenuItem, optionsToolStripMenuItem, solveToolStripMenuItem });
+        toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { materialToolStripMenuItem, loadToolStripMenuItem, optionsToolStripMenuItem });
         toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
         resources.ApplyResources(toolsToolStripMenuItem, "toolsToolStripMenuItem");
         toolsToolStripMenuItem.Click += toolsToolStripMenuItem_Click;

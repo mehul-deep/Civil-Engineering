@@ -1,4 +1,4 @@
-﻿using iTextSharp.text.pdf.parser;
+using iTextSharp.text.pdf.parser;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -121,6 +121,13 @@ namespace WaterTankTool_WFA.Load
         }
 
 
+        private double ParseDoubleSafe(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0.0;
+            if (double.TryParse(value, out double result)) return result;
+            return 0.0;
+        }
+
         public void fillTableL1()
         {
             var MiscLoad = _context.DeadLoadEntity.FirstOrDefault();
@@ -238,7 +245,7 @@ namespace WaterTankTool_WFA.Load
             double res = 0;
             double weightOfSteel = 0;
 
-            comXweight += double.Parse(tankProperties.TotalWeight) *( double.Parse(tankProperties.Centroid) + segment[0].HeightInitial);
+            comXweight += ParseDoubleSafe(tankProperties.TotalWeight) *( ParseDoubleSafe(tankProperties.Centroid) + segment[0].HeightInitial);
 
 
             string fileName = AppState.CurrentTankType == TankType.MultiColumn
@@ -284,9 +291,9 @@ namespace WaterTankTool_WFA.Load
 
 
 
-            windBaseMoment += multi_leg_equations.F_Tank(tankSegment[0].HeightInitial, tankSegment[0].HeightFinal, tankSegment[0].Diameter, Double.Parse(tankProperties.ProjectedArea)) * (Double.Parse(tankProperties.Centroid) + tankSegment[0].HeightInitial);
+            windBaseMoment += multi_leg_equations.F_Tank(tankSegment[0].HeightInitial, tankSegment[0].HeightFinal, tankSegment[0].Diameter, ParseDoubleSafe(tankProperties.ProjectedArea)) * (ParseDoubleSafe(tankProperties.Centroid) + tankSegment[0].HeightInitial);
 
-            weightOfSteel += double.Parse(tankProperties.WeightOfSteel) + double.Parse(otherTakWeight);
+            weightOfSteel += ParseDoubleSafe(tankProperties.WeightOfSteel) + ParseDoubleSafe(otherTakWeight);
 
            
 
@@ -317,7 +324,7 @@ namespace WaterTankTool_WFA.Load
 
 
                 }
-                res = double.Parse(tankProperties.WeightOfWater) + weightOfSteel;
+                res = ParseDoubleSafe(tankProperties?.WeightOfWater) + weightOfSteel;
 
             }
             else
@@ -344,14 +351,14 @@ namespace WaterTankTool_WFA.Load
 
                 }
 
-                 res = double.Parse(tankProperties.TotalWeight) + misc.Miscellaneous_Load;
+                 res = ParseDoubleSafe(tankProperties?.TotalWeight) + misc.Miscellaneous_Load;
 
             }
 
 
 
 
-            if (seismicLoad != null)
+            if (seismicLoad != null && res != 0)
             {
 
                 seismicBaseMoment = (comXweight / res) * seismicLoad.V;
@@ -422,7 +429,7 @@ namespace WaterTankTool_WFA.Load
             
 
 
-            totalSegmentWeight = double.Parse(tankProperties.TotalWeight);
+            totalSegmentWeight = ParseDoubleSafe(tankProperties?.TotalWeight);
 
             if(AppState.CurrentTankType == TankType.MultiColumn)
             {

@@ -1,0 +1,82 @@
+wind load paramets ,,,,,,,,,,,,,,,seismic base shear,,
+kzt,1.00,,,,,,,,,,,,,,Ss,0.048,g
+kd,1.00,,,,,,,,,,,,,,S1,0.036,g
+I,1,,,,,,,,,,,,,,SDS,0.051,g
+V,122.0,mph,,,,,,,,,,,,,SD1,0.058,g
+exposure,C,,,,,,,,,,,,,,Ri,3.000,
+a,9.5,,,,,,,,,,,,,,IE,1.500,
+Zg,900,ft,,,,,,,,,,,,,TL,12.000,sec
+G,1.00,,,,,,,,,,,,,,Ti,4.000,sec
+Cf,0.60,,,,,,,,,,,,,,Ts,1.125,sec
+?,0.60,,,,,,,,,,,,,,Sai,0.0144,g
+(0.00256 Kzt Kd I V2),22.86,,,,,,,,,,,,,,?,0.700,
+cylinder weight 1,,,cylinder weight 2,,,cylinder weight 3,,,cylinder weight 4,,,,,,Ai,0.0065,ft/s2
+Sequence number ,6,,Sequence number ,7,,Sequence number ,8,,Sequence number ,9,,,,,COM,134.94,
+Thickness,0.5000,in,Thickness,0.4375,in,Thickness,0.3750,in,Thickness,0.0000,in,,,,V,6.416,kips
+hi,22.33,ft,hi,40.83,,hi,80.83,ft,hi,120.83,ft,,,,Seismic base moment,865.79,kips-ft
+Height of the cylinder,18.50,ft,Height of the cylinder,40.00,ft,Height of the cylinder,40.00,ft,Height of the cylinder,0.00,ft,,,,,,
+hf,40.83,ft,hf,80.83,,hf,120.83,ft,hf,120.83,ft,,,,,,
+Diameter of the cylinder,7.00,ft,Diameter of the cylinder,7.00,ft,Diameter of the cylinder,7.00,ft,Diameter of the cylinder,0.00,ft,,,,,,
+Awind,129.50,ft2,Awind,280.00,ft2,Awind,280.00,ft2,Awind,0.00,ft2,,,,,,
+Centroid,31.58,ft,Centroid,60.83,ft,Centroid,100.83,ft,Centroid,120.83,ft,,,,,,
+kzi,0.92,,kzi,1.05,,kzi,1.21,,kzi,1.32,,,,,,,
+kzf,1.05,,kzf,1.21,,kzf,1.32,,kzf,1.32,,,,,,,
+qzi,21.10,psf,qzi,23.96,psf,qzi,27.67,psf,qzi,30.11,psf,,,,,,
+qzf,23.96,psf,qzf,27.67,psf,qzf,30.11,psf,qzf,30.11,psf,,,,,,
+F,2.33,kips,F,5.04,kips,F,5.04,kips,F,0.00,kips,,,,Wind base shear,12.41,kips
+F location,31.78,ft,F location,61.31,ft,F location,101.11,ft,F location,0.00,ft,,,,,,
+Wind moment At base,74.07,kips-ft,Wind moment At base,308.99,kips-ft,Wind moment At base,509.60,kips-ft,Wind moment At base,0.00,kips-ft,,,,Wind base moment,892.67,kips-ft
+Center of mass x weight,260.75,,Center of mass x weight,950.93,,Center of mass x weight,1352.07,,Center of mass x weight,0.00,,,,,,,
+Weight,8.26,kips,Weight,15.63,kips,Weight,13.41,kips,Weight,0.00,kips,,,,weight of steel,37.30,kips
+frustum weight 1,,,frustum weight 2,,,frustum weight 3,,,frustum weight 4,,,frustum weight 5,,,,,
+Sequence number ,1,,Sequence number ,2,,Sequence number ,3,,Sequence number ,4,,Sequence number ,5,,,,
+Thickness,0.3125,in,Thickness,0.3750,in,Thickness,0.5000,in,Thickness,0.00,in,Thickness,0.00,in,,,
+hi,0.00,ft,hi,7.00,ft,hi,14.00,ft,hi,0.00,ft,hi,0.00,ft,,,
+Height of the cone,7.00,ft,Height of the cone,7.00,ft,Height of the cone,8.33,ft,Height of the cone,0.00,ft,Height of the cone,0.00,ft,,,
+hf,7.00,ft,hf,14.00,ft,hf,22.33,ft,hf,0.00,ft,hf,0.00,ft,,,
+Bottom diameter,21.00,ft,Bottom diameter,16.61,ft,Bottom diameter,12.22,ft,Bottom diameter,0.00,ft,Bottom diameter,0.00,ft,,,
+Top diameter,16.61,ft,Top diameter,12.22,ft,Top diameter,7.00,ft,Top diameter,0.00,ft,Top diameter,0.00,ft,,,
+S1,216.72,ft2,S1,117.33,ft2,S1,38.48,ft2,S1,0.00,ft2,S1,0.00,ft2,,,
+S2,346.36,ft2,S2,216.72,ft2,S2,117.33,ft2,S2,0.00,ft2,S2,0.00,ft2,,,
+S3,215.36,ft2,S3,116.13,ft2,S3,37.57,ft2,S3,0.00,ft2,S3,0.00,ft2,,,
+S4,344.64,ft2,S4,215.09,ft2,S4,115.74,ft2,S4,0.00,ft2,S4,0.00,ft2,,,
+V1,1953.13,ft3,V1,1151.53,ft3,V1,619.20,ft3,V1,0.00,ft3,V1,0.00,ft3,,,
+V2,1942.35,ft3,V2,1141.62,ft3,V2,608.79,ft3,V2,0.00,ft3,V2,0.00,ft3,,,
+Awind,131.64,ft2,Awind,100.92,ft2,Awind,80.06,ft2,Awind,0.00,ft2,Awind,0.00,ft2,,,
+Centroid,3.23,ft,Centroid,10.15,ft,Centroid,17.43,ft,Centroid,0.00,ft,Centroid,0.00,ft,,,
+kzi,0.85,,kzi,0.85,,kzi,0.85,,kzi,0.85,,kzi,0.85,,,,
+kzf,0.85,,kzf,0.85,,kzf,0.92,,kzf,0.85,,kzf,0.85,,,,
+qzi,19.41,psf,qzi,19.41,psf,qzi,19.41,psf,qzi,18.00,psf,qzi,18.00,psf,,,
+qzf,19.41,psf,qzf,19.41,psf,qzf,21.10,psf,qzf,18.00,psf,qzf,18.00,psf,,,
+F,2.37,kips,F,1.82,kips,F,1.44,kips,F,0.00,kips,F,0.00,kips,Wind base shear,5.63,kips
+F location,3.50,ft,F location,10.50,ft,F location,18.22,ft,F location,0.00,ft,F location,0.00,ft,,,
+Wind moment At base,8.29,kips-ft,Wind moment At base,19.07,kips-ft,Wind moment At base,26.26,kips-ft,Wind moment At base,0.00,kips-ft,Wind moment At base,0.00,kips-ft,Wind base moment,53.63,kips-ft
+Center of mass x weight,17.06,,Center of mass x weight,49.28,,Center of mass x weight,88.90,,Center of mass x weight,0.00,,Center of mass x weight,0.00,,,,
+V ,10.78,ft3,V ,9.91,ft3,V ,10.41,ft3,V ,0.00,ft3,V ,0.00,ft3,,,
+weight,5.28,kips,weight,4.86,kips,weight,5.10,kips,weight,0.00,kips,weight,0.00,kips,weight of steel,15.24,kips
+,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,
+Water tank properties,,,,,,,,,,,,,,,,,
+Tank type,100000,Gal.,,,,,,,,,,,,,,,
+hi,120.83,ft ,,,,,,,,,,,,,,,
+hf,155.61,ft,,,,,,,,,,,,,,,
+kzi,1.32,,,,,,,,,,,,,,,,
+kzf,1.39,,,,,,,,,,,,,,,,
+qzi,30.11,psf,,,,,,,,,,,,,,,
+qzf,31.76,psf,,,,,,,,,,,,,,,
+F,14.02,Kips,,,,,,,,,,,,,,,
+Centroied (ft),139.60,ft ,,,,,,,,,,,,,,,
+tank height (ft),34.78,ft,,,,,,,,,,,,,,,
+Weight of water (Kips),883,Kips,,,,,,,,,,,,,,,
+Weight of steel (Kips),54.62,Kips,,,,,,,,,,,,,,,
+Total weight (Kips),937.62,Kips,,,,,,,,,,,,,,,
+projected area (ft2),755.11,ft2,,,,,,,,,,,,,,,
+Wind shear,14.02,Kips,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,
+Total  Reactions,,,,,,,,,,,,,,,,,
+Wind base shear,32.05,kips,,,,,,,,,,,,,,,
+Wind base moment,2902.80,kips-ft,,,,,,,,,,,,,,,
+weight of water,883.00,kips,,,,,,,,,,,,,,,
+weight of steel,107.15,kips,,,,,,,,,,,,,,,
+Total weight,990.15,kips,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,

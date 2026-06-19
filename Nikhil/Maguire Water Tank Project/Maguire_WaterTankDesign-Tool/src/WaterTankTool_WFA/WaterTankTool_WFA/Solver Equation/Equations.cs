@@ -34,7 +34,6 @@ namespace WaterTankTool_WFA.Solver_Equation
             Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
 
 
-
         }
 
         public double ProjectedArea(double heightInitial,double heightfinal, double diameter)
@@ -128,9 +127,13 @@ namespace WaterTankTool_WFA.Solver_Equation
         {
             var h = heightFinal - heightInitial;
 
-            double numerator = (qzi(heightInitial) * Math.Pow(h, 2) / 2) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * 2*(Math.Pow( h, 2)) / 3);
+            if (h <= 0) return heightInitial; // Safe fallback
 
             double denominator = (qzi(heightInitial) * h) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * h);
+
+            if (Math.Abs(denominator) < 0.0001) return heightInitial + (h / 2.0); // Assume uniform wind if Q is zero
+
+            double numerator = (qzi(heightInitial) * Math.Pow(h, 2) / 2) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * 2*(Math.Pow( h, 2)) / 3);
 
             double F = heightInitial + (numerator / denominator);
 
@@ -311,9 +314,13 @@ namespace WaterTankTool_WFA.Solver_Equation
         {
             var h = heightFinal - heightInitial;
 
-            double numerator = Math.Round(((qzi(heightInitial) * Math.Pow(h, 2) / 2) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * Math.Pow(2 * h, 2) / 3)), 4);
+            if (h <= 0) return heightInitial; // Safe fallback
 
             double denominator = Math.Round(((qzi(heightInitial) * h) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * h)),4);
+
+            if (Math.Abs(denominator) < 0.0001) return heightInitial + (h / 2.0); // Assume uniform wind if Q is zero
+
+            double numerator = Math.Round(((qzi(heightInitial) * Math.Pow(h, 2) / 2) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * Math.Pow(2 * h, 2) / 3)), 4);
 
             double F = heightInitial + (numerator / denominator);
 
@@ -555,9 +562,13 @@ namespace WaterTankTool_WFA.Solver_Equation
         {
             var h = heightFinal - heightInitial;
 
-            double numerator = (qzi(heightInitial) * Math.Pow(h, 2) / 2) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * 2 * (Math.Pow(h, 2)) / 3);
+            if (h <= 0) return heightInitial; // Safe fallback
 
             double denominator = (qzi(heightInitial) * h) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * h);
+
+            if (Math.Abs(denominator) < 0.0001) return heightInitial + (h / 2.0); // Assume uniform wind if Q is zero
+
+            double numerator = (qzi(heightInitial) * Math.Pow(h, 2) / 2) + (0.5 * (qzf(heightFinal) - qzi(heightInitial)) * 2 * (Math.Pow(h, 2)) / 3);
 
             double F = heightInitial + (numerator / denominator);
 

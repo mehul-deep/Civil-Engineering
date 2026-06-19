@@ -30,6 +30,7 @@ namespace WaterTankTool_WFA
             };
 
             _diContainer = new DIContainer();
+            _diContainer.Register(new Services.LoadService());
             NotesManager.LoadNotes();
 
             // If no tank type saved yet, ask once

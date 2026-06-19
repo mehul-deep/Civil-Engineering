@@ -35,13 +35,31 @@ namespace WaterTankTool_WFA.Foundation_Design
             {
                 _existingBasePlate = _context.BasePlateEntity.FirstOrDefault();
 
+                // Fetch governing loads from LoadService
+                var loadService = Program.GetContainer().GetService<Services.LoadService>();
+                var (Pu, Mu, Vu) = loadService.GetGoverningLoads();
+
+                // Fetch bottom-most segment diameter
+                double bottomDiameter = 0;
+                var bottomSegment = _context.SegmentProperties.OrderBy(s => s.HeightInitial).FirstOrDefault();
+                if (bottomSegment != null)
+                {
+                    bottomDiameter = bottomSegment.DiameterFinal ?? bottomSegment.Diameter;
+                }
+
                 if (_existingBasePlate == null)
                 {
-                    // Leave fields blank for user input as requested
+                    // For a new record, auto-populate Mu and Pu
+                    textBox15.Text = Mu.ToString(CultureInfo.InvariantCulture);
+                    textBox14.Text = Pu.ToString(CultureInfo.InvariantCulture);
+                    
+                    // Pre-populate Diameter (Dbp) with the bottom-most segment diameter
+                    textBox1.Text = bottomDiameter.ToString(CultureInfo.InvariantCulture);
                     return;
                 }
 
-                textBox1.Text = _existingBasePlate.Dbp.ToString(CultureInfo.InvariantCulture);
+                // If DB has 0 for Dbp but we have a valid bottom diameter, use it
+                textBox1.Text = (_existingBasePlate.Dbp == 0 ? bottomDiameter : _existingBasePlate.Dbp).ToString(CultureInfo.InvariantCulture);
                 textBox2.Text = _existingBasePlate.Ro.ToString(CultureInfo.InvariantCulture);
                 textBox3.Text = _existingBasePlate.Ri.ToString(CultureInfo.InvariantCulture);
                 textBox4.Text = _existingBasePlate.Theta.ToString(CultureInfo.InvariantCulture);
@@ -57,8 +75,10 @@ namespace WaterTankTool_WFA.Foundation_Design
                 textBox11.Text = _existingBasePlate.Fy.ToString(CultureInfo.InvariantCulture);
                 textBox12.Text = _existingBasePlate.Fc_prime.ToString(CultureInfo.InvariantCulture);
                 textBox13.Text = _existingBasePlate.A2?.ToString(CultureInfo.InvariantCulture) ?? "";
-                textBox14.Text = _existingBasePlate.Pu?.ToString(CultureInfo.InvariantCulture) ?? "";
-                textBox15.Text = _existingBasePlate.OverturningMoment?.ToString(CultureInfo.InvariantCulture) ?? "";
+
+                // Always auto-update Pu and Mu with the latest calculations from LoadService
+                textBox14.Text = Pu.ToString(CultureInfo.InvariantCulture);
+                textBox15.Text = Mu.ToString(CultureInfo.InvariantCulture);
 
                 SavedBasePlate = _existingBasePlate;
             }
