@@ -70,4 +70,5 @@ Here is a detailed summary of everything we accomplished in this session, along 
 
 
 
-  Hello all
+  perfect now lets move on to doing few other changes. the first change I want to do is after all the loads and everything is configured and when the user clicks Anchor Bolt under foundation tab right now the user input window pulls up but before the window pulls up for
+  all the user input I want to display 3 images or option for a user to choose and the images are saved as SS
