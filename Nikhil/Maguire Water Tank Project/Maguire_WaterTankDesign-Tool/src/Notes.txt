@@ -66,3 +66,8 @@ Here is a detailed summary of everything we accomplished in this session, along 
   │
   │ Our Goal For This Session:
   │ (Type out what you want to work on next here, e.g., "I want to start working on the RingWall foundation design logic..." or "I want to add a new export feature...")***
+
+
+
+
+  Hello all
