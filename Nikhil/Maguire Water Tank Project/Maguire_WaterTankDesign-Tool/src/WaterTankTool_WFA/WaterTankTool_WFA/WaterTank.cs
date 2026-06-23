@@ -729,8 +729,14 @@ namespace WaterTankTool_WFA
 
         private void anchorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            AnchorBoltParameters anchorBoltParameters = new AnchorBoltParameters();
-            anchorBoltParameters.ShowDialog();
+            using (AnchorBoltSelectionForm selectionForm = new AnchorBoltSelectionForm())
+            {
+                if (selectionForm.ShowDialog() == DialogResult.OK)
+                {
+                    AnchorBoltParameters anchorBoltParameters = new AnchorBoltParameters();
+                    anchorBoltParameters.ShowDialog();
+                }
+            }
         }
 
         private void sideChairsToolStripMenuItem_Click(object sender, EventArgs e)

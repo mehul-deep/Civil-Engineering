@@ -414,8 +414,8 @@ namespace WaterTankTool_WFA.Foundation_Design
             label1.Location = new Point(12, 29);
             label1.Name = "label1";
             label1.Size = new Size(120, 15);
-            label1.TabIndex = 0;
-            label1.Text = "Total Number";
+            label1.TabIndex = 28;
+            label1.Text = "Total Number of Bolts";
             // 
             // button1
             // 

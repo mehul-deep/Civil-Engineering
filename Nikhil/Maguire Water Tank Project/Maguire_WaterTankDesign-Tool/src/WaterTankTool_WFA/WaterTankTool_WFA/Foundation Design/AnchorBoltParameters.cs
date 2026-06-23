@@ -40,6 +40,158 @@ namespace WaterTankTool_WFA.Foundation_Design
             infoButtonHef.Location = new Point(label19.Right + 2, label19.Top - 1);
             infoButtonEdge.Location = new Point(label14.Right + 2, label14.Top - 1);
             
+            // Add Pic 4 and Pic 5 dynamically below Edge Distance on the right side
+            PictureBox pic4 = new PictureBox();
+            pic4.Location = new Point(350, 180);
+            pic4.Size = new Size(100, 95);
+            pic4.SizeMode = PictureBoxSizeMode.Zoom;
+            string pic4Path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Pic 4.png");
+            if (System.IO.File.Exists(pic4Path)) pic4.Image = Image.FromFile(pic4Path);
+            groupBox1.Controls.Add(pic4);
+
+            Label lblDbTop = new Label();
+            lblDbTop.AutoSize = false;
+            lblDbTop.Size = new Size(100, 15);
+            lblDbTop.TextAlign = ContentAlignment.MiddleCenter;
+            lblDbTop.Location = new Point(350, 160);
+            lblDbTop.Font = new Font("Arial", 7, FontStyle.Bold);
+            lblDbTop.ForeColor = Color.Red;
+            lblDbTop.Text = "db = " + textBox2.Text;
+            groupBox1.Controls.Add(lblDbTop);
+            lblDbTop.BringToFront();
+
+            textBox2.TextChanged += (sender, args) => {
+                lblDbTop.Text = "db = " + textBox2.Text;
+                groupBox1.Invalidate(); // Refresh the group box drawings when text changes
+            };
+
+            // Draw the dimension bracket for db on the GroupBox so it floats outside the image
+            groupBox1.Paint += (sender, e) => {
+                using (Pen redPen = new Pen(Color.Red, 1.5f))
+                {
+                    int boltCenterX = pic4.Left + 50; 
+                    int boltWidth = 4;
+                    int lineY = pic4.Top - 5; // 5 pixels above the image
+                    int tickDrop = 5; // Drops down to touch the image boundary
+                    
+                    e.Graphics.DrawLine(redPen, boltCenterX - boltWidth, lineY, boltCenterX + boltWidth, lineY);
+                    e.Graphics.DrawLine(redPen, boltCenterX - boltWidth, lineY, boltCenterX - boltWidth, lineY + tickDrop);
+                    e.Graphics.DrawLine(redPen, boltCenterX + boltWidth, lineY, boltCenterX + boltWidth, lineY + tickDrop);
+                }
+
+            };
+
+            // Draw the purple dimension bracket for hef inside the picture box so it draws over the image
+            pic4.Paint += (sender, e) => {
+                using (Pen purplePen = new Pen(Color.Purple, 1.5f))
+                {
+                    int hefLineX = 85; // Bracket placed on the right edge of the concrete block
+                    int hefTopY = 26;  // Extended slightly upwards
+                    int hefBottomY = 88; // Extended slightly downwards
+                    int hefTick = 25; // Extended much further left towards the bolt
+
+                    // Vertical line
+                    e.Graphics.DrawLine(purplePen, hefLineX, hefTopY, hefLineX, hefBottomY);
+                    
+                    // Top and bottom ticks
+                    e.Graphics.DrawLine(purplePen, hefLineX, hefTopY, hefLineX - hefTick, hefTopY);
+                    e.Graphics.DrawLine(purplePen, hefLineX, hefBottomY, hefLineX - hefTick, hefBottomY);
+                }
+            };
+            Label lblTotalNumberDisplay = new Label();
+            lblTotalNumberDisplay.AutoSize = true;
+            lblTotalNumberDisplay.Location = new Point(350, 275);
+            lblTotalNumberDisplay.Font = new Font("Segoe UI", 7F, FontStyle.Bold);
+            lblTotalNumberDisplay.Text = "Total Number of Bolts = " + textBox1.Text;
+            groupBox1.Controls.Add(lblTotalNumberDisplay);
+            lblTotalNumberDisplay.BringToFront();
+            
+            textBox1.TextChanged += (sender, args) => {
+                lblTotalNumberDisplay.Text = "Total Number of Bolts = " + textBox1.Text;
+            };
+
+            PictureBox pic5 = new PictureBox();
+            pic5.Location = new Point(350, 290);
+            pic5.Size = new Size(100, 85);
+            pic5.SizeMode = PictureBoxSizeMode.Zoom;
+            string pic5Path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Pic 5.png");
+            if (System.IO.File.Exists(pic5Path)) pic5.Image = Image.FromFile(pic5Path);
+            groupBox1.Controls.Add(pic5);
+
+            Label lblNoteBox = new Label();
+            lblNoteBox.AutoSize = false;
+            lblNoteBox.Size = new Size(180, 50);
+            lblNoteBox.Location = new Point(495, 250); // Moved further to the right
+            lblNoteBox.BorderStyle = BorderStyle.FixedSingle;
+            lblNoteBox.TextAlign = ContentAlignment.MiddleCenter;
+            lblNoteBox.Font = new Font("Segoe UI", 8F, FontStyle.Italic);
+            lblNoteBox.Text = "Note: Refer to Table 1.2 ACi 318-19 to choose the hef and Edge distance";
+            groupBox1.Controls.Add(lblNoteBox);
+            lblNoteBox.BringToFront();
+
+            // Paint events for dynamic annotations
+            pic5.Paint += (sender, e) => {
+                int centerX = pic5.Width / 2;
+
+                // Red bracket for db (inner hole)
+                using (Pen redPen = new Pen(Color.Red, 1.5f))
+                using (Pen redDashPen = new Pen(Color.Red, 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash })
+                {
+                    int dbWidth = 8; // Reduced half-width of inner hole
+                    int dbY = 14;     // Y pos of bracket horizontal line
+                    int dbDrop = 22;  // Increased length of dashed vertical drop so it goes further down
+                    
+                    e.Graphics.DrawLine(redPen, centerX - dbWidth, dbY, centerX + dbWidth, dbY);
+                    e.Graphics.DrawLine(redDashPen, centerX - dbWidth, dbY, centerX - dbWidth, dbY + dbDrop);
+                    e.Graphics.DrawLine(redDashPen, centerX + dbWidth, dbY, centerX + dbWidth, dbY + dbDrop);
+                }
+
+                // Blue bracket for dh (outer ring)
+                using (Pen bluePen = new Pen(Color.Blue, 1.5f))
+                using (Pen blueDashPen = new Pen(Color.Blue, 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash })
+                {
+                    int dhWidth = 10; // Reduced just a little more
+                    int dhY = 70;     // Y pos of bracket horizontal line
+                    int dhRise = 27;  // Increased length to go further upwards
+                    
+                    e.Graphics.DrawLine(bluePen, centerX - dhWidth, dhY, centerX + dhWidth, dhY);
+                    e.Graphics.DrawLine(blueDashPen, centerX - dhWidth, dhY, centerX - dhWidth, dhY - dhRise);
+                    e.Graphics.DrawLine(blueDashPen, centerX + dhWidth, dhY, centerX + dhWidth, dhY - dhRise);
+                }
+
+                using (Font font = new Font("Arial", 7, FontStyle.Bold))
+                {
+                    StringFormat sfCenter = new StringFormat();
+                    sfCenter.Alignment = StringAlignment.Center;
+                    
+                    string dbText = "db = " + textBox2.Text;
+                    e.Graphics.DrawString(dbText, font, Brushes.Red, new PointF(centerX, 2), sfCenter);
+
+                    string dhText = "dh = " + textBox3.Text;
+                    e.Graphics.DrawString(dhText, font, Brushes.Blue, new PointF(centerX, 72), sfCenter);
+                }
+            };
+
+            // Label for hef = 96 so it doesn't get clipped by the right bound of pic4
+            Label lblHefTop = new Label();
+            lblHefTop.AutoSize = true;
+            lblHefTop.Location = new Point(pic4.Left + 88, pic4.Top + 50); // Positioned right next to the purple bracket
+            lblHefTop.Font = new Font("Arial", 7, FontStyle.Bold);
+            lblHefTop.ForeColor = Color.Purple;
+            lblHefTop.Text = "hef = " + textBox19.Text;
+            groupBox1.Controls.Add(lblHefTop);
+            lblHefTop.BringToFront();
+
+            textBox19.TextChanged += (sender, args) => {
+                lblHefTop.Text = "hef = " + textBox19.Text;
+            };
+
+            textBox2.TextChanged += (sender, args) => { pic4.Invalidate(); pic5.Invalidate(); };
+            textBox3.TextChanged += (sender, args) => { pic5.Invalidate(); };
+            textBox19.TextChanged += (sender, args) => { pic4.Invalidate(); };
+
+
+
             // Adjust text boxes dynamically if the buttons overlap them
             if (infoButtonHef.Right + 5 > textBox19.Left)
             {
@@ -208,7 +360,7 @@ namespace WaterTankTool_WFA.Foundation_Design
                 // else -> create new one
                 var entity = _existingAnchorBolt ?? new AnchorBoltEntity();
 
-                entity.Nb = ParseIntRequired(textBox1, "Total Number");
+                entity.Nb = ParseIntRequired(textBox1, "Total Number of Bolts");
                 entity.Db = ParseDoubleRequired(textBox2, "Nominal Diameter");
 
                 if (AppState.CurrentTankType == TankType.MultiColumn)
