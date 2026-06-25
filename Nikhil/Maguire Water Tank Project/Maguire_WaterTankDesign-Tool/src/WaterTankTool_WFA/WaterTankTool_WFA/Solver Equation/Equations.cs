@@ -123,6 +123,7 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             return Math.Max(result1,result2);
         }
+
         public double L(double heightInitial,double heightFinal)
         {
             var h = heightFinal - heightInitial;
@@ -141,14 +142,12 @@ namespace WaterTankTool_WFA.Solver_Equation
 
         }
 
-
         public double Mbase(double heightInitial, double heightFinal, double diameter)
         {
             var result = L(heightInitial, heightFinal) * F(heightInitial, heightFinal, diameter);
             return result;
         }
     }
-
 
     //Equations for Conical Segments
     public class Segment_Conical_Equations
@@ -184,7 +183,6 @@ namespace WaterTankTool_WFA.Solver_Equation
             var deno = Math.Pow(r1, 2) + (r1 * r2) + Math.Pow(r2, 2);
 
             var result = heightInitial+((height/4) * (num/deno));
-
 
             return result;
         }
@@ -337,6 +335,7 @@ namespace WaterTankTool_WFA.Solver_Equation
     }
 
     public class Multileg_Cylinders
+
     {
         UnitsConverter unitsConverter = new UnitsConverter();
 

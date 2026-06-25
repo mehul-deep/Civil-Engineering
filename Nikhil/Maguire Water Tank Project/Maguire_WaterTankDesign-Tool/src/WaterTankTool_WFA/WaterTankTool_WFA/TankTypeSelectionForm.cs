@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -131,6 +131,7 @@ namespace WaterTankTool_WFA
             cardMulti.CardClick += (s, e) =>
             {
                 AppState.CurrentTankType = TankType.MultiColumn;
+                if (AppState.NoOfColumns <= 1) AppState.NoOfColumns = 4;
                 SelectedTankType = TankType.MultiColumn;
                 this.DialogResult = DialogResult.OK;
             };

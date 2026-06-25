@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace WaterTankTool_WFA.Solver_Equation
 {
@@ -828,12 +828,12 @@ namespace WaterTankTool_WFA.Solver_Equation
                 return R((coneDiameterFt * 12.0) / 2.0);
             }
 
-            // Step 3: Tension Force From Overturning (T = Mu / r)
+            // Step 3: Tension Force From Overturning (T = Mu / (4/3 r))
             public double TotalOverturningTension(double momentKipFt, double radiusInches)
             {
                 if (radiusInches <= 0) return 0;
                 double momentKipIn = momentKipFt * 12.0;
-                return R(momentKipIn / radiusInches);
+                return R(momentKipIn / ((4.0 / 3.0) * radiusInches));
             }
 
             public double TensionPerLeg(double totalTension, int tensionLegs)
@@ -843,10 +843,10 @@ namespace WaterTankTool_WFA.Solver_Equation
             }
 
             // Step 4: Tension per Bolt
-            // Assumes half the bolts on the leg are in tension
+            // All bolts on the pedestal resist uplift
             public double TensionPerBolt(double tensionPerLeg, int totalBoltsPerLeg)
             {
-                int tensionBolts = Math.Max(1, totalBoltsPerLeg / 2);
+                int tensionBolts = Math.Max(1, totalBoltsPerLeg);
                 return R(tensionPerLeg / tensionBolts);
             }
 
@@ -904,10 +904,11 @@ namespace WaterTankTool_WFA.Solver_Equation
             }
 
             // Step 11: Pryout Check
-            // Vcp = 1.0 * Ncb
-            public double PryoutStrength(double ncbKips)
+            // Vcp = kcp * Ncb (kcp = 2.0 for hef >= 2.5 in, per ACI 318-19 Table 17.7.3.1)
+            public double PryoutStrength(double ncbKips, double hef = 40.0)
             {
-                return R(1.0 * ncbKips);
+                double kcp = hef < 2.5 ? 1.0 : 2.0;
+                return R(kcp * ncbKips);
             }
 
             // Step 12: Interaction Check

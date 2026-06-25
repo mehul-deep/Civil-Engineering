@@ -1,114 +1,63 @@
- Hello, I am working on the "Maguire Water Tank Design Tool" (a .NET C# WPF desktop application using Entity
- Framework Core and SQLite). The project is located at `C:\Users\nikhil.chaudhary\Desktop\Nikhil-1\Nikhil\Maguire
- Water Tank Project\Maguire_WaterTankDesign-Tool\src\WaterTankTool_WFA\WaterTankTool_WFA`.
- 
- 1. Please read the file `Notes1.txt` located in the root of the application folder to fully understand the project's
-     current status and the recent architectural overhauls we just completed for the Foundation Design module
-     (specifically the ACI 318-19 Anchor Bolt mechanics and the AISC LRFD annular strip behavior for the Base Plate).
- 2. Once you have read `Notes1.txt` and familiarized yourself with the `FoundationEquations.cs`, `BasePlateEntity.cs`,
-     and `AnchorBoltEntity.cs` files, please wait for my next instruction. We will be moving on to the next structural
-     component.
+================================================================================
+MAGUIRE WATER TANK PROJECT - MASTER ENGINEERING & UI PROGRESS NOTES
+================================================================================
 
-To Push to github:
+### 📋 PREVIOUS SESSIONS ACHIEVEMENTS (Single Column & Foundation Infrastructure)
 
-cd C:\Users\nikhil.chaudhary\Desktop\Nikhil-1\Nikhil\Maguire Water Tank Project\Maguire_WaterTankDesign-Tool
-git add .
-git commit -m "Update: brief description of what you changed"
-git push
+1. **Real-Time Dynamic Load Syncing**
+   • Removed static database caching (AnchorBoltEntity and BasePlateEntity) from AnchorBoltParameters.cs and BasePlateParameters.cs.
+   • Forms now directly execute LoadService.GetGoverningLoads() on initialization so demands (Mu, Vu, Pu) update instantly in real-time whenever structural segments or loads change.
 
+2. **Seismic Calculation Engine & JSON Parsing**
+   • Resolved a null string crash in Load_Combinations.cs where single-column tanks left "Weight_of_Bowl_and_cone" blank while MultiLeg-Tanks.json populated it.
+   • Implemented ParseDoubleSafe() to safely default blank geometry strings to 0.0, preventing null exceptions.
 
+3. **UI Decluttering & Menu Optimization**
+   • Removed obsolete top-level "Solve" menu item. Structural solver results are exclusively accessed via "Load Combinations" toolbar icon (toolStripButton12).
 
-& "$env:LOCALAPPDATA\agy\bin\agy.exe"
+4. **Single-Column Anchor Bolt UI & Visual Enhancements**
+   • Added custom interactive blue "i" information badges next to Embedment Depth (hef) and Edge Distance inputs with DPI-independent placement.
+   • Embedded SS9.PNG reference table directly inside a sleek dropdown overlay Panel with 10px uniform padding.
+   • Annotated Pic 4 (elevation) with floating red "db" label and dynamic purple "hef" dimension brackets plotted onto the GroupBox layer.
+   • Annotated Pic 5 (washer plan) with red inner hole "db" bracket and blue outer ring "dh" bracket.
+   • Standardized terminology to "Total Number of Bolts" and added ACi 318-19 Table 1.2 reference note box.
+   • Generated detailed polar coordinate/angle tables (groupBoxBoltDetail) for shop CNC drilling of circular standpipe base rings.
 
+================================================================================
+### 🚀 TODAY'S SESSION MILESTONE: MULTI-LEG ANCHOR BOLT ENGINEERING ENGINE & UI
+================================================================================
 
+We achieved 100% mathematical and architectural verification of the Multi-Leg Anchor Bolt module against "Anchor Bolt Design Updated 2.pdf".
 
-Here is a detailed summary of everything we accomplished in this session, along with the deep-dive explanation of the Seismic/Multi-Leg error, and your hand-off prompt for the next session.
+1. **Backend Governing Equation Updates (`FoundationEquations.cs`)**
+   • **Adjustment A (4/3 r Overturning Formula):** Updated overturning uplift demand formula from T = Mu / r to T = Mu / ((4/3) * r) to align with ASCE/governing wind moment arm standards on square 4-leg towers.
+   • **Adjustment B (Per-Bolt Division):** Updated TensionPerBolt calculation to divide leg uplift tension by all bolts on the pedestal (Nb) rather than assuming a single anchor bolt per column.
+   • **Adjustment C (ACI 318-19 Pryout Multiplier):** Updated PryoutStrength(Ncb, hef) to apply kcp = 2.0 for effective embedment depths hef >= 2.5 inches (per Table 17.7.3.1), doubling shear pryout capacity from 288 kips to 576 kips.
 
-  ### 📋 Session Summary
+2. **Multi-Column UI Restoration (`AnchorBoltParameters.cs`)**
+   • Restored Edge Distance input field (label14, textBox14) and its adjacent interactive blue "i" information badge in Multi-Column mode.
 
-  1. Real-Time Load Updates for Foundation Forms
+3. **Dynamic Results & Architecture (`AnchorBoltProperties.cs` & `StartupForm.cs`)**
+   • **Live Edge Distance Governing:** Updated solver to check live input anchorBolt.E first before falling back to geometric derivation (B - b)/2.
+   • **Uninitialized Column Count Guard:** Discovered that skipping "Geometry -> Define Segments" left AppState.NoOfColumns at 1. Implemented safety guard defaulting totalColumns to 4 whenever Multi-Column tank type is active, eliminating false Interaction Ratio failures (1.201).
+   • **LoadService Factored Multiplier:** Confirmed LoadService.cs dynamically grabs raw structural loads (Dead, Wind, Seismic) and multiplies Pu, Mu, Vu by 1.667 ultimate load factor before populating the form.
+   • **Shop Detailing Distinction:** Confirmed that while Single-Column circular standpipes require polar bolt angle tables for shop template drilling, rectangular Multi-Leg column pedestals (39" x 39" grid with 12" x 12" bolt spacing) omit polar coordinate tables in favor of direct tape-measure edge dimensions.
 
-  • Previous Behavior: The Anchor Bolt and Base Plate foundation forms were statically querying the database ( AnchorBoltEntity  and  BasePlateEntity ) for cached load values ( Mu ,  Vu ,  Pu ). This forced you to manually zero out inputs to trigger a UI refresh.
-  • What We Changed: We stripped out the database caching logic from both  AnchorBoltParameters.cs  and  BasePlateParameters.cs . We refactored the  OnLoad  and initialization methods to directly invoke  LoadService.CalculateDynamicLoads() .
-  • Result: The forms now calculate and pull the absolute latest load and segment values dynamically the instant you open the form, eliminating the need for any manual refreshes.
+================================================================================
+### 🎯 MASTER COPY-PASTE HANDOFF PROMPT FOR NEXT SESSION
+================================================================================
 
-  2. Resolving the Seismic Load "Parameter 's'" Crash (Single Column vs. Multi-Leg)
+Copy and paste the exact text below into your next AI session to hit the ground running:
 
-  • The Error: Clicking the Seismic Load tab spawned a repetitive  Value cannot be null, (parameter 's')  crash before eventually loading.
-  • The Root Cause (In-Depth): The calculation engine in  Load_Combinations.cs  was trying to determine the total  weightOfSteel . To do this, it reads the active tank properties from JSON configuration files. For Multi-Leg Tanks ( MultiLeg-Tanks.json ), the property
-  "Weight_of_Bowl_and_cone"  exists and contains a valid numerical string. However, for Single Column Tanks ( tanks.json ), this property is intentionally left entirely blank/null. The software was aggressively trying to run  double.Parse()  on that blank value, which
-  immediately threw a null exception crash.
-  • What We Changed: We replaced the strict parsing with a new  ParseDoubleSafe()  helper method. Now, when the software reads a blank  "Weight_of_Bowl_and_cone"  for single column tanks, it safely catches it and substitutes a  0.0  instead of crashing.
-  • Result: The software seamlessly handles the mathematical differences between Multi-Leg and Single-Column configurations without throwing errors.
+```text
+Project Context:
+I am developing "WaterTankTool_WFA", a desktop engineering design tool for water tanks (built in C# WinForms, .NET 8, EF Core with SQLite database). The application designs both Single-Column standpipe tanks and Multi-Leg towers.
 
-  3. UI Decluttering (Deprecated "Solve" Button)
+Current Standing & Verified Infrastructure:
+1. Foundation Real-Time Syncing: AnchorBoltParameters.cs and BasePlateParameters.cs dynamically fetch governing loads via LoadService.GetGoverningLoads() on initialization. Demands (Pu, Mu, Vu) are automatically multiplied by 1.667 ultimate load factor.
+2. Single-Column Anchor Bolts: Fully detailed UI with custom "i" badges, embedded SS9.PNG reference panel, visual dimension brackets on Pic 4 / Pic 5, and polar angle coordinate tables for circular base rings.
+3. Multi-Leg Anchor Bolts: 100% aligned with "Anchor Bolt Design Updated 2.pdf". Features 4/3 r overturning moment arm, per-bolt uplift division (Tleg / Nb), ACI 318-19 pryout factor kcp=2.0 (hef >= 2.5"), restored Edge Distance box + "i" badge, and robust defaults ensuring 4 legs (2 tension columns) govern if geometry definition is skipped. Rectangular pedestal grids intentionally omit polar angle tables.
 
-  • The Issue: The "Solve" button in the top menu was unresponsive.
-  • What We Found: The original developer intentionally disabled (commented out) the button's code because the  Solver_Output  window was redesigned. It now explicitly requires the user to select a Load Combination ("A", "B", or "C").
-  • What We Changed: Since you can easily access the Solver directly through the Load Combinations icon on the toolbar (which perfectly calculates  P  and  M  dynamically), we cleanly removed the broken "Solve" button from the main menu to prevent interface confusion.
-  ──────
-
-  4. Anchor Bolt UI & Reference Table Implementation
-
-  • Custom Info Badges: Replaced generic "i" buttons on the  AnchorBoltParameters  form with aesthetic, modern blue  Label  badges next to the "Embedment Depth (hef) (in)" and "Edge Distance (in)" inputs.
-  • DPI-Independent Dynamic Alignment: Implemented mathematical dynamic alignment ( label.Right + 2 ) on form Load so the badges perfectly hug the text regardless of the user's monitor DPI or Windows font scaling.
-  • Anti-Overlap Smart Shifting: If the dynamic badge placement overlaps the input text boxes, the application seamlessly shifts the entire column of text boxes to the right. To prevent the shifted text boxes from getting cut off on the right-hand side, the  GroupBox
-  and the  Form  automatically expand their widths dynamically.
-  • Embedded Reference Table (SS9.PNG): Replaced clunky separate Form popups with a sleek, embedded dropdown  Panel  overlay to display the reference table image directly on the same window.
-  • Aspect Ratio & Uniform Padding: Re-wrote the image sizing logic to extract the exact aspect ratio of  SS9.PNG , downscaled the panel width to 250px for a smaller footprint, and applied a uniform 10px white padding to absolutely eliminate any uneven letterboxing or
-  pillarboxing gaps.
-
-
-  ### 🚀 Hand-Off Prompt for Your Next Session
-
-
-  Copy and paste the exact text below into your new session to bring the AI completely up to speed:
-
-  │ Project Context:
-  │ I am working on a WinForms desktop application named "WaterTankTool_WFA" (C# .NET, Entity Framework Core with a local SQLite database). The application is an engineering design tool for water tanks (handling both Single Column and Multi-Leg tanks).
-  │
-  │ Current Standing & Recent Accomplishments:
-  │
-  │ 1. Foundation UI Real-Time Syncing: The  AnchorBoltParameters.cs  and  BasePlateParameters.cs  forms have been refactored. They no longer rely on statically cached database properties ( AnchorBoltEntity  /  BasePlateEntity ) for loads. Instead, they dynamically
-  call
-  │ LoadService.CalculateDynamicLoads()  directly on form initialization so that  Mu ,  Vu , and  Pu  update in real-time whenever tank segments or loads are modified.
-  │ 2. Seismic Calculation Engine: We resolved a null string crash in  Load_Combinations.cs  related to the  "Weight_of_Bowl_and_cone"  property.  MultiLeg-Tanks.json  utilizes this property, but  tanks.json  (Single Column) leaves it blank. We implemented a
-  │ ParseDoubleSafe()  method to safely default to  0.0  for blank geometry strings, allowing the Load Combinations math to work perfectly across all tank types without crashing the Seismic window.
-  │ 3. UI State: We removed an obsolete top-level "Solve" menu item from  WaterTank.Designer.cs . Solver outputs are now exclusively and correctly accessed dynamically via the "Load Combinations" toolbar icon ( toolStripButton12 ), which generates the exact  P  and  M
-  │ for standard ASCE-7 load combinations (A, B, C) directly from live database properties.
-  │
-  │ Our Goal For This Session:
-  │ (Type out what you want to work on next here, e.g., "I want to start working on the RingWall foundation design logic..." or "I want to add a new export feature...")***
-
-
-  ### Final Summary of Accomplishments
-
-  1. Dynamic Top Image ( Pic 4 ) Annotations:
-      • Positioned the  db = [value]  text perfectly above the bolt, ensuring it responds dynamically to user input without overlapping other UI elements.
-      • Drew a custom purple  hef  (embedment depth) dimension bracket that cleanly traces the embedment from the top of the concrete to the bottom of the bolt. By drawing it onto the  GroupBox  layer, we ensured it wasn't clipped by the image boundaries and dialed in
-      the ticks to stretch inwards perfectly.
-  2. Bottom Washer Image ( Pic 5 ) Brackets:
-      • Implemented the red  db  bracket at the top of the image to denote the inner hole diameter, extending its dashed lines deep into the center.
-      • Implemented the blue  dh  bracket at the bottom of the image, fine-tuning its horizontal width to align perfectly with the middle of the washer's outer ring, and stretching its dashed lines upwards to meet it.
-  3. Label Refinement:
-      • Updated the generic "Total Number" text across the UI (in the designer, dynamic labels, and validation code) to explicitly say "Total Number of Bolts".
-  4. Reference Note Box:
-      • Placed a cleanly bordered, italicized Note Box to the right of the images containing the text: "Note: Refer to Table 1.2 ACi 318-19 to choose the hef and Edge distance", providing essential context for the user.
-
-  ──────
-  ### Handoff Prompt for Next Session
-
-  You can copy and paste the following prompt at the beginning of your next session so the agent knows exactly where we left off!
-
-  │ Context: In the previous session, we finalized the visual UI elements for the  AnchorBoltParameters  form in the  WaterTankTool_WFA  project.
-  │
-  │ Current State:
-  │
-  │ • The top image ( Pic 4 ) now correctly features a floating red  db = [value]  label above the bolt, and a dynamic purple  hef  dimension bracket plotted perfectly against the right side of the image (drawn on the  GroupBox  to avoid clipping).
-  │ • The bottom image ( Pic 5 ) features a red  db  dimension bracket perfectly spanning the inner hole and a blue  dh  bracket perfectly spanning the outer washer ring. Both include perfectly adjusted dashed indicator lines.
-  │ • The label "Total Number" was updated to "Total Number of Bolts" globally on the form.
-  │ • A  lblNoteBox  was added on the right side of the images referencing ACi 318-19 Table 1.2 for  hef  and Edge distance.
-  │
-  │ Next Task: [Insert your next goal here, e.g., continuing with backend calculations, moving to a new form, or setting up data bindings!]
-
-  Let me know if there's anything else you need before we wrap up! Great job on this!***
+Our Goal For This Session:
+[Type what you want to work on next, e.g., "Let's move to Multi-Leg Base Plate design..." or "Let's work on RingWall foundation..."]
+```

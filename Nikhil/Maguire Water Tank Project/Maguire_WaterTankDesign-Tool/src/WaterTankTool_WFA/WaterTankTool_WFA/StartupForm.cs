@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -190,6 +190,9 @@ namespace WaterTankTool_WFA
         private void OnTankTypeSelected(TankType type)
         {
             _selectedTankType = type;
+            AppState.CurrentTankType = type;
+            if (type == TankType.MultiColumn && AppState.NoOfColumns <= 1)
+                AppState.NoOfColumns = 4;
             // Load projects for this type
             LoadRecentProjects();
             DisplayRecentProjects(recentProjectsPanel);

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using WaterTankTool_WFA.Entity;
 using System;
 using System.Data;

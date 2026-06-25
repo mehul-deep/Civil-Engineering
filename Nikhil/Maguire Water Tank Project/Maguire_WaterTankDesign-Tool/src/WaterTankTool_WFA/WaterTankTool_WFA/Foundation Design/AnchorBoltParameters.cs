@@ -228,7 +228,6 @@ namespace WaterTankTool_WFA.Foundation_Design
                 label6.Visible = textBox6.Visible = false; // Segment Angle
                 label7.Visible = textBox7.Visible = false; // Num Segments
                 label8.Visible = textBox8.Visible = false; // Base Plate Thickness
-                label14.Visible = textBox14.Visible = false; // Edge Distance
                 label20.Visible = comboBox1.Visible = false; // Distribution Method
 
                 // Create new labels and textboxes

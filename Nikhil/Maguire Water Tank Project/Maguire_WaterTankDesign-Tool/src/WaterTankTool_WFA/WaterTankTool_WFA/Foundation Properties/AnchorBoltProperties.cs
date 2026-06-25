@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -362,7 +362,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             groupBoxBoltDetail.Visible = false;
             
             // Step 1
-            int totalColumns = AppState.NoOfColumns;
+            int totalColumns = AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4;
             int tensionLegs = eq.TensionLegs(totalColumns);
             
             // Step 2
@@ -406,7 +406,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double pulloutCapacity = eq.PulloutStrength(washerArea, fcPrime);
             
             // Step 11
-            double pryoutCapacity = eq.PryoutStrength(breakoutCapacity);
+            double pryoutCapacity = eq.PryoutStrength(breakoutCapacity, hef);
             
             // Step 12
             double interaction = eq.InteractionRatio(tensionPerBolt, tensionCapacity, shearPerBolt, shearCapacity);
@@ -414,7 +414,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // Step 13
             double pedestalSize = anchorBolt.PedestalSize ?? 39.0;
             double boltSpacing = anchorBolt.BoltSpacing ?? 12.0;
-            double edgeDistance = eq.EdgeDistance(pedestalSize, boltSpacing);
+            double edgeDistance = (anchorBolt.E.HasValue && anchorBolt.E.Value > 0) ? anchorBolt.E.Value : eq.EdgeDistance(pedestalSize, boltSpacing);
             double minEdgeDistance = eq.MinimumEdgeDistance(db);
 
             // Populate textboxes
