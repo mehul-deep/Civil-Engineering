@@ -1,37 +1,62 @@
-# Project Status & Codebase Architecture Update
-**Project:** Maguire Water Tank Design Tool (WPF / Entity Framework Core / SQLite)
-**Modules Updated:** Foundation Design (Anchor Bolt & Base Plate)
+================================================================================
+MAGUIRE WATER TANK PROJECT - MASTER ENGINEERING & UI PROGRESS NOTES
+================================================================================
 
-## 1. Anchor Bolt Module Updates
-The Anchor Bolt module was fundamentally redesigned to comply with ACI 318-19 Appendix D calculations for concrete breakout, tension, and shear capacity.
+### 📋 PREVIOUS SESSIONS ACHIEVEMENTS (Single Column & Foundation Infrastructure)
 
-*   **Database & Entity (`AnchorBoltEntity.cs`)**:
-    *   Added new structural inputs: `TotalTensionDemand`, `TotalShearDemand`, `BoltYieldStrength`, `ConcreteStrength`, `EdgeDistanceX`, `EdgeDistanceY`, `EmbedmentDepth`.
-    *   Added calculated outputs: `AseN` (Net tensile area), `Nsa` (Steel strength), `Ncb` (Breakout capacity), `PhiNn` (Design tensile strength), `UtilizationRatio` (Tension), `ShearDemandPerBolt`, `BreakoutUtilization`, `InteractionRatio`.
-*   **Solver Equations (`FoundationEquations.cs`)**:
-    *   Implemented precise ACI 318-19 mechanics.
-    *   Added functions for: `TensileCapacity`, `ConcreteBreakoutCapacity` (using the $15 \cdot \sqrt{f_c'} \cdot h_{ef}^{1.5}$ methodology), `InteractionRatio` ($(\frac{N_{ua}}{\phi N_n}) + (\frac{V_{ua}}{\phi V_n}) \le 1.2$).
-*   **UI (`AnchorBoltParameters.cs` & `AnchorBoltProperties.cs`)**:
-    *   Updated the parameter input forms to accept the new structural loads and bolt geometry.
-    *   Redesigned the properties view to display comprehensive ACI validation metrics alongside the geometric bolt circle layouts.
+1. **Real-Time Dynamic Load Syncing**
+   • Removed static database caching (AnchorBoltEntity and BasePlateEntity) from AnchorBoltParameters.cs and BasePlateParameters.cs.
+   • Forms now directly execute LoadService.GetGoverningLoads() on initialization so demands (Mu, Vu, Pu) update instantly in real-time whenever structural segments or loads change.
 
-## 2. Base Plate Module Updates
-The Base Plate module was overhauled to reflect the updated AISC LRFD annular strip behavior method documented in `Base Plate Updated.pdf`.
+2. **Seismic Calculation Engine & JSON Parsing**
+   • Resolved a null string crash in Load_Combinations.cs where single-column tanks left "Weight_of_Bowl_and_cone" blank while MultiLeg-Tanks.json populated it.
+   • Implemented ParseDoubleSafe() to safely default blank geometry strings to 0.0, preventing null exceptions.
 
-*   **Database & Entity (`BasePlateEntity.cs`)**:
-    *   Replaced deprecated variables (like `ShellRadius`) with `OverturningMoment` (`Mu`) and `Pu` (Factored axial load).
-    *   Added support area `A2` to correctly evaluate confined concrete bearing capacity.
-*   **Solver Equations (`FoundationEquations.cs`)**:
-    *   Implemented Circumferential Moment per Unit Strip ($M_{strip} = \frac{M_u}{\pi \cdot D_{cone}}$).
-    *   Implemented Maximum Design Bearing Stress ($F_p = 0.85 \cdot \phi \cdot f'_c \cdot \sqrt{\frac{A_2}{A_1}}$) capped at $1.7 \cdot f'_c$.
-    *   Calculated Equivalent Eccentricity ($e = \frac{M_{strip}}{P_{strip}}$) and validated it against the Bearing Condition Limit ($\frac{N}{6}$).
-    *   Calculated Critical Section ($m = \frac{B}{2}$) and Strip Plastic Moment ($M_{plu}$).
-    *   Calculated Required Thickness ($t_{req} = \sqrt{\frac{4 \cdot M_{plu}}{0.90 \cdot F_y}}$) and the Compactness Ratio ($\frac{B}{t_p}$).
-*   **UI (`BasePlateParameters.cs` & `BasePlateProperties.cs`)**:
-    *   Updated input dialog to gather `OverturningMoment`.
-    *   Redesigned the properties window to align all text boxes and correctly label the AISC-driven results.
-    *   Fixed a bug where SQLite was throwing an error due to the missing `OverturningMoment` column by configuring Entity Framework to dynamically inject the column on startup.
+3. **Multi-Leg Anchor Bolt Engineering Engine & UI Verification**
+   • Achieved 100% mathematical verification against "Anchor Bolt Design Updated 2.pdf".
+   • Implemented 4/3 r overturning moment arm formula (T = Mu / ((4/3) * r)) for square 4-leg towers.
+   • Implemented per-bolt tension division (Tleg / Nb) on column pedestals.
+   • Implemented ACI 318-19 pryout multiplier kcp = 2.0 for effective embedment depths hef >= 2.5 inches.
 
-## Architectural Notes & Best Practices
-*   **Precision:** The application maintains 64-bit floating-point precision for all calculations. Output UI text boxes format this data to 4 decimal places (`"F4"`). Small discrepancies between the application's output and the PDF documentation are due to hand-calculated intermediate rounding in the PDF, whereas the software utilizes full mathematical precision.
-*   **Database Initialization:** We rely on `EnsureDatabaseCreated()` paired with custom `ALTER TABLE` execution inside `WaterTankDbContext.cs` to handle smooth schema evolutions without relying strictly on EF Migrations during development.
+================================================================================
+### 🚀 TODAY'S SESSION MILESTONE: BASE PLATE OVERHAUL & INTERACTIVE CAD DIAGRAMS
+================================================================================
+
+We achieved complete UI/UX overhaul and dynamic CAD detailing for the Base Plate module (`BasePlateParameters.cs`), aligning with AISC LRFD annular strip design and user shop requirements.
+
+1. **Form Re-layout & Symmetry (`BasePlateParameters.cs`)**
+   • Realigned all input rows and textboxes (`textBox1` through `textBox17`) into symmetrical, balanced columns on the left and right sides of the dialog.
+   • Expanded window and group box dimensions (`ClientSize = 620 x 620`) to eliminate clipping and provide ample breathing room for input controls and live graphical diagrams.
+
+2. **Dynamic Live CAD Bolt Arrangement Diagram (`_picBoltDiagram`)**
+   • Implemented custom GDI+ anti-aliased drawing inside the left preview pane (`Base Plate Geometry & Bolt Arrangement Preview`).
+   • **Concentric Circles & Equidistant Bolt Dots:** Dynamically renders the inner standpipe opening circle and outer base plate circle. Based on the user's input for **Total Number of Bolts (`Nb`)**, plots exact equidistant bolt dots around the pitch circle (`Dcone`), complete with center target markers and black CAD borders.
+   • **Dcone Dimensioning:** Renders engineering CAD leader lines extending downwards from the left and right bolts connected by a horizontal dimension line with ticks, dynamically displaying **`Dcone = <Diameter> ft`**.
+   • **Bolt Count Label:** Leader line extending to the right marking **`Bolts (Nb = <Nb>)`**.
+   • **Wrw Radial Dimensioning:** Plotted a radial line at a -45° angle connecting the inner circle to the outer circle, with a horizontal leader pointing to **`Wrw = <Ring Width> ft`** (live synced with `textBox16`).
+
+3. **Base Plate Thickness Detailing on Elevation Drawing (`Pic 99.png`)**
+   • Added `Pic 99.png` into the project `Images` directory and configured `.csproj` inclusion.
+   • Embedded `_pic99` picture box on the right side under `Base Plate Details`, custom drawing the image anchored at the left (`X = 10`) to leave over 110px of margin on the right.
+   • **Live Thickness Dimensioning (`Pic99_Paint`):** Custom GDI+ overlay draws horizontal extension lines aligned precisely with the top and bottom edges of the blue base plate, connected at the right end by a vertical dimension line (`dimX = 118f`) with CAD ticks. Immediately to the right (`X = 123f`), displays **`t = <Thickness> in`** (live synced with user input `textBox5`).
+
+================================================================================
+### 🎯 MASTER COPY-PASTE HANDOFF PROMPT FOR NEXT SESSION
+================================================================================
+
+Copy and paste the exact text below into your next AI session to hit the ground running:
+
+```text
+Project Context:
+I am developing "WaterTankTool_WFA", a desktop engineering design tool for water tanks (built in C# WinForms, .NET 8, EF Core with SQLite database). The application designs both Single-Column standpipe tanks and Multi-Leg towers.
+
+Current Standing & Verified Infrastructure:
+1. Foundation Real-Time Syncing: AnchorBoltParameters.cs and BasePlateParameters.cs dynamically fetch governing loads via LoadService.GetGoverningLoads() on initialization. Demands (Pu, Mu, Vu) are automatically multiplied by 1.667 ultimate load factor.
+2. Single-Column & Multi-Leg Anchor Bolts: 100% verified ACI 318-19 engine and UI. Features interactive "i" badges, embedded reference tables (SS9.PNG), elevation/plan brackets on Pic 4/Pic 5, 4/3 r overturning moment arm, per-bolt pedestal tension division, and polar angle coordinate tables for shop CNC drilling of standpipe base rings.
+3. Base Plate Design & Dynamic CAD Detailing: Complete UI re-layout with symmetrical columns (`620x620` window). Features custom GDI+ real-time preview diagrams:
+   - Left Diagram (`_picBoltDiagram`): Draws inner/outer concentric circles, plots equidistant bolt dots based on live `Nb` input, and renders CAD dimension lines for `Dcone = <val> ft`, `Bolts (Nb = <val>)`, and radial annular ring width `Wrw = <val> ft`.
+   - Right Diagram (`_pic99`): Renders elevation drawing `Pic 99.png` anchored to the left, overlaid with live CAD extension lines and vertical dimension ticks marking base plate thickness `t = <val> in` over the blue plate section.
+
+Next Steps:
+Continue with any remaining properties validation or output report generation as requested.
+```

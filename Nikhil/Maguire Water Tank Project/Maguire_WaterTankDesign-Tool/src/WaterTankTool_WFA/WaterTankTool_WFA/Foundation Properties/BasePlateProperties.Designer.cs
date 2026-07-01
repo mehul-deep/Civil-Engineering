@@ -50,6 +50,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
             textBox13 = new TextBox();
             label14 = new Label();
             textBox14 = new TextBox();
+            labelThicknessStatus = new Label();
+            labelCompactnessStatus = new Label();
             textBox10 = new TextBox();
             textBox9 = new TextBox();
             textBox8 = new TextBox();
@@ -107,6 +109,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
             groupBox1.Controls.Add(textBox13);
             groupBox1.Controls.Add(label14);
             groupBox1.Controls.Add(textBox14);
+            groupBox1.Controls.Add(labelThicknessStatus);
+            groupBox1.Controls.Add(labelCompactnessStatus);
             groupBox1.Controls.Add(textBox10);
             groupBox1.Controls.Add(textBox9);
             groupBox1.Controls.Add(textBox8);
@@ -129,7 +133,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             groupBox1.Controls.Add(label1);
             groupBox1.Location = new Point(23, 17);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new Size(650, 330);
+            groupBox1.Size = new Size(720, 330);
             groupBox1.TabIndex = 0;
             groupBox1.TabStop = false;
             groupBox1.Text = "Base Plate Calculation Results";
@@ -419,6 +423,22 @@ namespace WaterTankTool_WFA.Foundation_Properties
             textBox14.ReadOnly = true;
             textBox14.Size = new Size(100, 23);
             // 
+            // labelThicknessStatus
+            // 
+            labelThicknessStatus.AutoSize = true;
+            labelThicknessStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            labelThicknessStatus.Location = new Point(635, 177);
+            labelThicknessStatus.Name = "labelThicknessStatus";
+            labelThicknessStatus.Size = new Size(65, 23);
+            // 
+            // labelCompactnessStatus
+            // 
+            labelCompactnessStatus.AutoSize = true;
+            labelCompactnessStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            labelCompactnessStatus.Location = new Point(635, 206);
+            labelCompactnessStatus.Name = "labelCompactnessStatus";
+            labelCompactnessStatus.Size = new Size(65, 23);
+            // 
             // label22
             // 
             label22.AutoSize = true;
@@ -448,7 +468,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             groupBoxBoltDetail.Controls.Add(textBoxYCoordDetail);
             groupBoxBoltDetail.Location = new Point(23, 355);
             groupBoxBoltDetail.Name = "groupBoxBoltDetail";
-            groupBoxBoltDetail.Size = new Size(650, 110);
+            groupBoxBoltDetail.Size = new Size(720, 110);
             groupBoxBoltDetail.TabIndex = 1;
             groupBoxBoltDetail.TabStop = false;
             groupBoxBoltDetail.Text = "Base Plate Bolt Angles and Coordinates";
@@ -528,7 +548,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(700, 480);
+            ClientSize = new Size(770, 480);
             Controls.Add(groupBoxBoltDetail);
             Controls.Add(groupBox1);
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -599,5 +619,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
         private TextBox textBoxXCoordDetail;
         private Label labelYCoordDetail;
         private TextBox textBoxYCoordDetail;
+        private Label labelThicknessStatus;
+        private Label labelCompactnessStatus;
     }
 }

@@ -12,36 +12,33 @@ MAGUIRE WATER TANK PROJECT - MASTER ENGINEERING & UI PROGRESS NOTES
    • Resolved a null string crash in Load_Combinations.cs where single-column tanks left "Weight_of_Bowl_and_cone" blank while MultiLeg-Tanks.json populated it.
    • Implemented ParseDoubleSafe() to safely default blank geometry strings to 0.0, preventing null exceptions.
 
-3. **UI Decluttering & Menu Optimization**
-   • Removed obsolete top-level "Solve" menu item. Structural solver results are exclusively accessed via "Load Combinations" toolbar icon (toolStripButton12).
-
-4. **Single-Column Anchor Bolt UI & Visual Enhancements**
-   • Added custom interactive blue "i" information badges next to Embedment Depth (hef) and Edge Distance inputs with DPI-independent placement.
-   • Embedded SS9.PNG reference table directly inside a sleek dropdown overlay Panel with 10px uniform padding.
-   • Annotated Pic 4 (elevation) with floating red "db" label and dynamic purple "hef" dimension brackets plotted onto the GroupBox layer.
-   • Annotated Pic 5 (washer plan) with red inner hole "db" bracket and blue outer ring "dh" bracket.
-   • Standardized terminology to "Total Number of Bolts" and added ACi 318-19 Table 1.2 reference note box.
-   • Generated detailed polar coordinate/angle tables (groupBoxBoltDetail) for shop CNC drilling of circular standpipe base rings.
+3. **Multi-Leg Anchor Bolt Engineering Engine & UI Verification**
+   • Achieved 100% mathematical verification against "Anchor Bolt Design Updated 2.pdf".
+   • Implemented 4/3 r overturning moment arm formula (T = Mu / ((4/3) * r)) for square 4-leg towers.
+   • Implemented per-bolt tension division (Tleg / Nb) on column pedestals.
+   • Implemented ACI 318-19 pryout multiplier kcp = 2.0 for effective embedment depths hef >= 2.5 inches.
 
 ================================================================================
-### 🚀 TODAY'S SESSION MILESTONE: MULTI-LEG ANCHOR BOLT ENGINEERING ENGINE & UI
+### 🚀 TODAY'S SESSION MILESTONE: BASE PLATE OVERHAUL & INTERACTIVE CAD DIAGRAMS
 ================================================================================
 
-We achieved 100% mathematical and architectural verification of the Multi-Leg Anchor Bolt module against "Anchor Bolt Design Updated 2.pdf".
+We achieved complete UI/UX overhaul and dynamic CAD detailing for the Base Plate module (`BasePlateParameters.cs`), aligning with AISC LRFD annular strip design and user shop requirements.
 
-1. **Backend Governing Equation Updates (`FoundationEquations.cs`)**
-   • **Adjustment A (4/3 r Overturning Formula):** Updated overturning uplift demand formula from T = Mu / r to T = Mu / ((4/3) * r) to align with ASCE/governing wind moment arm standards on square 4-leg towers.
-   • **Adjustment B (Per-Bolt Division):** Updated TensionPerBolt calculation to divide leg uplift tension by all bolts on the pedestal (Nb) rather than assuming a single anchor bolt per column.
-   • **Adjustment C (ACI 318-19 Pryout Multiplier):** Updated PryoutStrength(Ncb, hef) to apply kcp = 2.0 for effective embedment depths hef >= 2.5 inches (per Table 17.7.3.1), doubling shear pryout capacity from 288 kips to 576 kips.
+1. **Form Re-layout & Symmetry (`BasePlateParameters.cs`)**
+   • Realigned all input rows and textboxes (`textBox1` through `textBox17`) into symmetrical, balanced columns on the left and right sides of the dialog.
+   • Expanded window and group box dimensions (`ClientSize = 620 x 620`) to eliminate clipping and provide ample breathing room for input controls and live graphical diagrams.
 
-2. **Multi-Column UI Restoration (`AnchorBoltParameters.cs`)**
-   • Restored Edge Distance input field (label14, textBox14) and its adjacent interactive blue "i" information badge in Multi-Column mode.
+2. **Dynamic Live CAD Bolt Arrangement Diagram (`_picBoltDiagram`)**
+   • Implemented custom GDI+ anti-aliased drawing inside the left preview pane (`Base Plate Geometry & Bolt Arrangement Preview`).
+   • **Concentric Circles & Equidistant Bolt Dots:** Dynamically renders the inner standpipe opening circle and outer base plate circle. Based on the user's input for **Total Number of Bolts (`Nb`)**, plots exact equidistant bolt dots around the pitch circle (`Dcone`), complete with center target markers and black CAD borders.
+   • **Dcone Dimensioning:** Renders engineering CAD leader lines extending downwards from the left and right bolts connected by a horizontal dimension line with ticks, dynamically displaying **`Dcone = <Diameter> ft`**.
+   • **Bolt Count Label:** Leader line extending to the right marking **`Bolts (Nb = <Nb>)`**.
+   • **Wrw Radial Dimensioning:** Plotted a radial line at a -45° angle connecting the inner circle to the outer circle, with a horizontal leader pointing to **`Wrw = <Ring Width> ft`** (live synced with `textBox16`).
 
-3. **Dynamic Results & Architecture (`AnchorBoltProperties.cs` & `StartupForm.cs`)**
-   • **Live Edge Distance Governing:** Updated solver to check live input anchorBolt.E first before falling back to geometric derivation (B - b)/2.
-   • **Uninitialized Column Count Guard:** Discovered that skipping "Geometry -> Define Segments" left AppState.NoOfColumns at 1. Implemented safety guard defaulting totalColumns to 4 whenever Multi-Column tank type is active, eliminating false Interaction Ratio failures (1.201).
-   • **LoadService Factored Multiplier:** Confirmed LoadService.cs dynamically grabs raw structural loads (Dead, Wind, Seismic) and multiplies Pu, Mu, Vu by 1.667 ultimate load factor before populating the form.
-   • **Shop Detailing Distinction:** Confirmed that while Single-Column circular standpipes require polar bolt angle tables for shop template drilling, rectangular Multi-Leg column pedestals (39" x 39" grid with 12" x 12" bolt spacing) omit polar coordinate tables in favor of direct tape-measure edge dimensions.
+3. **Base Plate Thickness Detailing on Elevation Drawing (`Pic 99.png`)**
+   • Added `Pic 99.png` into the project `Images` directory and configured `.csproj` inclusion.
+   • Embedded `_pic99` picture box on the right side under `Base Plate Details`, custom drawing the image anchored at the left (`X = 10`) to leave over 110px of margin on the right.
+   • **Live Thickness Dimensioning (`Pic99_Paint`):** Custom GDI+ overlay draws horizontal extension lines aligned precisely with the top and bottom edges of the blue base plate, connected at the right end by a vertical dimension line (`dimX = 118f`) with CAD ticks. Immediately to the right (`X = 123f`), displays **`t = <Thickness> in`** (live synced with user input `textBox5`).
 
 ================================================================================
 ### 🎯 MASTER COPY-PASTE HANDOFF PROMPT FOR NEXT SESSION
@@ -55,9 +52,11 @@ I am developing "WaterTankTool_WFA", a desktop engineering design tool for water
 
 Current Standing & Verified Infrastructure:
 1. Foundation Real-Time Syncing: AnchorBoltParameters.cs and BasePlateParameters.cs dynamically fetch governing loads via LoadService.GetGoverningLoads() on initialization. Demands (Pu, Mu, Vu) are automatically multiplied by 1.667 ultimate load factor.
-2. Single-Column Anchor Bolts: Fully detailed UI with custom "i" badges, embedded SS9.PNG reference panel, visual dimension brackets on Pic 4 / Pic 5, and polar angle coordinate tables for circular base rings.
-3. Multi-Leg Anchor Bolts: 100% aligned with "Anchor Bolt Design Updated 2.pdf". Features 4/3 r overturning moment arm, per-bolt uplift division (Tleg / Nb), ACI 318-19 pryout factor kcp=2.0 (hef >= 2.5"), restored Edge Distance box + "i" badge, and robust defaults ensuring 4 legs (2 tension columns) govern if geometry definition is skipped. Rectangular pedestal grids intentionally omit polar angle tables.
+2. Single-Column & Multi-Leg Anchor Bolts: 100% verified ACI 318-19 engine and UI. Features interactive "i" badges, embedded reference tables (SS9.PNG), elevation/plan brackets on Pic 4/Pic 5, 4/3 r overturning moment arm, per-bolt pedestal tension division, and polar angle coordinate tables for shop CNC drilling of standpipe base rings.
+3. Base Plate Design & Dynamic CAD Detailing: Complete UI re-layout with symmetrical columns (`620x620` window). Features custom GDI+ real-time preview diagrams:
+   - Left Diagram (`_picBoltDiagram`): Draws inner/outer concentric circles, plots equidistant bolt dots based on live `Nb` input, and renders CAD dimension lines for `Dcone = <val> ft`, `Bolts (Nb = <val>)`, and radial annular ring width `Wrw = <val> ft`.
+   - Right Diagram (`_pic99`): Renders elevation drawing `Pic 99.png` anchored to the left, overlaid with live CAD extension lines and vertical dimension ticks marking base plate thickness `t = <val> in` over the blue plate section.
 
-Our Goal For This Session:
-[Type what you want to work on next, e.g., "Let's move to Multi-Leg Base Plate design..." or "Let's work on RingWall foundation..."]
+Next Steps:
+Continue with any remaining properties validation or output report generation as requested.
 ```

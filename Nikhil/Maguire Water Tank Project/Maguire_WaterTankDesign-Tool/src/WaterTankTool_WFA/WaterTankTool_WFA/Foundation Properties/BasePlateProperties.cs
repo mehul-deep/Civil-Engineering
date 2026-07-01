@@ -69,10 +69,13 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double mStrip = eq.CircumferentialMomentPerUnitStrip(mKipIn, coneDiameterFt);
 
             double areaA1 = grossArea * 144.0; 
-            double areaA2 = _entity.A2 ?? areaA1; 
             double x1 = (_entity.Ro - _entity.Ri) * 12.0; // width of base plate (in)
+            double x2 = (_entity.Wrw ?? 2.0 * (_entity.Ro - _entity.Ri)) * 12.0;
             
-            double fp = eq.MaximumDesignBearingStress(_entity.Fc_prime / 1000.0, areaA2, areaA1, 0.90);
+            double fcPrimeKsi = _entity.Fc_prime > 100 ? _entity.Fc_prime / 1000.0 : _entity.Fc_prime;
+            double fp = (_entity.A2.HasValue && _entity.A2.Value > 0)
+                ? eq.MaximumDesignBearingStress(fcPrimeKsi, _entity.A2.Value, areaA1, 0.90)
+                : eq.MaximumDesignBearingStress(fcPrimeKsi, x2, x1, 0.90);
 
             double eVal = eq.EquivalentEccentricity(mStrip, pu, coneDiameterFt);
             
@@ -87,8 +90,18 @@ namespace WaterTankTool_WFA.Foundation_Properties
 
             textBox11.Text = fp.ToString("F4");
             textBox12.Text = eVal.ToString("F4");
+            
             textBox13.Text = treq.ToString("F4");
+            bool thicknessPass = _entity.T >= treq;
+            textBox13.BackColor = thicknessPass ? Color.LightGreen : Color.LightCoral;
+            labelThicknessStatus.Text = thicknessPass ? "PASS" : "FAIL";
+            labelThicknessStatus.ForeColor = thicknessPass ? Color.Green : Color.Red;
+
             textBox14.Text = compactness.ToString("F4");
+            bool compactnessPass = compactness <= 11.22;
+            textBox14.BackColor = compactnessPass ? Color.LightGreen : Color.LightCoral;
+            labelCompactnessStatus.Text = compactnessPass ? "PASS" : "FAIL";
+            labelCompactnessStatus.ForeColor = compactnessPass ? Color.Green : Color.Red;
 
             textBox21.Text = mStrip.ToString("F4");
             textBox22.Text = mCritical.ToString("F4");
@@ -119,7 +132,10 @@ namespace WaterTankTool_WFA.Foundation_Properties
             if (_entity == null) return;
 
             comboBoxBoltSelect.Items.Clear();
-            for (int i = 1; i <= _entity.Nh; i++)
+            int totalBolts = _entity.Nb ?? (_entity.N * _entity.Nh);
+            if (totalBolts <= 0) totalBolts = _entity.Nh;
+
+            for (int i = 1; i <= totalBolts; i++)
             {
                 comboBoxBoltSelect.Items.Add($"Bolt {i}");
             }
@@ -142,7 +158,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
             
             // If there's only 1 bolt, it's at startAngle. 
             // If multiple, they are spaced across Theta.
-            double step = _entity.Nh > 1 ? _entity.Theta / (_entity.Nh - 1) : 0;
+            double totalBolts = _entity.Nb ?? (_entity.N * _entity.Nh);
+            double step = totalBolts > 0 ? 360.0 / totalBolts : (_entity.Nh > 1 ? _entity.Theta / (_entity.Nh - 1) : 0);
             double angle = startAngle + (boltIndexInSegment * step);
 
             double x = boltEq.BoltXCoordinate(rb, angle);

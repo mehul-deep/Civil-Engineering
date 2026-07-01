@@ -133,7 +133,7 @@ public class WaterTankDbContext : DbContext
                 {
                     "Fy", "Fc_prime", "A2", "Pu", "ShellRadius", "OverturningMoment",
                     "Fp", "Phi_Pp", "BearingUtilization",
-                    "L", "Mu", "T_req", "ThicknessUtilization"
+                    "L", "Mu", "T_req", "ThicknessUtilization", "Wrw"
                 };
 
                 foreach (var col in columns)
@@ -145,6 +145,13 @@ public class WaterTankDbContext : DbContext
                     }
                     catch { /* Column probably already exists */ }
                 }
+
+                try
+                {
+                    command.CommandText = "ALTER TABLE BasePlateEntity ADD COLUMN Nb INTEGER NULL;";
+                    command.ExecuteNonQuery();
+                }
+                catch { /* Column probably already exists */ }
             }
         }
         catch (Exception ex)

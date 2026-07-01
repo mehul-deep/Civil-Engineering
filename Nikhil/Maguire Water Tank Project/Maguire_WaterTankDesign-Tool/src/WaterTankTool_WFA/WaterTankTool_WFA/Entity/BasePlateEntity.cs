@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -46,6 +46,12 @@ namespace WaterTankTool_WFA.Entity
 
         // rb = bolt circle radius, if bolt layout is needed
         public double? Rb { get; set; }
+
+        // Wrw = width of ring wall (ft)
+        public double? Wrw { get; set; }
+
+        // Nb = total number of anchor bolts
+        public int? Nb { get; set; }
 
         // --- Structural Design Parameters ---
 

@@ -58,3 +58,24 @@ The Anchor Bolt module was expanded to dynamically support Multi-Column (Multi-L
 
 
 & "$env:LOCALAPPDATA\agy\bin\agy.exe"
+
+
+ Project Context:
+    I am developing "WaterTankTool_WFA", a desktop engineering design tool for water tanks (built in C# WinForms, .NET 8, EF Core with SQLite
+  database). The application designs both Single-Column standpipe tanks and Multi-Leg towers.
+
+    Current Standing & Verified Infrastructure:
+    1. Foundation Real-Time Syncing: AnchorBoltParameters.cs and BasePlateParameters.cs dynamically fetch governing loads via LoadService.
+  GetGoverningLoads() on initialization. Demands (Pu, Mu, Vu) are automatically multiplied by 1.667 ultimate load factor.
+    2. Single-Column & Multi-Leg Anchor Bolts: 100% verified ACI 318-19 engine and UI. Features interactive "i" badges, embedded reference tables
+  (SS9.PNG), elevation/plan brackets on Pic 4/Pic 5, 4/3 r overturning moment arm, per-bolt pedestal tension division, and polar angle coordinate
+  tables for shop CNC drilling of standpipe base rings.
+    3. Base Plate Design & Dynamic CAD Detailing: Complete UI re-layout with symmetrical columns (`620x620` window). Features custom GDI+ real-
+  time preview diagrams:
+       - Left Diagram (`_picBoltDiagram`): Draws inner/outer concentric circles, plots equidistant bolt dots based on live `Nb` input, and renders
+  CAD dimension lines for `Dcone = <val> ft`, `Bolts (Nb = <val>)`, and radial annular ring width `Wrw = <val> ft`.
+       - Right Diagram (`_pic99`): Renders elevation drawing `Pic 99.png` anchored to the left, overlaid with live CAD extension lines and
+  vertical dimension ticks marking base plate thickness `t = <val> in` over the blue plate section.
+
+    Next Steps:
+    Continue with any remaining properties validation or output report generation as requested.
