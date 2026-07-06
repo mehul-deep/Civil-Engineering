@@ -756,6 +756,12 @@ namespace WaterTankTool_WFA
             exporter.RunExport(row, this);
         }
 
+        private void engineeringSummaryToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var exporter = new ExportEngineeringSummary();
+            exporter.RunExport(this);
+        }
+
         private void analyzeToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OutputModal outputModal = new OutputModal();

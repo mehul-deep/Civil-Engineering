@@ -64,6 +64,7 @@ partial class WaterTank
         footingToolStripMenuItem = new ToolStripMenuItem();
         aboutToolStripMenuItem = new ToolStripMenuItem();
         exportOutputToolStripMenuItem = new ToolStripMenuItem();
+        engineeringSummaryToolStripMenuItem = new ToolStripMenuItem();
         toolStrip1 = new ToolStrip();
         newToolStripButton = new ToolStripButton();
         openToolStripButton = new ToolStripButton();
@@ -109,7 +110,7 @@ partial class WaterTank
         resources.ApplyResources(menuStrip1, "menuStrip1");
         menuStrip1.GripMargin = new Padding(3);
         menuStrip1.ImageScalingSize = new Size(24, 24);
-        menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, toolsToolStripMenuItem, foundationToolStripMenuItem, aboutToolStripMenuItem, exportOutputToolStripMenuItem });
+        menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, toolsToolStripMenuItem, foundationToolStripMenuItem, aboutToolStripMenuItem, exportOutputToolStripMenuItem, engineeringSummaryToolStripMenuItem });
         menuStrip1.Name = "menuStrip1";
         menuStrip1.RenderMode = ToolStripRenderMode.System;
         menuStrip1.ShowItemToolTips = true;
@@ -308,7 +309,14 @@ partial class WaterTank
         // 
         exportOutputToolStripMenuItem.Name = "exportOutputToolStripMenuItem";
         resources.ApplyResources(exportOutputToolStripMenuItem, "exportOutputToolStripMenuItem");
+        exportOutputToolStripMenuItem.Text = "Fabrication Output";
         exportOutputToolStripMenuItem.Click += exportOutputToolStripMenuItem_Click;
+        // 
+        // engineeringSummaryToolStripMenuItem
+        // 
+        engineeringSummaryToolStripMenuItem.Name = "engineeringSummaryToolStripMenuItem";
+        engineeringSummaryToolStripMenuItem.Text = "Engineering Summary";
+        engineeringSummaryToolStripMenuItem.Click += engineeringSummaryToolStripMenuItem_Click;
         // 
         // toolStrip1
         // 
@@ -643,6 +651,7 @@ partial class WaterTank
     private ToolStripMenuItem basePlateToolStripMenuItem;
     private ToolStripMenuItem anchorToolStripMenuItem;
     private ToolStripMenuItem exportOutputToolStripMenuItem;
+    private ToolStripMenuItem engineeringSummaryToolStripMenuItem;
     private ToolStripMenuItem analyzeToolStripMenuItem;
     private ToolStripMenuItem materialToolStripMenuItem1;
     private ToolStripMenuItem geoTechnicalPropertiesToolStripMenuItem;

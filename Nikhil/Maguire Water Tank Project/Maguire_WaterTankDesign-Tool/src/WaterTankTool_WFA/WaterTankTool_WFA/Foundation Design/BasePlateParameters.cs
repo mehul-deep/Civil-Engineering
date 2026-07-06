@@ -407,11 +407,11 @@ namespace WaterTankTool_WFA.Foundation_Design
                 g.DrawLine(pDim, leftBoltX, yDim - 5f, leftBoltX, yDim + 5f);
                 g.DrawLine(pDim, rightBoltX, yDim - 5f, rightBoltX, yDim + 5f);
 
-                // Text label: Dcone = <Diameter> (placed below the horizontal line)
+                // Text label: Dcone = <Diameter> (placed above the horizontal line)
                 string diamVal = textBox1.Text.Trim();
                 string dconeText = string.IsNullOrEmpty(diamVal) ? "Dcone =" : $"Dcone = {diamVal} ft";
                 SizeF textSize = g.MeasureString(dconeText, fBold);
-                g.DrawString(dconeText, fBold, bText, cx - (textSize.Width / 2f), yDim + 3f);
+                g.DrawString(dconeText, fBold, bText, cx - (textSize.Width / 2f), yDim - textSize.Height - 2f);
 
                 // Leader line and label for Bolts (Nb)
                 g.DrawLine(pDim, rightBoltX, cy, 200f, cy);

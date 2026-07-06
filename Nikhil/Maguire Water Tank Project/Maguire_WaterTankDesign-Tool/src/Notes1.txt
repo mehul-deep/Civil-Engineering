@@ -51,31 +51,53 @@ The Anchor Bolt module was expanded to dynamically support Multi-Column (Multi-L
     *   Resolved an infinite calculation loop (UI freeze) that triggered when entering column height by disconnecting a `TextChanged` event that recursively fired `DoCalculations()`.
     *   Implemented a safe fallback for the `Qwind` object in `Equations.cs` so geometry could be constructed and tested before wind loads were explicitly defined.
 
+## 4. Reporting & Export Subsystem Overhaul (Dual Excel Architecture)
+To serve two distinct project stakeholders without compromising data structure, we developed a Dual-Output Architecture:
+
+*   **Shop Manufacturing Schedule (`Fabrication Output` / `Output.xlsx`)**:
+    *   Renamed `"Export Output"` menu item to `"Fabrication Output"` in `WaterTank.resx` and `WaterTank.Designer.cs`.
+    *   Preserves all 107 columns untouched for 100% backward compatibility with shop CNC plate-cutting/drilling machines and existing macros.
+    *   Populates Standpipe Base Cone (`B1-B5`) and Cylinder (`C1-C18`) dimensions, Base Plate specs (`BPDIA`, `BPOR`, `BPIR`, `BPDEG`, `BPTHK`, `BPQ`), and Anchor Bolt drilling coordinates (`ABQ`, `ABHQ`, `ABHSD`).
+*   **Structural Calculation Report (`Engineering Summary` / `EngineeringSummary.xlsx`)**:
+    *   Created `ExportEngineeringSummary.cs` triggered via a new `"Engineering Summary"` menu item.
+    *   Generates a standalone, executive calculation report formatted with soft blue header banners (`#D9E1F2`), bold grey labels, and clean cell borders across 5 audit sections:
+        1) *Project & Tank Geometry Overview* (Designation, Capacity, Base Cone & Column dimensions).
+        2) *Governing Structural Loads & Demands* (`Mu`, `Pu`, `Vu`, and Ultimate Load Factor `1.667`).
+        3) *Anchor Bolt Breakout Check (ACI 318-19)* with automated **Combined Interaction Ratio** and status evaluation (`OK`).
+        4) *Base Plate Bearing Check (AISC LRFD)* with automated **Plate Compactness Status** alerting (`CHECK THICKNESS`).
+        5) *Material & Geotechnical Properties* (`E`, `Fy`, `Fu`, densities, soil bearing).
+
+## 5. UI/UX & CAD Diagram Precision Refinements
+*   **Base Plate Visualizer (`BasePlateParameters.cs`)**: Fixed a visual clipping issue on the left preview diagram (`_picBoltDiagram`) where the `Dcone` (Diameter) label was previously drawn at `yDim + 3f` (3 pixels below the horizontal dimension line), causing it to get cut off at the bottom edge. Updated Y-coordinate positioning to `yDim - textSize.Height - 2f`, placing the label cleanly **above** the horizontal dimension line so it sits centered right on top of the dimension line and is 100% visible.
+*   **107-Column Audit & Strategic Meeting Prep (`Notes5.txt`)**: Audited all unpopulated / `0` columns in `Output.xlsx` and categorized them into 3 logical groups for company leadership review:
+    *   *Category 1: Shop Accessories (Side Chairs `SC`/`SCWT`, Shims `BPSQ`, Door Angle `DDEG`)* - Need rules-of-thumb or UI inputs.
+    *   *Category 2: Ring Arc-Plate Subdivisions (`B1 SEGMENT DEGREE`, `QUANTITY`...)* - Need max shop roll cutting length rules.
+    *   *Category 3: Spheroid/Toroidal Parts (`T1-T6`, Knuckles, Roof Fingers, Reducer Cones, Drywell)* - Confirmed as 0 for Single-Leg Standpipes.
+
 ## Architectural Notes & Best Practices
 *   **Precision:** The application maintains 64-bit floating-point precision for all calculations. Output UI text boxes format this data to 4 decimal places (`"F4"`). Small discrepancies between the application's output and the PDF documentation are due to hand-calculated intermediate rounding in the PDF, whereas the software utilizes full mathematical precision.
-
 *   **Database Initialization:** We rely on `EnsureDatabaseCreated()` paired with custom `ALTER TABLE` execution inside `WaterTankDbContext.cs` to handle smooth schema evolutions without relying strictly on EF Migrations during development.
 
 
-& "$env:LOCALAPPDATA\agy\bin\agy.exe"
+================================================================================
+### 🎯 MASTER COPY-PASTE HANDOFF PROMPT FOR NEXT SESSION
+================================================================================
 
+```text
+Project Context:
+I am developing "WaterTankTool_WFA", a desktop engineering design tool for water tanks (built in C# WinForms, .NET 8, EF Core with SQLite database). The application designs both Single-Column standpipe tanks and Multi-Leg towers.
 
- Project Context:
-    I am developing "WaterTankTool_WFA", a desktop engineering design tool for water tanks (built in C# WinForms, .NET 8, EF Core with SQLite
-  database). The application designs both Single-Column standpipe tanks and Multi-Leg towers.
+Current Standing & Verified Infrastructure:
+1. Foundation Real-Time Syncing: AnchorBoltParameters.cs and BasePlateParameters.cs dynamically fetch governing loads via LoadService.GetGoverningLoads() on initialization. Demands (Pu, Mu, Vu) are automatically multiplied by 1.667 ultimate load factor.
+2. Single-Column & Multi-Leg Anchor Bolts: 100% verified ACI 318-19 engine and UI. Features interactive "i" badges, embedded reference tables (SS9.PNG), elevation/plan brackets on Pic 4/Pic 5, 4/3 r overturning moment arm, per-bolt pedestal tension division, and polar angle coordinate tables for shop CNC drilling of standpipe base rings.
+3. Base Plate Design & Dynamic CAD Detailing: Complete UI re-layout with symmetrical columns (`620x620` window). Features custom GDI+ real-time preview diagrams:
+   - Left Diagram (`_picBoltDiagram`): Draws inner/outer concentric circles, plots equidistant bolt dots based on live `Nb` input, and renders CAD dimension lines for `Dcone = <val> ft` (positioned cleanly ABOVE the horizontal line via `yDim - textSize.Height - 2f`), `Bolts (Nb = <val>)`, and radial annular ring width `Wrw = <val> ft`.
+   - Right Diagram (`_pic99`): Renders elevation drawing `Pic 99.png` anchored to the left, overlaid with live CAD extension lines and vertical dimension ticks marking base plate thickness `t = <val> in` over the blue plate section.
+4. Dual Excel Output Architecture:
+   - Fabrication Output (`Output.xlsx`): Preserves the strict 107-column manufacturing schedule untouched for shop floor CNC cutting/drilling compatibility.
+   - Engineering Summary (`EngineeringSummary.xlsx` via `ExportEngineeringSummary.cs`): Generates a standalone, 5-section calculation report covering geometry, structural demands, ACI 318-19 anchor bolt breakout checks (with automated Combined Interaction Ratio `OK` status), AISC LRFD base plate bearing checks (with automated Plate Compactness `CHECK THICKNESS` alerts), and material properties.
+5. Column Audit & Meeting Briefing: Complete 107-column audit and presentation guide saved in `Notes5.txt` and `company_meeting_briefing_packet.md`.
 
-    Current Standing & Verified Infrastructure:
-    1. Foundation Real-Time Syncing: AnchorBoltParameters.cs and BasePlateParameters.cs dynamically fetch governing loads via LoadService.
-  GetGoverningLoads() on initialization. Demands (Pu, Mu, Vu) are automatically multiplied by 1.667 ultimate load factor.
-    2. Single-Column & Multi-Leg Anchor Bolts: 100% verified ACI 318-19 engine and UI. Features interactive "i" badges, embedded reference tables
-  (SS9.PNG), elevation/plan brackets on Pic 4/Pic 5, 4/3 r overturning moment arm, per-bolt pedestal tension division, and polar angle coordinate
-  tables for shop CNC drilling of standpipe base rings.
-    3. Base Plate Design & Dynamic CAD Detailing: Complete UI re-layout with symmetrical columns (`620x620` window). Features custom GDI+ real-
-  time preview diagrams:
-       - Left Diagram (`_picBoltDiagram`): Draws inner/outer concentric circles, plots equidistant bolt dots based on live `Nb` input, and renders
-  CAD dimension lines for `Dcone = <val> ft`, `Bolts (Nb = <val>)`, and radial annular ring width `Wrw = <val> ft`.
-       - Right Diagram (`_pic99`): Renders elevation drawing `Pic 99.png` anchored to the left, overlaid with live CAD extension lines and
-  vertical dimension ticks marking base plate thickness `t = <val> in` over the blue plate section.
-
-    Next Steps:
-    Continue with any remaining properties validation or output report generation as requested.
+Next Steps:
+I am currently reviewing all columns in the Excel outputs one by one and preparing for discussions with company leadership. Once our meeting is complete, our NEXT DEVELOPMENT PHASE will focus on RING WALL AND FOOTING DESIGN (`RingWallFoundation.cs`, `RingWallProperties.cs`, and `GeoTechnicalProperties.cs`). Please assist with column reviews, meeting prep, or jumping directly into ring wall/footing calculations as requested.
+```

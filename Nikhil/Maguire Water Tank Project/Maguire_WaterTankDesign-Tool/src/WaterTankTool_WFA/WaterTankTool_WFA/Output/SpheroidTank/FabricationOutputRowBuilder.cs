@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,6 +31,9 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 .Where(s => s.SegmentType == "Cylinder")
                 .ToList();
 
+            var basePlate = context.BasePlateEntity?.FirstOrDefault();
+            var anchorBolt = context.AnchorBoltEntity?.FirstOrDefault();
+
             int capacity = 0;
 
             if (tankProperties?.Capacity != null)
@@ -58,7 +61,7 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
 
             // ====== Start filling fields (example) ======
             row.Values["TANK DESIGNATION"] = tankDesignation;
-            //row.Values["PARAMETER REF."] = design.ParameterRef;
+            row.Values["PARAMETER REF."] = $"TANK-{tankProperties?.TankNumber ?? 1}";
             row.Values["MG"] = capacity;
             row.Values["BASCONE DIA"] = baseConeDiameter;
             row.Values["BASECONE HT"] = baseConeHeight;
@@ -66,17 +69,50 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             row.Values["DOOR TYPE"] = "STD";
             row.Values["DDEG"] = 0;
 
-            row.Values["BPDIA"] = baseConeDiameter * 12;
-            row.Values["BPOR"] = bpor;
-            row.Values["BPIR"] = bpor - 12;
+            double bpdia = baseConeDiameter * 12;
+            if (basePlate != null && basePlate.Dbp > 0)
+            {
+                // If Dbp < 100, assume feet and convert to inches; otherwise assume inches
+                bpdia = basePlate.Dbp < 100 ? basePlate.Dbp * 12 : basePlate.Dbp;
+            }
+            row.Values["BPDIA"] = bpdia;
 
+            double bporVal = bpor;
+            if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro;
+            row.Values["BPOR"] = bporVal;
 
-            row.Values["BPDEG"] = 0;
-            row.Values["BPTHK"] = 0;
-            row.Values["BPQ"] = 0;
-            row.Values["ABHQ"] = 0;
-            row.Values["ABHSD"] = 0;
-            row.Values["ABQ"] = 0;
+            double bpirVal = bporVal - 12;
+            if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri;
+            row.Values["BPIR"] = bpirVal;
+
+            double bpdeg = 0;
+            if (basePlate != null && basePlate.Theta > 0) bpdeg = basePlate.Theta;
+            else if (basePlate != null && basePlate.N > 0) bpdeg = 360.0 / basePlate.N;
+            row.Values["BPDEG"] = bpdeg;
+
+            double bpthk = 0;
+            if (basePlate != null && basePlate.T > 0) bpthk = basePlate.T;
+            else if (basePlate != null && basePlate.T_req > 0) bpthk = basePlate.T_req.Value;
+            row.Values["BPTHK"] = bpthk;
+
+            int bpq = 0;
+            if (basePlate != null && basePlate.N > 0) bpq = basePlate.N;
+            row.Values["BPQ"] = bpq;
+
+            int abhq = 0;
+            if (anchorBolt != null && anchorBolt.Nb > 0) abhq = anchorBolt.Nb;
+            else if (basePlate != null && basePlate.Nb != null && basePlate.Nb > 0) abhq = basePlate.Nb.Value;
+            row.Values["ABHQ"] = abhq;
+
+            double abhsd = 0;
+            if (anchorBolt != null) abhsd = anchorBolt.Ab;
+            row.Values["ABHSD"] = abhsd;
+
+            int abq = 0;
+            if (anchorBolt != null && anchorBolt.Nb > 0) abq = anchorBolt.Nb;
+            else if (basePlate != null && basePlate.Nb != null && basePlate.Nb > 0) abq = basePlate.Nb.Value;
+            row.Values["ABQ"] = abq;
+
             row.Values["SC"] = 0;
             row.Values["SCWT"] = 0;
             row.Values["BPSQ"] = 0;
