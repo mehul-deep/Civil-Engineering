@@ -934,5 +934,99 @@ namespace WaterTankTool_WFA.Solver_Equation
                 return R(7.0 * db);
             }
         }
+
+        public class MultiColumnBasePlateEquations
+        {
+            private double R(double value) => Math.Round(value, 5);
+
+            // Step 1: Factored Moment per Pedestal (Mu,ped)
+            public double FactoredMomentPerPedestal(double totalMuKipFt, int totalPedestals)
+            {
+                if (totalPedestals <= 0) return 0;
+                return R(totalMuKipFt / totalPedestals);
+            }
+
+            public double ConvertMomentToKipIn(double momentKipFt)
+            {
+                return R(momentKipFt * 12.0);
+            }
+
+            // Step 2: Pedestal Area & Base Plate Area & Bearing Stress
+            public double PedestalArea(double p, double l) => R(p * l);
+            public double BasePlateArea(double b, double n) => R(b * n);
+
+            public double MaximumBearingStress(double fcPrimeKsi, double a2, double a1, double phiC = 0.65)
+            {
+                if (a1 <= 0 || a2 <= 0) return 0;
+                double ratio = Math.Sqrt(a2 / a1);
+                if (ratio > 2.0) ratio = 2.0; // ACI/AISC max limit sqrt(A2/A1) <= 2.0
+                double fp = 0.85 * phiC * fcPrimeKsi * ratio;
+                double limit = 1.7 * phiC * fcPrimeKsi;
+                return R(Math.Min(fp, limit));
+            }
+
+            public double BearingStressLimit(double fcPrimeKsi, double phiC = 0.65)
+            {
+                return R(1.7 * phiC * fcPrimeKsi);
+            }
+
+            // Step 3: Check Bearing Capacity
+            public double BearingCapacity(double fpKsi, double a1)
+            {
+                return R(fpKsi * a1);
+            }
+
+            // Step 4: Determine Equivalent Eccentricity
+            // Applied load per pedestal in compression: Pu,ped = Pu,total / (totalPedestals / 2)
+            public double AppliedLoadPerCompressionPedestal(double totalPuKips, int totalPedestals)
+            {
+                int compPedestals = Math.Max(1, totalPedestals / 2);
+                return R(totalPuKips / compPedestals);
+            }
+
+            public double EquivalentEccentricity(double muPedKipIn, double puPedKips)
+            {
+                if (puPedKips <= 0) return 0;
+                return R(muPedKipIn / puPedKips);
+            }
+
+            public double BearingConditionLimit(double n)
+            {
+                return R(n / 6.0);
+            }
+
+            // Step 6: Determine Base Plate Thickness
+            // 6.1 Column Bearing Area
+            public double ColumnBearingArea(double pipeDiameterInches)
+            {
+                return R(Math.PI * Math.Pow(pipeDiameterInches, 2) / 4.0);
+            }
+
+            // 6.2 Bearing Pressure (q)
+            public double BearingPressure(double puPedKips, double columnArea)
+            {
+                if (columnArea <= 0) return 0;
+                return R(puPedKips / columnArea);
+            }
+
+            // 6.3 Plate Projection (m)
+            public double PlateProjection(double plateWidthN, double pipeDiameterD)
+            {
+                return R((plateWidthN - pipeDiameterD) / 2.0);
+            }
+
+            // 6.4 Plastic Moment per 1-in Strip (Mplu)
+            public double StripPlasticMoment(double qKsi, double mInches)
+            {
+                return R((qKsi * Math.Pow(mInches, 2)) / 2.0);
+            }
+
+            // 6.5 Required Thickness (tp)
+            public double RequiredThickness(double mplu, double fyKsi, double phiB = 0.90)
+            {
+                if (phiB <= 0 || fyKsi <= 0 || mplu <= 0) return 0;
+                return R(Math.Sqrt((4.0 * mplu) / (phiB * fyKsi)));
+            }
+        }
     }
 }

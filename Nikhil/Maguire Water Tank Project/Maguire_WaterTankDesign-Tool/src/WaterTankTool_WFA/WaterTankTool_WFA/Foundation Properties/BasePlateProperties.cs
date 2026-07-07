@@ -1,4 +1,6 @@
 using System;
+using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using WaterTankTool_WFA.Entity;
@@ -25,13 +27,22 @@ namespace WaterTankTool_WFA.Foundation_Properties
             if (_entity != null)
             {
                 DisplayCalculatedData();
-                PopulateBoltDropdown();
+                if (AppState.CurrentTankType != TankType.MultiColumn)
+                {
+                    PopulateBoltDropdown();
+                }
             }
         }
 
         private void DisplayCalculatedData()
         {
             if (_entity == null) return;
+
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                DisplayMultiColumnCalculatedData();
+                return;
+            }
 
             var eq = new FoundationEquations.BasePlateEquations();
 
@@ -123,6 +134,160 @@ namespace WaterTankTool_WFA.Foundation_Properties
             _entity.Mu = mPlu;
             _entity.T_req = treq;
             _entity.ThicknessUtilization = mStrip;
+
+            _context.SaveChanges();
+        }
+
+        private void DisplayMultiColumnCalculatedData()
+        {
+            if (_entity == null) return;
+
+            this.Text = "Multi-Leg Base Plate Design Results";
+
+            // Hide Single-Column specific centroid and bolt dropdown controls
+            label15.Visible = textBox15.Visible = false; // Centroid X
+            label16.Visible = textBox16.Visible = false; // Centroid Y
+            label10.Visible = textBox10.Visible = false; // Centroid angle
+            labelBoltSelect.Visible = comboBoxBoltSelect.Visible = false;
+            labelLocationDetail.Visible = labelAngleDetail.Visible = false;
+            labelXCoordDetail.Visible = labelYCoordDetail.Visible = false;
+            textBoxAngleDetail.Visible = textBoxXCoordDetail.Visible = textBoxYCoordDetail.Visible = textBoxLocationDetail.Visible = false;
+            groupBoxBoltDetail.Visible = false;
+
+            // Re-align Left Column to remove gaps
+            label21.Location = new System.Drawing.Point(20, 235);
+            textBox21.Location = new System.Drawing.Point(210, 232);
+
+            // Re-align Right Column to remove gaps
+            label13.Location = new System.Drawing.Point(330, 148);
+            textBox13.Location = new System.Drawing.Point(530, 145);
+            labelThicknessStatus.Location = new System.Drawing.Point(635, 148);
+
+            label14.Location = new System.Drawing.Point(330, 177);
+            textBox14.Location = new System.Drawing.Point(530, 174);
+            labelCompactnessStatus.Location = new System.Drawing.Point(635, 177);
+
+            label22.Location = new System.Drawing.Point(330, 206);
+            textBox22.Location = new System.Drawing.Point(530, 203);
+
+            label17.Location = new System.Drawing.Point(330, 235);
+            textBox17.Location = new System.Drawing.Point(530, 232);
+
+            label18.Location = new System.Drawing.Point(330, 264);
+            textBox18.Location = new System.Drawing.Point(530, 261);
+
+            // Resize form to fit snugly without bottom empty space
+            groupBox1.Height = 310;
+            this.ClientSize = new System.Drawing.Size(this.ClientSize.Width, 345);
+
+            // Update Labels for Multi-Column
+            label1.Text = "Base Plate Area A1 (in²)";
+            label2.Text = "Pedestal Area A2 (in²)";
+            label3.Text = "Plate Volume (in³)";
+            label4.Text = "Weight per Plate (kips)";
+            label5.Text = "Total Weight (all legs) (kips)";
+
+            label6.Text = "Factored Mu,ped (kip-ft)";
+            label7.Text = "Factored Mu,ped (kip-in)";
+            label8.Text = "Load Pu,ped (kips)";
+            label9.Text = "Bearing Capacity Pn (kips)";
+
+            label11.Text = "Bearing Stress Fp (ksi)";
+            label12.Text = "Eccentricity e (in)";
+            label21.Text = "Bearing Pressure q (ksi)";
+            label22.Text = "Cantilever Proj m (in)";
+            label17.Text = "Bearing Limit N/6 (in)";
+            label18.Text = "Plastic Moment Mplu (kip-in/in)";
+            label13.Text = "Required Thickness tp (in)";
+            label14.Text = "Bearing Stress Limit (ksi)";
+
+            var eq = new FoundationEquations.MultiColumnBasePlateEquations();
+
+            // Fetch Anchor Bolt for Pedestal Size and Number of Pedestals
+            var anchorBolt = _context.AnchorBoltEntity.FirstOrDefault();
+            int totalLegs = (anchorBolt != null && anchorBolt.Ns > 0) ? anchorBolt.Ns.Value : 4; // Default 4 legs
+
+            double p = 39.0;
+            double l = 39.0;
+            if (anchorBolt != null && anchorBolt.PedestalSize > 0)
+            {
+                p = anchorBolt.PedestalSize.Value;
+                l = anchorBolt.PedestalSize.Value;
+            }
+
+            double b = _entity.Ro > 0 ? _entity.Ro : 30.0;
+            double n = _entity.Ri > 0 ? _entity.Ri : 30.0;
+            double dpip = _entity.Dbp > 0 ? _entity.Dbp : 20.04;
+            double t = _entity.T > 0 ? _entity.T : 1.50;
+            double fy = _entity.Fy > 0 ? _entity.Fy : 36.0;
+            double fcPrimePsi = _entity.Fc_prime > 0 ? _entity.Fc_prime : 4000.0;
+            double fcPrimeKsi = fcPrimePsi > 100 ? fcPrimePsi / 1000.0 : fcPrimePsi;
+            double totalMuKipFt = _entity.OverturningMoment ?? 0;
+            double totalPuKips = _entity.Pu ?? 0;
+
+            // Calculations using our new engine!
+            double a1 = eq.BasePlateArea(b, n);
+            double a2 = eq.PedestalArea(p, l);
+            double fp = eq.MaximumBearingStress(fcPrimeKsi, a2, a1, 0.65);
+            double fpLimit = eq.BearingStressLimit(fcPrimeKsi, 0.65);
+            double pn = eq.BearingCapacity(fp, a1);
+
+            double muPedFt = eq.FactoredMomentPerPedestal(totalMuKipFt, totalLegs);
+            double muPedIn = eq.ConvertMomentToKipIn(muPedFt);
+            double puPed = totalLegs > 0 ? Math.Round(totalPuKips / totalLegs, 2) : totalPuKips;
+            double eVal = eq.EquivalentEccentricity(muPedIn, puPed);
+            double nLimit = eq.BearingConditionLimit(n);
+
+            double colArea = eq.ColumnBearingArea(dpip);
+            double qVal = eq.BearingPressure(puPed, colArea);
+            double mVal = eq.PlateProjection(n, dpip);
+            double mplu = eq.StripPlasticMoment(qVal, mVal);
+            double treq = eq.RequiredThickness(mplu, fy, 0.90);
+
+            // Weights
+            double volPerPlate = a1 * t; // cu. in.
+            double weightPerPlate = (volPerPlate / 1728.0) * 0.490; // kips
+            double totalWeight = weightPerPlate * totalLegs;
+
+            // Display results in TextBoxes
+            textBox1.Text = a1.ToString("F2", CultureInfo.InvariantCulture);
+            textBox2.Text = a2.ToString("F2", CultureInfo.InvariantCulture);
+            textBox3.Text = volPerPlate.ToString("F2", CultureInfo.InvariantCulture);
+            textBox4.Text = weightPerPlate.ToString("F4", CultureInfo.InvariantCulture);
+            textBox5.Text = totalWeight.ToString("F4", CultureInfo.InvariantCulture);
+
+            textBox6.Text = muPedFt.ToString("F2", CultureInfo.InvariantCulture);
+            textBox7.Text = muPedIn.ToString("F2", CultureInfo.InvariantCulture);
+            textBox8.Text = puPed.ToString("F2", CultureInfo.InvariantCulture);
+            textBox9.Text = pn.ToString("F2", CultureInfo.InvariantCulture);
+
+            textBox11.Text = fp.ToString("F4", CultureInfo.InvariantCulture);
+            textBox12.Text = eVal.ToString("F2", CultureInfo.InvariantCulture);
+            textBox21.Text = qVal.ToString("F4", CultureInfo.InvariantCulture);
+            textBox22.Text = mVal.ToString("F4", CultureInfo.InvariantCulture);
+            textBox17.Text = nLimit.ToString("F4", CultureInfo.InvariantCulture);
+            textBox18.Text = mplu.ToString("F4", CultureInfo.InvariantCulture);
+
+            textBox13.Text = treq.ToString("F4", CultureInfo.InvariantCulture);
+            bool thicknessPass = t >= treq;
+            textBox13.BackColor = thicknessPass ? Color.LightGreen : Color.LightCoral;
+            labelThicknessStatus.Text = thicknessPass ? "PASS" : "FAIL";
+            labelThicknessStatus.ForeColor = thicknessPass ? Color.Green : Color.Red;
+
+            textBox14.Text = fpLimit.ToString("F4", CultureInfo.InvariantCulture);
+            bool bearingPass = fp <= fpLimit;
+            textBox14.BackColor = bearingPass ? Color.LightGreen : Color.LightCoral;
+            labelCompactnessStatus.Text = bearingPass ? "PASS" : "FAIL";
+            labelCompactnessStatus.ForeColor = bearingPass ? Color.Green : Color.Red;
+
+            // Save results back to entity
+            _entity.Fp = fp;
+            _entity.Phi_Pp = eVal;
+            _entity.BearingUtilization = fp / (fpLimit > 0 ? fpLimit : 1.0);
+            _entity.L = mVal;
+            _entity.Mu = mplu;
+            _entity.T_req = treq;
+            _entity.ThicknessUtilization = qVal;
 
             _context.SaveChanges();
         }
