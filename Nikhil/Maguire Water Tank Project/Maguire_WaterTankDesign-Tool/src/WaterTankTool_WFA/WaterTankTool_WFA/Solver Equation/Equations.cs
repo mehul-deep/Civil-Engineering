@@ -349,7 +349,6 @@ namespace WaterTankTool_WFA.Solver_Equation
             Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
         }
 
-
         public double ProjectedArea(double heightInitial, double heightfinal, double diameter)
         {
             var height = heightfinal - heightInitial;
@@ -392,8 +391,6 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             }
 
-              
-
             return weight;
         }
 
@@ -422,9 +419,6 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             return weight;
         }
-
-
-
 
         public double kzi(double heightinitial)
         {

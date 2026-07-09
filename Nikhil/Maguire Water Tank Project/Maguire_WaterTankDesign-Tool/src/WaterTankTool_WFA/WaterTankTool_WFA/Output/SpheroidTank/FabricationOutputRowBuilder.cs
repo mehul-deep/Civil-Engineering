@@ -69,53 +69,92 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             row.Values["DOOR TYPE"] = "STD";
             row.Values["DDEG"] = 0;
 
-            double bpdia = baseConeDiameter * 12;
-            if (basePlate != null && basePlate.Dbp > 0)
+            if (AppState.CurrentTankType == TankType.MultiColumn)
             {
-                // If Dbp < 100, assume feet and convert to inches; otherwise assume inches
-                bpdia = basePlate.Dbp < 100 ? basePlate.Dbp * 12 : basePlate.Dbp;
+                int totalColumns = (anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
+                
+                double bpdia = 20.04;
+                if (basePlate != null && basePlate.Dbp > 0) bpdia = basePlate.Dbp < 100 ? basePlate.Dbp * 12 : basePlate.Dbp;
+                else if (anchorBolt != null && anchorBolt.Dcone.HasValue && anchorBolt.Dcone.Value > 0) bpdia = anchorBolt.Dcone.Value < 100 ? anchorBolt.Dcone.Value * 12 : anchorBolt.Dcone.Value;
+                row.Values["BPDIA"] = bpdia; // Column pipe diameter (in)
+
+                double bporVal = 30.0;
+                if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro;
+                row.Values["BPOR"] = bporVal; // Plate Width B (in)
+
+                double bpirVal = 30.0;
+                if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri;
+                row.Values["BPIR"] = bpirVal; // Plate Length N (in)
+
+                row.Values["BPDEG"] = totalColumns > 0 ? 360.0 / totalColumns : 90.0; // Angular spacing between legs around tower
+
+                double bpthk = 1.50;
+                if (basePlate != null && basePlate.T > 0) bpthk = basePlate.T;
+                else if (basePlate != null && basePlate.T_req.HasValue && basePlate.T_req.Value > 0) bpthk = basePlate.T_req.Value;
+                row.Values["BPTHK"] = bpthk;
+
+                row.Values["BPQ"] = totalColumns; // 1 base plate per pedestal/leg
+
+                int boltsPerLeg = anchorBolt?.Nb ?? (basePlate?.Nb ?? 4);
+                int totalTowerBolts = boltsPerLeg * totalColumns;
+                row.Values["ABHQ"] = totalTowerBolts; // Total bolt holes across all tower pedestals
+                row.Values["ABHSD"] = anchorBolt?.Ab ?? 0;
+                row.Values["ABQ"] = totalTowerBolts; // Total anchor bolts across all legs
+
+                row.Values["SC"] = 0;
+                row.Values["SCWT"] = 0;
+                row.Values["BPSQ"] = totalTowerBolts; // Shims match total anchor bolts
             }
-            row.Values["BPDIA"] = bpdia;
+            else
+            {
+                double bpdia = baseConeDiameter * 12;
+                if (basePlate != null && basePlate.Dbp > 0)
+                {
+                    // If Dbp < 100, assume feet and convert to inches; otherwise assume inches
+                    bpdia = basePlate.Dbp < 100 ? basePlate.Dbp * 12 : basePlate.Dbp;
+                }
+                row.Values["BPDIA"] = bpdia;
 
-            double bporVal = bpor;
-            if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro;
-            row.Values["BPOR"] = bporVal;
+                double bporVal = bpor;
+                if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro;
+                row.Values["BPOR"] = bporVal;
 
-            double bpirVal = bporVal - 12;
-            if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri;
-            row.Values["BPIR"] = bpirVal;
+                double bpirVal = bporVal - 12;
+                if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri;
+                row.Values["BPIR"] = bpirVal;
 
-            double bpdeg = 0;
-            if (basePlate != null && basePlate.Theta > 0) bpdeg = basePlate.Theta;
-            else if (basePlate != null && basePlate.N > 0) bpdeg = 360.0 / basePlate.N;
-            row.Values["BPDEG"] = bpdeg;
+                double bpdeg = 0;
+                if (basePlate != null && basePlate.Theta > 0) bpdeg = basePlate.Theta;
+                else if (basePlate != null && basePlate.N > 0) bpdeg = 360.0 / basePlate.N;
+                row.Values["BPDEG"] = bpdeg;
 
-            double bpthk = 0;
-            if (basePlate != null && basePlate.T > 0) bpthk = basePlate.T;
-            else if (basePlate != null && basePlate.T_req > 0) bpthk = basePlate.T_req.Value;
-            row.Values["BPTHK"] = bpthk;
+                double bpthk = 0;
+                if (basePlate != null && basePlate.T > 0) bpthk = basePlate.T;
+                else if (basePlate != null && basePlate.T_req > 0) bpthk = basePlate.T_req.Value;
+                row.Values["BPTHK"] = bpthk;
 
-            int bpq = 0;
-            if (basePlate != null && basePlate.N > 0) bpq = basePlate.N;
-            row.Values["BPQ"] = bpq;
+                int bpq = 0;
+                if (basePlate != null && basePlate.N > 0) bpq = basePlate.N;
+                row.Values["BPQ"] = bpq;
 
-            int abhq = 0;
-            if (anchorBolt != null && anchorBolt.Nb > 0) abhq = anchorBolt.Nb;
-            else if (basePlate != null && basePlate.Nb != null && basePlate.Nb > 0) abhq = basePlate.Nb.Value;
-            row.Values["ABHQ"] = abhq;
+                int abhq = 0;
+                if (anchorBolt != null && anchorBolt.Nb > 0) abhq = anchorBolt.Nb;
+                else if (basePlate != null && basePlate.Nb != null && basePlate.Nb > 0) abhq = basePlate.Nb.Value;
+                row.Values["ABHQ"] = abhq;
 
-            double abhsd = 0;
-            if (anchorBolt != null) abhsd = anchorBolt.Ab;
-            row.Values["ABHSD"] = abhsd;
+                double abhsd = 0;
+                if (anchorBolt != null) abhsd = anchorBolt.Ab;
+                row.Values["ABHSD"] = abhsd;
 
-            int abq = 0;
-            if (anchorBolt != null && anchorBolt.Nb > 0) abq = anchorBolt.Nb;
-            else if (basePlate != null && basePlate.Nb != null && basePlate.Nb > 0) abq = basePlate.Nb.Value;
-            row.Values["ABQ"] = abq;
+                int abq = 0;
+                if (anchorBolt != null && anchorBolt.Nb > 0) abq = anchorBolt.Nb;
+                else if (basePlate != null && basePlate.Nb != null && basePlate.Nb > 0) abq = basePlate.Nb.Value;
+                row.Values["ABQ"] = abq;
 
-            row.Values["SC"] = 0;
-            row.Values["SCWT"] = 0;
-            row.Values["BPSQ"] = 0;
+                row.Values["SC"] = abq; // Default side chairs 1 per bolt if single standpipe
+                row.Values["SCWT"] = 0;
+                row.Values["BPSQ"] = abq; // Shims match total anchor bolts
+            }
 
 
             for (int i = 1; i <= 5; i++)

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 using ClosedXML.Excel;
 using WaterTankTool_WFA.Entity;
+using WaterTankTool_WFA.Solver_Equation;
 
 namespace WaterTankTool_WFA.Output.SpheroidTank
 {
@@ -72,62 +73,236 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             row++;
 
             // Section 3: Anchor Bolt Design (ACI 318-19 Appendix D)
-            row = AddSectionHeader(ws, row, "3. ANCHOR BOLT DESIGN & BREAKOUT CHECK (ACI 318-19)");
-            int nb = anchorBolt?.Nb ?? basePlate?.Nb ?? 0;
-            double db = anchorBolt?.Db ?? 0;
-            double dh = anchorBolt?.Dh ?? 0;
-            double rb = anchorBolt?.Rb ?? 0;
-            row = AddDataRow(ws, row, "Total Anchor Bolts (Nb)", nb, "Bolt Nominal Diameter (db) (in)", db);
-            row = AddDataRow(ws, row, "Hole Diameter (dh) (in)", dh, "Bolt Circle Radius (rb) (in/ft)", rb);
-
-            double fy = anchorBolt?.Fy ?? 36;
-            double fu = anchorBolt?.Fu ?? 58;
-            double fc = anchorBolt?.FcPrime ?? basePlate?.Fc_prime ?? 4000;
-            double hef = anchorBolt?.Hef ?? 24;
-            row = AddDataRow(ws, row, "Bolt Yield Strength (Fy) (ksi)", fy, "Bolt Ultimate Strength (Fu) (ksi)", fu);
-            row = AddDataRow(ws, row, "Concrete Strength (f'c) (psi)", fc, "Embedment Depth (hef) (in)", hef);
-
-            double tu = anchorBolt?.Tu ?? 0;
-            double boltVu = anchorBolt?.Vu ?? 0;
-            row = AddDataRow(ws, row, "Tension Demand / Bolt (Nua) (kips)", tu, "Shear Demand / Bolt (Vua) (kips)", boltVu);
-
-            // Calculate estimated capacities if present
-            double interaction = 0.0;
-            string status = "OK";
-            if (nb > 0 && tu > 0)
+            if (AppState.CurrentTankType == TankType.MultiColumn)
             {
-                double ase = 0.7854 * Math.Pow(Math.Max(0.1, db - 0.12), 2);
-                double nsa = ase * fu;
-                double ncb = 15.0 * Math.Sqrt(fc) * Math.Pow(hef, 1.5) / 1000.0;
-                double phiNn = 0.75 * Math.Min(nsa, ncb);
-                if (phiNn > 0) interaction = (tu / phiNn);
-                if (interaction > 1.0) status = "EXCEEDS CAPACITY";
+                row = AddSectionHeader(ws, row, "3. ANCHOR BOLT DESIGN & BREAKOUT CHECK (ACI 318-19 - MULTI-LEG TOWER)");
+                var mcEq = new FoundationEquations.MultiColumnAnchorBoltEquations();
+                int totalCols = (anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
+                int tensionLegs = mcEq.TensionLegs(totalCols);
+                int nb = anchorBolt?.Nb ?? 4;
+                double db = anchorBolt?.Db ?? 1.0;
+                double dcone = anchorBolt?.Dcone ?? 20.04;
+                double legRadius = mcEq.LegRadiusInches(dcone);
+                double abMu = anchorBolt?.Mu ?? (basePlate?.OverturningMoment ?? mu);
+                double totalTension = mcEq.TotalOverturningTension(abMu, legRadius);
+                double tensionPerLeg = mcEq.TensionPerLeg(totalTension, tensionLegs);
+                double tensionPerBolt = mcEq.TensionPerBolt(tensionPerLeg, nb);
+
+                double fy = anchorBolt?.Fy ?? 36.0;
+                double fu = anchorBolt?.Fu ?? 58.0;
+                double phi = anchorBolt?.Phi ?? 0.75;
+                double requiredArea = mcEq.RequiredSteelArea(tensionPerBolt, phi, fy);
+                double boltArea = (anchorBolt != null && anchorBolt.Ab > 0) ? anchorBolt.Ab : mcEq.BoltArea(db);
+                double tensionCapacity = mcEq.SteelTensionCapacity(phi, boltArea, fy);
+
+                double boltVu = anchorBolt?.Vu ?? 0;
+                double shearPerLeg = mcEq.ShearPerLeg(boltVu, totalCols);
+                double shearPerBolt = mcEq.ShearPerBolt(shearPerLeg, nb);
+                double shearCapacity = mcEq.SteelShearCapacity(phi, boltArea, fy);
+
+                double hef = anchorBolt?.Hef ?? 40.0;
+                double fcPrime = anchorBolt?.FcPrime ?? (basePlate?.Fc_prime ?? 4000.0);
+                double breakoutCapacity = mcEq.ConcreteBreakoutStrength(phi, 24, fcPrime, hef);
+
+                double washerSize = anchorBolt?.WasherSize ?? 5.0;
+                double washerArea = Math.Pow(washerSize, 2);
+                double pulloutCapacity = mcEq.PulloutStrength(washerArea, fcPrime);
+                double pryoutCapacity = mcEq.PryoutStrength(breakoutCapacity, hef);
+                double interaction = mcEq.InteractionRatio(tensionPerBolt, tensionCapacity, shearPerBolt, shearCapacity);
+
+                double pedestalSize = anchorBolt?.PedestalSize ?? 39.0;
+                double boltSpacing = anchorBolt?.BoltSpacing ?? 12.0;
+                double edgeDist = (anchorBolt != null && anchorBolt.E.HasValue && anchorBolt.E.Value > 0) ? anchorBolt.E.Value : mcEq.EdgeDistance(pedestalSize, boltSpacing);
+                double minEdgeDist = mcEq.MinimumEdgeDistance(db);
+
+                row = AddDataRow(ws, row, "Total Tower Columns / Legs", totalCols, "Tension Resisting Legs", tensionLegs);
+                row = AddDataRow(ws, row, "Bolts per Pedestal (Nb)", nb, "Nominal Bolt Diameter (db) (in)", db);
+                row = AddDataRow(ws, row, "Cone Diameter (Dcone) (ft)", dcone, "Leg Radius from Center (in)", Math.Round(legRadius, 4));
+                row = AddDataRow(ws, row, "Overturning Moment (Mu) (kip-ft)", mu, "Total Overturning Uplift (kips)", Math.Round(totalTension, 4));
+                row = AddDataRow(ws, row, "Tension per Leg (kips)", Math.Round(tensionPerLeg, 4), "Tension per Bolt (Tu/bolt) (kips)", Math.Round(tensionPerBolt, 4));
+                row = AddDataRow(ws, row, "Shear per Leg (kips)", Math.Round(shearPerLeg, 4), "Shear per Bolt (Vu/bolt) (kips)", Math.Round(shearPerBolt, 4));
+                row = AddDataRow(ws, row, "Bolt Yield Strength (Fy) (ksi)", fy, "Bolt Ultimate Strength (Fu) (ksi)", fu);
+                row = AddDataRow(ws, row, "Concrete Strength (f'c) (psi)", fcPrime, "Embedment Depth (hef) (in)", hef);
+                row = AddDataRow(ws, row, "Required Steel Area (in²)", Math.Round(requiredArea, 4), "Actual Bolt Area (Ab) (in²)", Math.Round(boltArea, 4));
+                row = AddDataRow(ws, row, "Tensile Capacity (phi*Tn) (kips)", Math.Round(tensionCapacity, 4), "Shear Capacity (phi*Vn) (kips)", Math.Round(shearCapacity, 4));
+                row = AddDataRow(ws, row, "Breakout Capacity (phi*Ncb) (kips)", Math.Round(breakoutCapacity, 4), "Pullout Capacity (kips)", Math.Round(pulloutCapacity, 4));
+                row = AddDataRow(ws, row, "Pryout Capacity (kips)", Math.Round(pryoutCapacity, 4), "Pedestal Size (B x L) (in)", $"{pedestalSize} x {pedestalSize}");
+                row = AddDataRow(ws, row, "Actual Edge Distance (in)", Math.Round(edgeDist, 4), "Required Min Edge (in)", Math.Round(minEdgeDist, 4));
+                row = AddDataRow(ws, row, "Combined Interaction Ratio", Math.Round(interaction, 4), "Design Status", interaction <= 1.0 ? "PASS / OK" : "EXCEEDS CAPACITY");
+                row++;
             }
-            row = AddDataRow(ws, row, "Combined Interaction Ratio", Math.Round(interaction, 4), "Design Status", status);
-            row++;
+            else
+            {
+                row = AddSectionHeader(ws, row, "3. ANCHOR BOLT DESIGN & BREAKOUT CHECK (ACI 318-19 - SINGLE-COLUMN STANDPIPE)");
+                var scEq = new FoundationEquations.AnchorBoltEquations();
+                int nb = anchorBolt?.Nb ?? (basePlate?.Nb ?? 0);
+                double db = anchorBolt?.Db ?? 0;
+                double dh = anchorBolt?.Dh ?? 0;
+                double rb = anchorBolt?.Rb ?? 0;
+                row = AddDataRow(ws, row, "Total Anchor Bolts (Nb)", nb, "Bolt Nominal Diameter (db) (in)", db);
+                row = AddDataRow(ws, row, "Hole Diameter (dh) (in)", dh, "Bolt Circle Radius (rb) (in/ft)", rb);
+
+                double fy = anchorBolt?.Fy ?? 36;
+                double fu = anchorBolt?.Fu ?? 58;
+                double fc = anchorBolt?.FcPrime ?? (basePlate?.Fc_prime ?? 4000);
+                double hef = anchorBolt?.Hef ?? 24;
+                row = AddDataRow(ws, row, "Bolt Yield Strength (Fy) (ksi)", fy, "Bolt Ultimate Strength (Fu) (ksi)", fu);
+                row = AddDataRow(ws, row, "Concrete Strength (f'c) (psi)", fc, "Embedment Depth (hef) (in)", hef);
+
+                double totalTensionTu = anchorBolt?.Tu ?? 0;
+                if (anchorBolt != null && anchorBolt.Mu.HasValue && anchorBolt.Mu.Value > 0)
+                {
+                    totalTensionTu = scEq.TotalTensionDemandFromMoment(anchorBolt.Mu.Value, 2.0 * rb);
+                }
+
+                double tensionPerBolt = 0;
+                string distMethod = anchorBolt?.DistributionMethod ?? "Circular Group";
+                if (nb > 0)
+                {
+                    switch (distMethod)
+                    {
+                        case "Equal Distribution":
+                            tensionPerBolt = scEq.TensionDemandPerBolt_Equal(totalTensionTu, nb);
+                            break;
+                        case "Effective Bolts":
+                            tensionPerBolt = scEq.TensionDemandPerBolt_Effective(totalTensionTu, nb);
+                            break;
+                        case "Circular Group":
+                        default:
+                            tensionPerBolt = scEq.TensionDemandPerBolt_CircularGroup(totalTensionTu, nb);
+                            break;
+                    }
+                }
+
+                double boltVu = anchorBolt?.Vu ?? 0;
+                double shearPerBolt = nb > 0 ? scEq.ShearDemandPerBolt(boltVu, nb) : 0;
+                row = AddDataRow(ws, row, "Total Uplift Tension (Tu) (kips)", Math.Round(totalTensionTu, 4), "Distribution Method", distMethod);
+                row = AddDataRow(ws, row, "Tension Demand / Bolt (Nua) (kips)", Math.Round(tensionPerBolt, 4), "Shear Demand / Bolt (Vua) (kips)", Math.Round(shearPerBolt, 4));
+
+                double tensileCapacity = 0;
+                if (anchorBolt != null && anchorBolt.Fu.HasValue) tensileCapacity = scEq.TensileDesignStrengthUltimate(db, anchorBolt.Fu.Value, anchorBolt.Phi ?? 0.75);
+                else if (anchorBolt != null && anchorBolt.Fy.HasValue) tensileCapacity = scEq.TensileDesignStrength(db, anchorBolt.Fy.Value, anchorBolt.Phi ?? 0.75);
+
+                double shearCapacity = 0;
+                if (anchorBolt != null && anchorBolt.Fu.HasValue) shearCapacity = scEq.ShearDesignStrengthUltimate(db, anchorBolt.Fu.Value, anchorBolt.Phi ?? 0.75);
+                else if (anchorBolt != null && anchorBolt.Fy.HasValue) shearCapacity = scEq.ShearDesignStrength(db, anchorBolt.Fy.Value, anchorBolt.Phi ?? 0.75);
+
+                double breakoutCapacity = scEq.ConcreteBreakoutStrength(24, fc, hef) / 1000.0 * (anchorBolt?.Phi ?? 0.75);
+                double breakoutUtil = breakoutCapacity > 0 ? scEq.ConcreteBreakoutUtilization(tensionPerBolt, breakoutCapacity / (anchorBolt?.Phi ?? 0.75), anchorBolt?.Phi ?? 0.75) : 0;
+
+                row = AddDataRow(ws, row, "Tensile Design Strength (phi*Nn) (kips)", Math.Round(tensileCapacity, 4), "Shear Design Strength (phi*Vn) (kips)", Math.Round(shearCapacity, 4));
+                row = AddDataRow(ws, row, "Breakout Strength (phi*Ncb) (kips)", Math.Round(breakoutCapacity, 4), "Breakout Utilization Ratio", Math.Round(breakoutUtil, 4));
+
+                double interaction = 0.0;
+                string status = "OK";
+                if (tensileCapacity > 0 && shearCapacity > 0)
+                {
+                    interaction = scEq.InteractionCheck(tensionPerBolt, tensileCapacity, shearPerBolt, shearCapacity);
+                    if (interaction > 1.0) status = "EXCEEDS CAPACITY";
+                }
+                row = AddDataRow(ws, row, "Combined Interaction Ratio", Math.Round(interaction, 4), "Design Status", status);
+                row++;
+            }
 
             // Section 4: Base Plate Design (AISC LRFD Annular Strip Method)
-            row = AddSectionHeader(ws, row, "4. BASE PLATE DESIGN & BEARING STRESS (AISC LRFD)");
-            double dbp = basePlate?.Dbp ?? (baseConeDia * 12);
-            double ro = basePlate?.Ro ?? ((baseConeDia * 12 / 2) + 7);
-            double ri = basePlate?.Ri ?? (ro - 12);
-            double wrw = basePlate?.Wrw ?? 1.5;
-            row = AddDataRow(ws, row, "Base Plate Diameter (Dbp) (in)", dbp, "Ring Wall Width (Wrw) (ft)", wrw);
-            row = AddDataRow(ws, row, "Outside Radius (Ro) (in)", ro, "Inside Radius (Ri) (in)", ri);
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                row = AddSectionHeader(ws, row, "4. BASE PLATE DESIGN & BEARING STRESS (AISC LRFD - MULTI-LEG TOWER)");
+                var mcBpEq = new FoundationEquations.MultiColumnBasePlateEquations();
+                int totalLegs = (anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
+                double p = anchorBolt?.PedestalSize ?? 39.0;
+                double l = anchorBolt?.PedestalSize ?? 39.0;
+                double b = basePlate?.Ro ?? 30.0;
+                double n = basePlate?.Ri ?? 30.0;
+                double dpip = basePlate?.Dbp ?? (anchorBolt?.Dcone ?? 20.04);
+                double t = basePlate?.T ?? 1.50;
+                double fy = basePlate?.Fy ?? 36.0;
+                double fcPrimePsi = basePlate?.Fc_prime ?? (anchorBolt?.FcPrime ?? 4000.0);
+                double fcPrimeKsi = fcPrimePsi > 100 ? fcPrimePsi / 1000.0 : fcPrimePsi;
+                double totalMuKipFt = basePlate?.OverturningMoment ?? (anchorBolt?.Mu ?? 0);
+                double totalPuKips = basePlate?.Pu ?? (anchorBolt?.Pu ?? 0);
 
-            double a2 = basePlate?.A2 ?? 0;
-            double fp = basePlate?.Fp ?? 0;
-            double phiPp = basePlate?.Phi_Pp ?? 0;
-            double bearUtil = basePlate?.BearingUtilization ?? 0;
-            row = AddDataRow(ws, row, "Supporting Area A2 (sq in)", a2, "Bearing Stress Demand (fp) (ksi)", fp);
-            row = AddDataRow(ws, row, "Design Bearing Strength (phi Pp) (kips)", phiPp, "Bearing Utilization Ratio", Math.Round(bearUtil, 4));
+                double a1 = mcBpEq.BasePlateArea(b, n);
+                double a2 = mcBpEq.PedestalArea(p, l);
+                double fp = mcBpEq.MaximumBearingStress(fcPrimeKsi, a2, a1, 0.65);
+                double fpLimit = mcBpEq.BearingStressLimit(fcPrimeKsi, 0.65);
+                double pn = mcBpEq.BearingCapacity(fp, a1);
 
-            double t = basePlate?.T ?? 0;
-            double treq = basePlate?.T_req ?? 0;
-            double thkUtil = basePlate?.ThicknessUtilization ?? (t > 0 ? treq / t : 0);
-            row = AddDataRow(ws, row, "Actual Plate Thickness (t) (in)", t, "Required Thickness (treq) (in)", Math.Round(treq, 4));
-            row = AddDataRow(ws, row, "Thickness Utilization Ratio", Math.Round(thkUtil, 4), "Plate Compactness Status", thkUtil <= 1.0 ? "COMPACT / OK" : "CHECK THICKNESS");
-            row++;
+                double muPedFt = mcBpEq.FactoredMomentPerPedestal(totalMuKipFt, totalLegs);
+                double muPedIn = mcBpEq.ConvertMomentToKipIn(muPedFt);
+                double puPed = totalLegs > 0 ? Math.Round(totalPuKips / totalLegs, 2) : totalPuKips;
+                double eVal = mcBpEq.EquivalentEccentricity(muPedIn, puPed);
+                double nLimit = mcBpEq.BearingConditionLimit(n);
+
+                double colArea = mcBpEq.ColumnBearingArea(dpip);
+                double qVal = mcBpEq.BearingPressure(puPed, colArea);
+                double mVal = mcBpEq.PlateProjection(n, dpip);
+                double mplu = mcBpEq.StripPlasticMoment(qVal, mVal);
+                double treq = mcBpEq.RequiredThickness(mplu, fy, 0.90);
+
+                double volPerPlate = a1 * t;
+                double weightPerPlate = (volPerPlate / 1728.0) * 0.490;
+                double totalWeight = weightPerPlate * totalLegs;
+
+                row = AddDataRow(ws, row, "Tower Supporting Legs (Ns)", totalLegs, "Pipe Column Diameter Dpip (in)", dpip);
+                row = AddDataRow(ws, row, "Plate Width B (Ro) (in)", b, "Plate Length N (Ri) (in)", n);
+                row = AddDataRow(ws, row, "Pedestal Size P x L (in)", $"{p} x {l}", "Base Plate Area A1 (in²)", Math.Round(a1, 4));
+                row = AddDataRow(ws, row, "Supporting Area A2 (in²)", Math.Round(a2, 4), "Bearing Stress Demand Fp (ksi)", Math.Round(fp, 4));
+                row = AddDataRow(ws, row, "Design Bearing Limit (phi*Fp) (ksi)", Math.Round(fpLimit, 4), "Bearing Capacity Pn (kips)", Math.Round(pn, 4));
+                row = AddDataRow(ws, row, "Factored Axial Load Pu,ped (kips)", Math.Round(puPed, 4), "Factored Moment Mu,ped (kip-ft)", Math.Round(muPedFt, 4));
+                row = AddDataRow(ws, row, "Equivalent Eccentricity e (in)", Math.Round(eVal, 4), "Bearing Limit N/6 (in)", Math.Round(nLimit, 4));
+                row = AddDataRow(ws, row, "Bearing Pressure Demand q (ksi)", Math.Round(qVal, 4), "Cantilever Projection m (in)", Math.Round(mVal, 4));
+                row = AddDataRow(ws, row, "Plastic Moment Mplu (kip-in/in)", Math.Round(mplu, 4), "Weight per Plate (kips)", Math.Round(weightPerPlate, 4));
+                row = AddDataRow(ws, row, "Actual Plate Thickness t (in)", t, "Required Thickness treq (in)", Math.Round(treq, 4));
+                row = AddDataRow(ws, row, "Total Weight across all Legs (kips)", Math.Round(totalWeight, 4), "Plate Compactness Status", (t >= treq && fp <= fpLimit) ? "COMPACT / OK" : "CHECK THICKNESS / BEARING");
+                row++;
+            }
+            else
+            {
+                row = AddSectionHeader(ws, row, "4. BASE PLATE DESIGN & BEARING STRESS (AISC LRFD - SINGLE-COLUMN STANDPIPE)");
+                var scBpEq = new FoundationEquations.BasePlateEquations();
+                double dbp = basePlate?.Dbp ?? (baseConeDia * 12);
+                double ro = basePlate?.Ro ?? ((baseConeDia * 12 / 2) + 7);
+                double ri = basePlate?.Ri ?? (ro - 12);
+                double wrw = basePlate?.Wrw ?? 1.5;
+                row = AddDataRow(ws, row, "Base Plate Diameter (Dbp) (in)", dbp, "Ring Wall Width (Wrw) (ft)", wrw);
+                row = AddDataRow(ws, row, "Outside Radius (Ro) (in)", ro, "Inside Radius (Ri) (in)", ri);
+
+                double grossArea = scBpEq.GrossArea(ro, ri, basePlate?.Theta ?? 360.0);
+                double netArea = scBpEq.NetArea(ro, ri, basePlate?.Theta ?? 360.0, basePlate?.Nh ?? 0, basePlate?.Dh ?? 0);
+                double areaA1 = grossArea * 144.0;
+                double x1 = (ro - ri) * 12.0;
+                double x2 = (wrw * 12.0);
+
+                double fcPrimeKsi = (basePlate?.Fc_prime ?? 4000) > 100 ? (basePlate?.Fc_prime ?? 4000) / 1000.0 : (basePlate?.Fc_prime ?? 4000);
+                double fp = (basePlate != null && basePlate.A2.HasValue && basePlate.A2.Value > 0)
+                    ? scBpEq.MaximumDesignBearingStress(fcPrimeKsi, basePlate.A2.Value, areaA1, 0.90)
+                    : scBpEq.MaximumDesignBearingStress(fcPrimeKsi, x2, x1, 0.90);
+
+                double a2 = basePlate?.A2 ?? (x2 * x2);
+                double bearUtil = basePlate?.BearingUtilization ?? 0;
+                row = AddDataRow(ws, row, "Supporting Area A2 (sq in)", Math.Round(a2, 4), "Bearing Stress Demand (fp) (ksi)", Math.Round(fp, 4));
+
+                double bpPu = basePlate?.Pu ?? pu;
+                double bpMu = basePlate?.OverturningMoment ?? mu;
+                double mKipIn = scBpEq.ConvertMomentToKipIn(bpMu);
+                double mStrip = scBpEq.CircumferentialMomentPerUnitStrip(mKipIn, dbp);
+                double eVal = scBpEq.EquivalentEccentricity(mStrip, bpPu, dbp);
+                double bearingLimit = scBpEq.BearingConditionLimit(x1);
+                double mCritical = scBpEq.CriticalSection(x1);
+                double mPlu = scBpEq.StripPlasticMoment(mStrip);
+                double treq = scBpEq.RequiredThickness(mPlu, basePlate?.Fy ?? 36.0, 0.90);
+
+                row = AddDataRow(ws, row, "Circumferential Moment Mstrip (kip-in/in)", Math.Round(mStrip, 4), "Equivalent Eccentricity e (in)", Math.Round(eVal, 4));
+                row = AddDataRow(ws, row, "Bearing Condition Limit N/6 (in)", Math.Round(bearingLimit, 4), "Critical Section Cantilever m (in)", Math.Round(mCritical, 4));
+                row = AddDataRow(ws, row, "Strip Plastic Moment Mplu (kip-in/in)", Math.Round(mPlu, 4), "Design Bearing Strength (phi Pp) (kips)", Math.Round(basePlate?.Phi_Pp ?? 0, 4));
+
+                double t = basePlate?.T ?? 0;
+                double thkUtil = basePlate?.ThicknessUtilization ?? (t > 0 ? treq / t : 0);
+                row = AddDataRow(ws, row, "Actual Plate Thickness (t) (in)", t, "Required Thickness (treq) (in)", Math.Round(treq, 4));
+                row = AddDataRow(ws, row, "Thickness Utilization Ratio", Math.Round(thkUtil, 4), "Plate Compactness Status", thkUtil <= 1.0 ? "COMPACT / OK" : "CHECK THICKNESS");
+                row++;
+            }
 
             // Section 5: Material & Geotechnical Properties
             row = AddSectionHeader(ws, row, "5. MATERIAL & GEOTECHNICAL PROPERTIES");
