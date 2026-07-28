@@ -179,13 +179,10 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             row.Values["CHT"] = colHeight;
             for (int i = 1; i <= 18; i++)
             {
-                // ElementAtOrDefault returns null if the index doesn't exist (e.g., base 4 when only 3 exist)
                 var s = columnSegments.ElementAtOrDefault(i - 1);
-
-                row.Values[$"C{i}DIA"] = (double)(s?.Diameter ?? 0) * 12;
-                row.Values[$"C{i}HT"] = (double)(s?.HeightFinal ?? 0);
-                row.Values[$"C{i}THK"] = (double)(s?.Thickness ?? 0);
-
+                row.Values[$"C{i}DIA"] = s != null ? (object)((double)s.Diameter * 12) : "-";
+                row.Values[$"C{i}HT"] = s != null ? (object)((double)s.HeightFinal) : "-";
+                row.Values[$"C{i}THK"] = s != null ? (object)((double)s.Thickness) : "-";
             }
 
             var transitions = context.TransitionsEntity?.ToList() ?? new List<TransitionsEntity>();
@@ -220,6 +217,19 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                         row.Values[$"T{i}Q"] = t.Quantity;
                     }
                 }
+                else
+                {
+                    if (i == 1)
+                    {
+                        row.Values["T1OR"] = "-"; row.Values["T1LR"] = "-"; row.Values["T1UR"] = "-";
+                        row.Values["TIHT"] = "-"; row.Values["T1THK"] = "-"; row.Values["T1DEG"] = "-"; row.Values["T1Q"] = "-";
+                    }
+                    else
+                    {
+                        row.Values[$"T{i}UR"] = "-"; row.Values[$"T{i}LR"] = "-"; row.Values[$"T{i}HT"] = "-";
+                        row.Values[$"T{i}THK"] = "-"; row.Values[$"T{i}SEG"] = "-"; row.Values[$"T{i}Q"] = "-";
+                    }
+                }
             }
 
             // Knuckle-Knuckle
@@ -236,6 +246,12 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["KKEDEG"] = kk.EndDegree;
                 row.Values["KKSECR"] = kk.SectionRadius;
             }
+            else
+            {
+                row.Values["KKTHK"] = "-"; row.Values["KKLR"] = "-"; row.Values["KKCHT"] = "-";
+                row.Values["KKUSR"] = "-"; row.Values["KKUER"] = "-"; row.Values["KKER"] = "-";
+                row.Values["KKSDEG"] = "-"; row.Values["KKEDEG"] = "-"; row.Values["KKSECR"] = "-";
+            }
 
             // Bottom Knuckle
             var bk = knuckles.FirstOrDefault(x => x.KnuckleType == "BottomKnuckle");
@@ -248,6 +264,11 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["BKEDEG"] = bk.EndDegree;
                 row.Values["BKEDIM"] = bk.ExtraDimension;
                 row.Values["BKDIA"] = bk.Diameter;
+            }
+            else
+            {
+                row.Values["BKTHK"] = "-"; row.Values["BKR"] = "-"; row.Values["BKQ"] = "-";
+                row.Values["BKSDEG"] = "-"; row.Values["BKEDEG"] = "-"; row.Values["BKEDIM"] = "-"; row.Values["BKDIA"] = "-";
             }
 
             // Top Knuckle
@@ -262,6 +283,11 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["TKEDIM"] = tk.ExtraDimension;
                 row.Values["TKDIA"] = tk.Diameter;
             }
+            else
+            {
+                row.Values["TKTHK"] = "-"; row.Values["TKR"] = "-"; row.Values["TKQ"] = "-";
+                row.Values["TKSDEG"] = "-"; row.Values["TKEDEG"] = "-"; row.Values["TKEDIM"] = "-"; row.Values["TKDIA"] = "-";
+            }
 
             // Roof Fingers
             if (roofFinger != null)
@@ -273,6 +299,11 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["RFEDEG"] = roofFinger.EndDegree;
                 row.Values["RFEDIM"] = roofFinger.ExtraDimension;
                 row.Values["RFDIA"] = roofFinger.Diameter;
+            }
+            else
+            {
+                row.Values["RFTHK"] = "-"; row.Values["RFR"] = "-"; row.Values["RFQ"] = "-";
+                row.Values["RFSDEG"] = "-"; row.Values["RFEDEG"] = "-"; row.Values["RFEDIM"] = "-"; row.Values["RFDIA"] = "-";
             }
 
             // Reducer Cone
@@ -292,6 +323,12 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["RCTCROR"] = reducerCone.TopRingOutsideRadius;
                 row.Values["RCTCRTHK"] = reducerCone.TopRingThickness;
             }
+            else
+            {
+                row.Values["RCLR"] = "-"; row.Values["RCUR"] = "-"; row.Values["RCHT"] = "-"; row.Values["RCTHK"] = "-"; row.Values["RCQ"] = "-";
+                row.Values["RCBCRIR"] = "-"; row.Values["RCBCROR"] = "-"; row.Values["RCBCRTHK"] = "-"; row.Values["RCBCRDEG"] = "-"; row.Values["RCBCRQ"] = "-";
+                row.Values["RCTCRIR"] = "-"; row.Values["RCTCROR"] = "-"; row.Values["RCTCRTHK"] = "-";
+            }
 
             // Drywell
             if (drywell != null)
@@ -306,6 +343,12 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["DWSTFIR"] = drywell.StiffenerInsideRadius;
                 row.Values["DWSTFTHK"] = drywell.StiffenerThickness;
                 row.Values["DWSTFQ"] = drywell.StiffenerQuantity;
+            }
+            else
+            {
+                row.Values["DWLDIA"] = "-"; row.Values["DWLHT"] = "-"; row.Values["DWLTHK"] = "-";
+                row.Values["DWUDIA"] = "-"; row.Values["DWUHT"] = "-"; row.Values["DWUTHK"] = "-";
+                row.Values["DWSTFOR"] = "-"; row.Values["DWSTFIR"] = "-"; row.Values["DWSTFTHK"] = "-"; row.Values["DWSTFQ"] = "-";
             }
 
 
