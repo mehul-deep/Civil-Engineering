@@ -38,7 +38,7 @@ public class WaterTankDbContext : DbContext
     public DbSet<DrywellEntity> DrywellEntity { get; set; }
 
 
-    // Private constructor to prevent direct instantiation
+    // Private constructor to previ have ent direct instantiation
 
     public WaterTankDbContext() : base() { }
     public WaterTankDbContext(string connectionString)

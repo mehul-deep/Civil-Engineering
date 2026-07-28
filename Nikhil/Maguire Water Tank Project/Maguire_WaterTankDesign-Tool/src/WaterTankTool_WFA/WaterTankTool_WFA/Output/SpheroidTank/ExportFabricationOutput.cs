@@ -166,12 +166,17 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                     }
                 }
 
-                // 1. Safely copy the allowed rows & columns (raw values only)
+                // 1. Safely copy the allowed rows & columns (values and styles)
                 for (int r = 1; r <= rowsToCopy; r++)
                 {
+                    newWs.Row(r).Height = templateWs.Row(r).Height;
                     for (int c = 1; c <= maxCol; c++)
                     {
+                        if (r == 1) newWs.Column(c).Width = templateWs.Column(c).Width;
+
                         var cell = templateWs.Cell(r, c);
+                        newWs.Cell(r, c).Style = cell.Style;
+
                         if (!cell.IsEmpty())
                         {
                             newWs.Cell(r, c).Value = cell.Value;
@@ -211,12 +216,18 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                     {
                         // Append directly below the header rows we just copied
                         int dataRow = rowsToCopy + 1;
+                        
+                        // Inherit the row height from the template's placeholder data row
+                        newWs.Row(dataRow).Height = templateWs.Row(3).Height;
 
                         foreach (var kvp in colMap)
                         {
                             if (row.Values.TryGetValue(kvp.Key, out var val))
                             {
-                                SetCellValue(newWs.Cell(dataRow, kvp.Value), val);
+                                var destCell = newWs.Cell(dataRow, kvp.Value);
+                                // Inherit the visual style (borders, colors, font) from the template's placeholder row
+                                destCell.Style = templateWs.Cell(3, kvp.Value).Style;
+                                SetCellValue(destCell, val);
                             }
                         }
                     }
