@@ -78,7 +78,6 @@ To serve two distinct project stakeholders without compromising data structure, 
 *   **Precision:** The application maintains 64-bit floating-point precision for all calculations. Output UI text boxes format this data to 4 decimal places (`"F4"`). Small discrepancies between the application's output and the PDF documentation are due to hand-calculated intermediate rounding in the PDF, whereas the software utilizes full mathematical precision.
 *   **Database Initialization:** We rely on `EnsureDatabaseCreated()` paired with custom `ALTER TABLE` execution inside `WaterTankDbContext.cs` to handle smooth schema evolutions without relying strictly on EF Migrations during development.
 
-
 ================================================================================
 ### 🚀 LATEST SESSION ACHIEVEMENTS: MULTI-LEG BASE PLATE DESIGN ENGINE, UI OVERHAUL & 100% AUDIT
 ================================================================================

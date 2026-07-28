@@ -135,14 +135,14 @@ namespace WaterTankTool_WFA
             // --- Single Pedestal Button ---
             var btnSingle = new Button
             {
-                Text = "Single Column (Pedestal)\n\n🗼",
-                Font = new Font("Segoe UI", 28, FontStyle.Bold),
-                Size = new Size(400, 220),
+                Text = "Single Column\n\n🗼",
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                Size = new Size(260, 220),
                 BackColor = Color.FromArgb(75, 156, 211),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Margin = new Padding(15, 20, 15, 20),
+                Margin = new Padding(10, 20, 10, 20),
                 Anchor = AnchorStyles.None
             };
             btnSingle.FlatAppearance.BorderSize = 0;
@@ -152,14 +152,14 @@ namespace WaterTankTool_WFA
             // --- Multi Column Button ---
             var btnMulti = new Button
             {
-                Text = "Multi-Column (Multi-Leg)\n\n🏗️",
-                Font = new Font("Segoe UI", 28, FontStyle.Bold),
-                Size = new Size(400, 220),
+                Text = "Multi-Leg\n\n🏗️",
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                Size = new Size(260, 220),
                 BackColor = Color.FromArgb(120, 89, 184),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Margin = new Padding(15, 20, 15, 20),
+                Margin = new Padding(10, 20, 10, 20),
                 Anchor = AnchorStyles.None
             };
             btnMulti.FlatAppearance.BorderSize = 0;

@@ -90,7 +90,6 @@ namespace WaterTankTool_WFA.Solver
                     continue;
                 }
 
-
                 double dFinal = seg.DiameterFinal ?? seg.Diameter;
                 double radius = 12 * dFinal / 2.0;
                 double rt = Math.Round((12 * dFinal / 2.0) / seg.Thickness, 4);
@@ -219,18 +218,10 @@ namespace WaterTankTool_WFA.Solver
             dataGridView1.DataSource = tabelData2s;
         }
 
-
-
-
-
-
-
         public IReadOnlyList<tabelData2> TableData2Results
         {
             get { return tabelData2s; }
         }
-
-
 
         private void button1_Click(object sender, EventArgs e)
         {
@@ -242,7 +233,6 @@ namespace WaterTankTool_WFA.Solver
                 LoadTable2();
             }
         }
-
 
     }
     public class tabelData2
@@ -263,10 +253,4 @@ namespace WaterTankTool_WFA.Solver
         public double Fb { get; set; }
     }
 
-
-
-
-
 }
-
-

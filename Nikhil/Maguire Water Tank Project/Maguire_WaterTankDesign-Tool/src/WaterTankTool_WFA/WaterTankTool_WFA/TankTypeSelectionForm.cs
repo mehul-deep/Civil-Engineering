@@ -92,7 +92,7 @@ namespace WaterTankTool_WFA
                 RowCount = 1,
                 ColumnCount = 2,
                 Dock = DockStyle.Fill,
-                Padding = new Padding(50, 10, 50, 10),
+                Padding = new Padding(30, 10, 30, 10),
                 BackColor = Color.Transparent
             };
             cardsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
@@ -105,7 +105,7 @@ namespace WaterTankTool_WFA
                 Label = "Single Column",
                 CardImage = Properties.Resources.Sheldon_IA_New_Tank_Paint_2,
                 CardTankType = TankType.SingleColumn,
-                Margin = new Padding(18, 10, 18, 10),
+                Margin = new Padding(12, 10, 12, 10),
                 Dock = DockStyle.Fill
             };
 
@@ -124,7 +124,7 @@ namespace WaterTankTool_WFA
                 Label = "Multi-Column",
                 CardImage = Properties.Resources.Katy,
                 CardTankType = TankType.MultiColumn,
-                Margin = new Padding(18, 10, 18, 10),
+                Margin = new Padding(12, 10, 12, 10),
                 Dock = DockStyle.Fill
             };
 

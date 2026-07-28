@@ -511,7 +511,6 @@ namespace WaterTankTool_WFA.Solver_Equation
             return result;
         }
 
-
         public double F(double heightInitial, double heightFinal, double diameter,string segmentType)
         {
             Segment_Cylinder_Equations c1 = new Segment_Cylinder_Equations();

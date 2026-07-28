@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using WaterTankTool_WFA.Entity;
 namespace WaterTankTool_WFA.Output.SpheroidTank
 {
     internal class FabricationOutputRowBuilder
@@ -161,13 +161,18 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             {
                 // ElementAtOrDefault returns null if the index doesn't exist (e.g., base 4 when only 3 exist)
                 var s = baseSegments.ElementAtOrDefault(i - 1);
+                bool exists = (s != null);
 
-                row.Values[$"B{i}HT"] = (double)(s?.HeightFinal ?? 0) * 12;
-                row.Values[$"B{i}THK"] = (double)(s?.Thickness ?? 0);
-                row.Values[$"B{i}LR"] = (double)(s?.DiameterFinal ?? 0) * 6;
-                row.Values[$"B{i}UR"] = (double)(s?.DiameterInitial ?? 0) *6;
-                row.Values[$"B{i}DEG"] = 0;
-                row.Values[$"B{i}Q"] = 0;
+                // B3, B4, B5 have an extra Outside Radius column in the company template
+                if (i >= 3)
+                    row.Values[$"B{i}OR"] = exists ? (object)((double)(s.DiameterFinal ?? 0) * 6) : "-";
+
+                row.Values[$"B{i}LR"] = exists ? (object)((double)(s.DiameterFinal ?? 0) * 6) : "-";
+                row.Values[$"B{i}UR"] = exists ? (object)((double)(s.DiameterInitial ?? 0) * 6) : "-";
+                row.Values[$"B{i}HT"] = exists ? (object)(s.HeightFinal * 12) : "-";
+                row.Values[$"B{i}THK"] = exists ? (object)(double)(s.Thickness) : "-";
+                row.Values[$"B{i}DEG"] = exists ? (object)0 : "-";
+                row.Values[$"B{i}Q"] = exists ? (object)0 : "-";
             }
 
             row.Values["CDIA"] = (((double)(columnSegments?.FirstOrDefault()?.Diameter ?? 0)) * 12);
@@ -183,97 +188,126 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
 
             }
 
-            row.Values["T1OR"] = 0;
-            row.Values["T1LR"] = 0;
-            row.Values["T1UR"] = 0;
-            row.Values["TIHT"] = 0;
-            row.Values["T1THK"] = 0;
-            row.Values["T1DEG"] = 0;
-            row.Values["T1Q"] = 0;
-            row.Values["T2UR"] = 0;
-            row.Values["T2LR"] = 0;
-            row.Values["T2HT"] = 0;
-            row.Values["T2THK"] = 0;
-            row.Values["T2SEG"] = 0;
-            row.Values["T2Q"] = 0;
-            row.Values["T3UR"] = 0;
-            row.Values["T3LR"] = 0;
-            row.Values["T3HT"] = 0;
-            row.Values["T3THK"] = 0;
-            row.Values["T3SEG"] = 0;
-            row.Values["T3Q"] = 0;
-            row.Values["T4UR"] = 0;
-            row.Values["T4LR"] = 0;
-            row.Values["T4HT"] = 0;
-            row.Values["T4THK"] = 0;
-            row.Values["T4SEG"] = 0;
-            row.Values["T4Q"] = 0;
-            row.Values["T5UR"] = 0;
-            row.Values["T5LR"] = 0;
-            row.Values["T5HT"] = 0;
-            row.Values["T5THK"] = 0;
-            row.Values["T5SEG"] = 0;
-            row.Values["T5Q"] = 0;
-            row.Values["T6UR"] = 0;
-            row.Values["T6LR"] = 0;
-            row.Values["T6HT"] = 0;
-            row.Values["T6THK"] = 0;
-            row.Values["T6SEG"] = 0;
-            row.Values["T6Q"] = 0;
-            row.Values["KKTHK"] = 0;
-            row.Values["KKLR"] = 0;
-            row.Values["KKCHT"] = 0;
-            row.Values["KKUSR"] = 0;
-            row.Values["KKUER"] = 0;
-            row.Values["KKER"] = 0;
-            row.Values["KKSDEG"] = 0;
-            row.Values["KKEDEG"] = 0;
-            row.Values["KKSECR"] = 0;
-            row.Values["BKTHK"] = 0;
-            row.Values["BKR"] = 0;
-            row.Values["BKQ"] = 0;
-            row.Values["BKSDEG"] = 0;
-            row.Values["BKEDEG"] = 0;
-            row.Values["BKEDIM"] = 0;
-            row.Values["BKDIA"] = 0;
-            row.Values["TKTHK"] = 0;
-            row.Values["TKR"] = 0;
-            row.Values["TKQ"] = 0;
-            row.Values["TKSDEG"] = 0;
-            row.Values["TKEDEG"] = 0;
-            row.Values["TKEDIM"] = 0;
-            row.Values["TKDIA"] = 0;
-            row.Values["RFTHK"] = 0;
-            row.Values["RFR"] = 0;
-            row.Values["RFQ"] = 0;
-            row.Values["RFSDEG"] = 0;
-            row.Values["RFEDEG"] = 0;
-            row.Values["RFEDIM"] = 0;
-            row.Values["RFDIA"] = 0;
-            row.Values["RCLR"] = 0;
-            row.Values["RCUR"] = 0;
-            row.Values["RCHT"] = 0;
-            row.Values["RCTHK"] = 0;
-            row.Values["RCQ"] = 0;
-            row.Values["RCBCRIR"] = 0;
-            row.Values["RCBCROR"] = 0;
-            row.Values["RCBCRTHK"] = 0;
-            row.Values["RCBCRDEG"] = 0;
-            row.Values["RCBCRQ"] = 0;
-            row.Values["RCTCRIR"] = 0;
-            row.Values["RCTCROR"] = 0;
-            row.Values["RCTCRTHK"] = 0;
-            row.Values["DWLDIA"] = 0;
-            row.Values["DWLHT"] = 0;
-            row.Values["DWLTHK"] = 0;
-            row.Values["DWUDIA"] = 0;
-            row.Values["DWUHT"] = 0;
-            row.Values["DWUTHK"] = 0;
-            row.Values["DWSTFOR"] = 0;
-            row.Values["DWSTFIR"] = 0;
-            row.Values["DWSTFTHK"] = 0;
-            row.Values["DWSTFQ"] = 0;
-            
+            var transitions = context.TransitionsEntity?.ToList() ?? new List<TransitionsEntity>();
+            var knuckles = context.KnuckleEntity?.ToList() ?? new List<KnuckleEntity>();
+            var roofFinger = context.RoofFingerEntity?.FirstOrDefault();
+            var reducerCone = context.ReducerConeEntity?.FirstOrDefault();
+            var drywell = context.DrywellEntity?.FirstOrDefault();
+
+            // T1 to T6
+            for (int i = 1; i <= 6; i++)
+            {
+                var t = transitions.FirstOrDefault(x => x.TransitionNumber == i);
+                if (t != null)
+                {
+                    if (i == 1)
+                    {
+                        row.Values["T1OR"] = t.OutsideRadius;
+                        row.Values["T1LR"] = t.LowerRadius;
+                        row.Values["T1UR"] = t.UpperRadius;
+                        row.Values["TIHT"] = t.Height; // TIHT = company template typo for T1 Height (col DH)
+                        row.Values["T1THK"] = t.Thickness;
+                        row.Values["T1DEG"] = t.SegmentDegree;
+                        row.Values["T1Q"] = t.Quantity;
+                    }
+                    else
+                    {
+                        row.Values[$"T{i}UR"] = t.UpperRadius;
+                        row.Values[$"T{i}LR"] = t.LowerRadius;
+                        row.Values[$"T{i}HT"] = t.Height;
+                        row.Values[$"T{i}THK"] = t.Thickness;
+                        row.Values[$"T{i}SEG"] = t.SegmentDegree;
+                        row.Values[$"T{i}Q"] = t.Quantity;
+                    }
+                }
+            }
+
+            // Knuckle-Knuckle
+            var kk = knuckles.FirstOrDefault(x => x.KnuckleType == "KnuckleKnuckle");
+            if (kk != null)
+            {
+                row.Values["KKTHK"] = kk.Thickness;
+                row.Values["KKLR"] = kk.LowerRadius;
+                row.Values["KKCHT"] = kk.CenterHeight;
+                row.Values["KKUSR"] = kk.UpperStartRadius;
+                row.Values["KKUER"] = kk.UpperExtendRadius;
+                row.Values["KKER"] = kk.ExtendRadius;
+                row.Values["KKSDEG"] = kk.StartDegree;
+                row.Values["KKEDEG"] = kk.EndDegree;
+                row.Values["KKSECR"] = kk.SectionRadius;
+            }
+
+            // Bottom Knuckle
+            var bk = knuckles.FirstOrDefault(x => x.KnuckleType == "BottomKnuckle");
+            if (bk != null)
+            {
+                row.Values["BKTHK"] = bk.Thickness;
+                row.Values["BKR"] = bk.LowerRadius;
+                row.Values["BKQ"] = bk.Quantity;
+                row.Values["BKSDEG"] = bk.StartDegree;
+                row.Values["BKEDEG"] = bk.EndDegree;
+                row.Values["BKEDIM"] = bk.ExtraDimension;
+                row.Values["BKDIA"] = bk.Diameter;
+            }
+
+            // Top Knuckle
+            var tk = knuckles.FirstOrDefault(x => x.KnuckleType == "TopKnuckle");
+            if (tk != null)
+            {
+                row.Values["TKTHK"] = tk.Thickness;
+                row.Values["TKR"] = tk.LowerRadius;
+                row.Values["TKQ"] = tk.Quantity;
+                row.Values["TKSDEG"] = tk.StartDegree;
+                row.Values["TKEDEG"] = tk.EndDegree;
+                row.Values["TKEDIM"] = tk.ExtraDimension;
+                row.Values["TKDIA"] = tk.Diameter;
+            }
+
+            // Roof Fingers
+            if (roofFinger != null)
+            {
+                row.Values["RFTHK"] = roofFinger.Thickness;
+                row.Values["RFR"] = roofFinger.Radius;
+                row.Values["RFQ"] = roofFinger.Quantity;
+                row.Values["RFSDEG"] = roofFinger.SegmentDegree;
+                row.Values["RFEDEG"] = roofFinger.EndDegree;
+                row.Values["RFEDIM"] = roofFinger.ExtraDimension;
+                row.Values["RFDIA"] = roofFinger.Diameter;
+            }
+
+            // Reducer Cone
+            if (reducerCone != null)
+            {
+                row.Values["RCLR"] = reducerCone.LowerRadius;
+                row.Values["RCUR"] = reducerCone.UpperRadius;
+                row.Values["RCHT"] = reducerCone.Height;
+                row.Values["RCTHK"] = reducerCone.Thickness;
+                row.Values["RCQ"] = reducerCone.Quantity;
+                row.Values["RCBCRIR"] = reducerCone.BottomRingInsideRadius;
+                row.Values["RCBCROR"] = reducerCone.BottomRingOutsideRadius;
+                row.Values["RCBCRTHK"] = reducerCone.BottomRingThickness;
+                row.Values["RCBCRDEG"] = reducerCone.BottomRingDegree;
+                row.Values["RCBCRQ"] = reducerCone.BottomRingQuantity;
+                row.Values["RCTCRIR"] = reducerCone.TopRingInsideRadius;
+                row.Values["RCTCROR"] = reducerCone.TopRingOutsideRadius;
+                row.Values["RCTCRTHK"] = reducerCone.TopRingThickness;
+            }
+
+            // Drywell
+            if (drywell != null)
+            {
+                row.Values["DWLDIA"] = drywell.LowerDiameter;
+                row.Values["DWLHT"] = drywell.LowerHeight;
+                row.Values["DWLTHK"] = drywell.LowerThickness;
+                row.Values["DWUDIA"] = drywell.UpperDiameter;
+                row.Values["DWUHT"] = drywell.UpperHeight;
+                row.Values["DWUTHK"] = drywell.UpperThickness;
+                row.Values["DWSTFOR"] = drywell.StiffenerOutsideRadius;
+                row.Values["DWSTFIR"] = drywell.StiffenerInsideRadius;
+                row.Values["DWSTFTHK"] = drywell.StiffenerThickness;
+                row.Values["DWSTFQ"] = drywell.StiffenerQuantity;
+            }
+
 
 
 

@@ -1,0 +1,67 @@
+<xml xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel">
+ <o:shapelayout v:ext="edit">
+  <o:idmap v:ext="edit" data="2"/>
+ </o:shapelayout><v:shapetype id="_x0000_t202" coordsize="21600,21600" o:spt="202"
+  path="m,l,21600r21600,l21600,xe">
+  <v:stroke joinstyle="miter"/>
+  <v:path gradientshapeok="t" o:connecttype="rect"/>
+ </v:shapetype><v:shape id="_x0000_s2050" type="#_x0000_t202" style='position:absolute;
+  margin-left:489pt;margin-top:14.25pt;width:102pt;height:17.25pt;z-index:1;
+  visibility:hidden;mso-wrap-style:tight' fillcolor="infoBackground [80]"
+  strokecolor="none [81]" o:insetmode="auto">
+  <v:fill color2="infoBackground [80]"/>
+  <v:shadow color="none [81]" obscured="t"/>
+  <v:path o:connecttype="none"/>
+  <v:textbox style='mso-direction-alt:auto'>
+   <div style='text-align:left'></div>
+  </v:textbox>
+  <x:ClientData ObjectType="Note">
+   <x:MoveWithCells/>
+   <x:SizeWithCells/>
+   <x:Anchor>
+    5, 4, 0, 19, 6, 39, 0, 42</x:Anchor>
+   <x:AutoFill>False</x:AutoFill>
+   <x:Row>1</x:Row>
+   <x:Column>3</x:Column>
+  </x:ClientData>
+ </v:shape><v:shape id="_x0000_s2051" type="#_x0000_t202" style='position:absolute;
+  margin-left:594.75pt;margin-top:14.25pt;width:83.25pt;height:14.25pt;
+  z-index:2;visibility:hidden;mso-wrap-style:tight' fillcolor="infoBackground [80]"
+  strokecolor="none [81]" o:insetmode="auto">
+  <v:fill color2="infoBackground [80]"/>
+  <v:shadow color="none [81]" obscured="t"/>
+  <v:path o:connecttype="none"/>
+  <v:textbox style='mso-direction-alt:auto'>
+   <div style='text-align:left'></div>
+  </v:textbox>
+  <x:ClientData ObjectType="Note">
+   <x:MoveWithCells/>
+   <x:SizeWithCells/>
+   <x:Anchor>
+    6, 44, 0, 19, 7, 54, 0, 38</x:Anchor>
+   <x:AutoFill>False</x:AutoFill>
+   <x:Row>1</x:Row>
+   <x:Column>4</x:Column>
+  </x:ClientData>
+ </v:shape><v:shape id="_x0000_s2053" type="#_x0000_t202" style='position:absolute;
+  margin-left:143.25pt;margin-top:60.75pt;width:122.25pt;height:59.25pt;
+  z-index:3;visibility:hidden' fillcolor="infoBackground [80]" strokecolor="none [81]"
+  o:insetmode="auto">
+  <v:fill color2="infoBackground [80]"/>
+  <v:shadow color="none [81]" obscured="t"/>
+  <v:path o:connecttype="none"/>
+  <v:textbox style='mso-direction-alt:auto'>
+   <div style='text-align:left'></div>
+  </v:textbox>
+  <x:ClientData ObjectType="Note">
+   <x:MoveWithCells/>
+   <x:SizeWithCells/>
+   <x:Anchor>
+    1, 16, 1, 7, 2, 9, 5, 6</x:Anchor>
+   <x:AutoFill>False</x:AutoFill>
+   <x:Row>8</x:Row>
+   <x:Column>0</x:Column>
+  </x:ClientData>
+ </v:shape></xml>

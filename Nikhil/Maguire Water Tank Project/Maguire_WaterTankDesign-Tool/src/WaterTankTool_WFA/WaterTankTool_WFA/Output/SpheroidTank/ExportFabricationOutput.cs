@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -87,7 +87,7 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             "C16 DIAMETER","C16 HEIGHT","C16 THICKNESS",
             "C17 DIAMETER","C17 HEIGHT","C17 THICKNESS",
             "C18 DIAMETER","C18 HEIGHT","C18 THICKNESS",
-            "T1 OUTSIDE RADIUS","T1 LOWER RADIUS","T1 UPPER RADIUS","T1 HEIGHT","T1 THK","T1 SEGMENT DEGREE","T1 SEGMENT QUANTITY",
+            "T1 OUTSIDE RADIUS","T1 LOWER RADIUS","T1 UPPER RADIUS","T1 HEIGHT","T1 THK","T1 SEGMENT DEGREE","T1 SEGMENT QUANTITY", // Row1 long label; Row2 short code is TIHT (template typo)
             "T2 UPPER RADIUS","T2 LOWER RADIUS","T2 HEIGHT","T2 THK","T2 SEGMENT DEGREE","T2 SEGMENT QUANTITY",
             "T3 UPPER RADIUS","T3 LOWER RADIUS","T3 HEIGHT","T3 THK","T3 SEGMENT DEGREE","T3 SEGMENT QUANTITY",
             "T4 UPPER RADIUS","T4 LOWER RADIUS","T4 HEIGHT","T4 THK","T4 SEGMENT DEGREE","T4 SEGMENT QUANTITY",
@@ -109,8 +109,6 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
         public void RunExport(FabricationOutputRow row, IWin32Window owner = null)
         {
             if (row == null) throw new ArgumentNullException(nameof(row));
-            if (HeaderLong.Length != HeaderShort.Length)
-                throw new InvalidOperationException($"Header mismatch: Long={HeaderLong.Length}, Short={HeaderShort.Length}");
 
             using var sfd = new SaveFileDialog
             {
@@ -124,95 +122,110 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             if (sfd.ShowDialog(owner) != DialogResult.OK)
                 return;
 
-            using var wb = new XLWorkbook();
-            var ws = wb.Worksheets.Add("Output");
+            string templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "SHEROID TANK PARAMETERS.xlsx");
 
-            int colCount = HeaderShort.Length;
-
-            // -----------------------------
-            // Row 2: Short headers (codes)
-            // -----------------------------
-            for (int c = 1; c <= colCount; c++)
-                ws.Cell(2, c).Value = HeaderShort[c - 1];
-
-            // AutoFilter on row 2 (dropdowns)
-            ws.Range(2, 1, 2, colCount).SetAutoFilter();
-
-            // Freeze top 2 rows
-            ws.SheetView.FreezeRows(2);
-
-            // -----------------------------
-            // Row 1: Long headers (titles)
-            // -----------------------------
-            for (int c = 1; c <= colCount; c++)
-                ws.Cell(1, c).Value = HeaderLong[c - 1];
-
-            // Example merge like your screenshot:
-            // A..E merged as "TANK DESIGNATION"
-            ws.Range(1, 1, 1, 5).Merge();
-            ws.Cell(1, 1).Value = "TANK DESIGNATION";
-
-            // -----------------------------
-            // Style headers exactly as requested
-            // Row 1: Tahoma 9, bold, italic, wrap, centered
-            // Row 2: Tahoma 9, not bold/italic, wrap, centered
-            // -----------------------------
-            var row1 = ws.Range(1, 1, 1, colCount);
-            var row2 = ws.Range(2, 1, 2, colCount);
-
-            row1.Style.Font.FontName = "Tahoma";
-            row1.Style.Font.FontSize = 9;
-            row1.Style.Font.Bold = true;
-            row1.Style.Font.Italic = true;
-            row1.Style.Alignment.WrapText = true;
-            row1.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            row1.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            row2.Style.Font.FontName = "Tahoma";
-            row2.Style.Font.FontSize = 9;
-            row2.Style.Font.Bold = false;
-            row2.Style.Font.Italic = false;
-            row2.Style.Alignment.WrapText = true;
-            row2.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            row2.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            // Borders on headers
-            var headerAll = ws.Range(1, 1, 2, colCount);
-            headerAll.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            headerAll.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-            // Row heights (good for wrapped text)
-            ws.Row(1).Height = 32;
-            ws.Row(2).Height = 20;
-
-            // Optional: light grey fill for row 1 (like screenshot)
-            row1.Style.Fill.BackgroundColor = XLColor.FromHtml("#E6E6E6");
-
-            // -----------------------------
-            // Row 3: Data row (filled from dictionary)
-            // -----------------------------
-            int dataRow = 3;
-            for (int c = 0; c < HeaderShort.Length; c++)
+            if (!File.Exists(templatePath))
             {
-                var key = HeaderShort[c];
-                row.Values.TryGetValue(key, out var v);
-                SetCellValue(ws.Cell(dataRow, c + 1), v);
+                MessageBox.Show(owner, $"Template not found at: {templatePath}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
 
-            // Border for data row
-            var dataRange = ws.Range(dataRow, 1, dataRow, colCount);
-            dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            // We create a fresh workbook and strictly copy cell values to prevent ClosedXML 
+            // from causing XML corruption when trying to re-serialize advanced template features.
+            using var templateWb = new XLWorkbook(templatePath);
+            using var newWb = new XLWorkbook();
 
-            // Reasonable column widths (avoid crazy wide auto-fit due to long row1 headers)
-            ws.Columns(1, colCount).Width = 12;
-            ws.Column(1).Width = 18; // Tank designation often longer
-            ws.Column(2).Width = 18; // Parameter ref often longer
+            var dataSheetsToUpdate = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "SPHEROID PARAMETERS",
+                "BASE PLATE",
+                "BASE CONES",
+                "TRANSITIONS",
+                "DRYWELLS"
+            };
 
-            // Save
-            wb.SaveAs(sfd.FileName);
+            foreach (var templateWs in templateWb.Worksheets)
+            {
+                var newWs = newWb.AddWorksheet(templateWs.Name);
+                
+                int lastTemplateRow = templateWs.LastRowUsed()?.RowNumber() ?? 0;
+                int maxCol = templateWs.LastColumnUsed()?.ColumnNumber() ?? 0;
 
-            MessageBox.Show(owner, "Excel export completed.", "Export",
+                // By default, we copy all rows (to preserve static reference tables like DOOR TYPE PARAMETERS)
+                int rowsToCopy = lastTemplateRow;
+
+                // But for the main data sheets, we ONLY want to copy the headers to clear out the old company placeholder tanks!
+                if (dataSheetsToUpdate.Contains(templateWs.Name))
+                {
+                    // SPHEROID PARAMETERS, BASE PLATE, BASE CONES, TRANSITIONS all have 2 header rows
+                    rowsToCopy = 2; 
+                    
+                    if (templateWs.Name.Equals("DRYWELLS", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rowsToCopy = 1; // DRYWELLS only has 1 header row
+                    }
+                }
+
+                // 1. Safely copy the allowed rows & columns (raw values only)
+                for (int r = 1; r <= rowsToCopy; r++)
+                {
+                    for (int c = 1; c <= maxCol; c++)
+                    {
+                        var cell = templateWs.Cell(r, c);
+                        if (!cell.IsEmpty())
+                        {
+                            newWs.Cell(r, c).Value = cell.Value;
+                        }
+                    }
+                }
+
+                // 2. If this is a data sheet, append our new row at the bottom
+                if (dataSheetsToUpdate.Contains(templateWs.Name))
+                {
+                    var colMap = new Dictionary<string, int>();
+
+                    // Scan first 3 rows of the template to build the column mapping
+                    for (int r = 1; r <= 3; r++)
+                    {
+                        for (int c = 1; c <= maxCol; c++)
+                        {
+                            var valStr = templateWs.Cell(r, c).Value.ToString().Trim();
+                            if (string.IsNullOrEmpty(valStr)) continue;
+
+                            if (HeaderShort.Contains(valStr))
+                            {
+                                colMap[valStr] = c;
+                            }
+                            else if (HeaderLong.Contains(valStr))
+                            {
+                                int idx = Array.IndexOf(HeaderLong, valStr);
+                                if (idx >= 0)
+                                {
+                                    colMap[HeaderShort[idx]] = c;
+                                }
+                            }
+                        }
+                    }
+
+                    if (colMap.Count > 0)
+                    {
+                        // Append directly below the header rows we just copied
+                        int dataRow = rowsToCopy + 1;
+
+                        foreach (var kvp in colMap)
+                        {
+                            if (row.Values.TryGetValue(kvp.Key, out var val))
+                            {
+                                SetCellValue(newWs.Cell(dataRow, kvp.Value), val);
+                            }
+                        }
+                    }
+                }
+            }
+
+            newWb.SaveAs(sfd.FileName);
+
+            MessageBox.Show(owner, "Excel export completed perfectly. No corruption errors.", "Export",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 

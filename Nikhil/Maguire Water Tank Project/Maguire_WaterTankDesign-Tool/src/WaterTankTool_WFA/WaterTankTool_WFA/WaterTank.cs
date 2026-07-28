@@ -280,9 +280,6 @@ namespace WaterTankTool_WFA
             }
             else if (_tankType == TankType.MultiColumn)
             {
-                //DefineMultiLegSegments define_ = new DefineMultiLegSegments(this);
-                //define_.ShowDialog();
-
                 Define_Segments define_Segments = new Define_Segments(this);
                 define_Segments.ShowDialog();
             }

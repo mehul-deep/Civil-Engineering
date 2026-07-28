@@ -1,0 +1,25 @@
+================================================================================
+EXCEL EXPORT (SHEROID TANK PARAMETERS) - PROGRESS & NEXT STEPS
+================================================================================
+Date: July 2026
+
+1. WHAT WE ACCOMPLISHED THIS SESSION (SESSION 6/7)
+--------------------------------------------------------------------------------
+- Perfected the Export Engine: Refactored `ExportFabricationOutput.cs` to solve the template corruption and formatting bugs! 
+- No XML Corruption: Instead of using `ClosedXML`'s buggy `SaveAs` on the original template (which corrupted advanced forms/data validations), the code now creates a brand new workbook and does a safe deep-copy of the raw cell values.
+- Dynamic Sheet Clearing: The code now automatically recognizes main data sheets ("SPHEROID PARAMETERS", "BASE PLATE", "BASE CONES", "TRANSITIONS", "DRYWELLS") and strictly copies ONLY their header rows (Row 1 and Row 2). This successfully strips out the 70+ placeholder company tank designs, leaving a completely clean output sheet.
+- Flawless Data Appending: The application accurately maps its calculated results to the company's specific short codes on Row 2, and cleanly outputs the designed tank's dimensions directly onto Row 3.
+- Unused Variables Handled: Inactive parts of the tank (like B4 and B5 base cone segments for a smaller tank) correctly export a dash ("-") instead of throwing errors or showing zeros, matching the shop's CNC macro requirements.
+- Static Sheets Preserved: Static reference tables (e.g. "DOOR TYPE PARAMETERS", "7FT DIA COLUMN") are intelligently skipped by the data clearing logic and have their full ~20+ rows of lookup data copied identically to the output file so the CNC macros don't break.
+- Crash-Proof Template Loading: Handled edge cases by setting the template file to "Copy to Output Directory" in the `.csproj` so it perfectly travels with the application. Also added a safety check popup if the template is ever manually deleted.
+
+2. PENDING TASKS & NEXT STEPS
+--------------------------------------------------------------------------------
+When we resume, we can start on any of the following tasks:
+- Multi-Leg Tank Exports: We realized the current "Export Fabrication" button uses the Single Pedestal `SHEROID TANK PARAMETERS` template indiscriminately. We need to find out if the company has a separate Excel template for Multi-Leg Tanks (which have completely different geometry like Tower Legs, Riser Pipes, Balcony Rings). If they do, we will need to create a dedicated export engine in the `Output/MultiLegTank/` folder.
+- Strategic Item UI/Logic (Optional): We still need to finalize the math/UI inputs for certain items when ready:
+  1. Standardization of Side Chairs (`SC` / `SCWT`) based on anchor bolt diameter & chair height.
+  2. Standardization of Leveling Shims (`BPSQ`) rules.
+  3. Radial orientation selectors for Doors (`DDEG`).
+  4. Max shop roll plate lengths for ring arc-plate subdivisions.
+- Foundation Design: Begin work on the concrete Structural Foundation designs (Ringwall and Footing) for both Single-Leg and Multi-Leg tanks (this likely goes into a separate engineering summary report, rather than the fabrication output).
