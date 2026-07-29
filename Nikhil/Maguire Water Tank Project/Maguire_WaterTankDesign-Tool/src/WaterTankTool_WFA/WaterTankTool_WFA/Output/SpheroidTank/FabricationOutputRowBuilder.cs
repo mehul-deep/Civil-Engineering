@@ -53,7 +53,11 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             var bpor = (baseConeDiameter * 12 / 2) + 7;
             var b1ur = (((double)(baseSegments?.FirstOrDefault()?.DiameterInitial ?? 0)) * 12)/2;
 
-            var colHeight = ((double)(columnSegments?.LastOrDefault()?.HeightFinal ?? 0)) - ((double)(columnSegments?.FirstOrDefault()?.HeightInitial ?? 0));
+            double colHeight = 0;
+            if (columnSegments != null && columnSegments.Any())
+            {
+                colHeight = (double)(columnSegments.Max(s => s.HeightFinal) - columnSegments.Min(s => s.HeightInitial));
+            }
             //var baseconeDiameter = segmentProperties.
 
             var row = new FabricationOutputRow();
@@ -79,11 +83,11 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["BPDIA"] = bpdia; // Column pipe diameter (in)
 
                 double bporVal = 30.0;
-                if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro;
+                if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro * 12;
                 row.Values["BPOR"] = bporVal; // Plate Width B (in)
 
                 double bpirVal = 30.0;
-                if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri;
+                if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri * 12;
                 row.Values["BPIR"] = bpirVal; // Plate Length N (in)
 
                 row.Values["BPDEG"] = totalColumns > 0 ? 360.0 / totalColumns : 90.0; // Angular spacing between legs around tower
@@ -103,7 +107,7 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
 
                 row.Values["SC"] = 0;
                 row.Values["SCWT"] = 0;
-                row.Values["BPSQ"] = totalTowerBolts; // Shims match total anchor bolts
+                row.Values["BPSQ"] = totalTowerBolts * 2; // 2 shims per anchor bolt
             }
             else
             {
@@ -116,11 +120,11 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row.Values["BPDIA"] = bpdia;
 
                 double bporVal = bpor;
-                if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro;
+                if (basePlate != null && basePlate.Ro > 0) bporVal = basePlate.Ro * 12;
                 row.Values["BPOR"] = bporVal;
 
                 double bpirVal = bporVal - 12;
-                if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri;
+                if (basePlate != null && basePlate.Ri > 0) bpirVal = basePlate.Ri * 12;
                 row.Values["BPIR"] = bpirVal;
 
                 double bpdeg = 0;
@@ -151,9 +155,9 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 else if (basePlate != null && basePlate.Nb != null && basePlate.Nb > 0) abq = basePlate.Nb.Value;
                 row.Values["ABQ"] = abq;
 
-                row.Values["SC"] = abq; // Default side chairs 1 per bolt if single standpipe
+                row.Values["SC"] = abq * 2; // 2 side chairs per anchor bolt
                 row.Values["SCWT"] = 0;
-                row.Values["BPSQ"] = abq; // Shims match total anchor bolts
+                row.Values["BPSQ"] = abq * 2; // 2 shims per anchor bolt
             }
 
 
@@ -176,12 +180,13 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             }
 
             row.Values["CDIA"] = (((double)(columnSegments?.FirstOrDefault()?.Diameter ?? 0)) * 12);
-            row.Values["CHT"] = colHeight;
+            row.Values["CHT"] = colHeight * 12; // multiply by 12 for inches
             for (int i = 1; i <= 18; i++)
             {
                 var s = columnSegments.ElementAtOrDefault(i - 1);
                 row.Values[$"C{i}DIA"] = s != null ? (object)((double)s.Diameter * 12) : "-";
-                row.Values[$"C{i}HT"] = s != null ? (object)((double)s.HeightFinal) : "-";
+                // Calculate individual piece length in inches instead of outputting the top elevation
+                row.Values[$"C{i}HT"] = s != null ? (object)((double)(s.HeightFinal - s.HeightInitial) * 12) : "-";
                 row.Values[$"C{i}THK"] = s != null ? (object)((double)s.Thickness) : "-";
             }
 

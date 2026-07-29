@@ -5,6 +5,11 @@ Date: July 2026
 
 1. WHAT WE ACCOMPLISHED THIS SESSION (SESSION 6/7)
 --------------------------------------------------------------------------------
+- Unit Conversions for Fabrication: Corrected multiple column outputs in `FabricationOutputRowBuilder.cs` that were incorrectly exporting in feet instead of inches. Added `* 12` conversions for Base Plate Outside/Inside Radiuses (`BPOR`, `BPIR`) and Total Column Height (`CHT`).
+- Accurate Length Calculations: Fixed the `colHeight` formula to correctly calculate the total column height by finding the absolute Max `HeightFinal` and Min `HeightInitial` across all cylinders, regardless of UI sorting order. Fixed individual cylinder piece heights (`C1HT`, `C2HT`) to output actual piece lengths instead of top elevations.
+- Anchor Bolt Multipliers: Standardized Side Chairs (`SC`) and Base Plate Shims (`BPSQ`) to a 1:2 ratio with Anchor Bolts (i.e. `abq * 2`) for both Single-Column and Multi-Leg paths.
+- Export Header Fix: Updated `SHEROID TANK PARAMETERS.xlsx` source template header for "Base Plate Diameter (in)" and ran a clean rebuild so the changes propagate to the `bin` directory correctly (overcoming the `PreserveNewest` MSBuild behavior).
+
 - Perfected the Export Engine: Refactored `ExportFabricationOutput.cs` to solve the template corruption and formatting bugs! 
 - No XML Corruption: Instead of using `ClosedXML`'s buggy `SaveAs` on the original template (which corrupted advanced forms/data validations), the code now creates a brand new workbook and does a safe deep-copy of the raw cell values.
 - Dynamic Sheet Clearing: The code now automatically recognizes main data sheets ("SPHEROID PARAMETERS", "BASE PLATE", "BASE CONES", "TRANSITIONS", "DRYWELLS") and strictly copies ONLY their header rows (Row 1 and Row 2). This successfully strips out the 70+ placeholder company tank designs, leaving a completely clean output sheet.

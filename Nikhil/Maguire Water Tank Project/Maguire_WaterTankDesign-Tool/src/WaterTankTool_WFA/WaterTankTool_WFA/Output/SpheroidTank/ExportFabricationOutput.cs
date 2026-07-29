@@ -61,7 +61,7 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
         private static readonly string[] HeaderLong =
         {
             "TANK DESIGNATION","PARAMETER REF.","MG","BASCONE DIA","BASECONE HT","DOOR TYPE","Door Position Degree",
-            "Base Plate Diameter","BASE PLATE OUTSIDE RADIUS","BASE PLATE INSIDE RADIUS","BASE PLATE SEGMENT DEGREE","BASE PLATE THK","BASE PLATE SEGMENT QUANTITY",
+            "Base Plate Diameter (in)","BASE PLATE OUTSIDE RADIUS","BASE PLATE INSIDE RADIUS","BASE PLATE SEGMENT DEGREE","BASE PLATE THK","BASE PLATE SEGMENT QUANTITY",
             "Anchor Bolt Hole Quantity","Anchor Bolt Hole Start Degree","ANCHOR BOLT QUANTITY","Side Chairs","Side ChairsWith Tops","Base Plate Shim Quantity",
             "B1 LOWER RADIUS","B1 UPPER RADIUS","B1 HEIGHT","B1 THK","B1 SEGMENT DEGREE","B1 SEGEMENT QUANTITY",
             "B2 LOWER RADIUS","B2 UPPER RADIUS","B2 HEIGHT","B2 THK","B2 SEGMENT DEGREE","B2 SEGEMENT QUANTITY",

@@ -27,6 +27,13 @@ Today we accomplished the complete end-to-end integration of the Spheroid Tank c
 - Finalized `FabricationOutputRowBuilder.cs` by ripping out the temporary `0` placeholders and writing the EF Core database queries to pull live data.
 - The workflow (User Interface -> SQLite Database -> Exporter -> Multi-Tabbed Excel Workbook) is now 100% complete and fully operational for Spheroid Tanks.
 
+### July 29 Update: Excel Output Logic & Unit Fixes
+- **Unit Conversions (Feet to Inches)**: Updated `FabricationOutputRowBuilder.cs` to correctly output inches for `BPOR` (Base Plate Outside Radius), `BPIR` (Inside Radius), and `CHT` (Total Column Height) by applying `* 12` multipliers.
+- **Accurate Cylinder Heights**: Refactored the `colHeight` total length calculation to subtract the absolute minimum `HeightInitial` from the maximum `HeightFinal`. Changed `C1HT`-`C18HT` to output individual segment lengths in inches rather than just printing raw top elevations.
+- **Side Chairs & Shims Logic**: Updated the output ratio of Side Chairs (`SC`) and Base Plate Shims (`BPSQ`) to be exactly 2x the number of Anchor Bolts.
+- **Template Rebuild**: Corrected MSBuild caching behavior (`PreserveNewest`) which was preventing manual Excel template edits from showing up. Executed a `dotnet clean` & `dotnet build` to push the updated "Base Plate Diameter (in)" column header into the final build.
+- **Data Mapping Walkthrough**: Confirmed with the user that `Transitions` (T1-T6) output as `-` when not defined, `B1LR/B1UR` correctly convert diameter to radius (`* 6`), and the main spherical water bowl ("Tanks") is intentionally omitted from the column-support Excel template.
+
 ### July 27 Update: Fabrication Output Exporter
 - **Phase 1 Complete**: Integrated end-to-end Excel Export logic for both Single Column and Spheroid tanks into the 198-column layout.
 - **Data Mapping**: Developed `FabricationOutputRowBuilder.cs` to properly calculate and map software inputs/results (Base Plate, Segments, Anchor Bolts) to template keys (e.g. BPDIA, BPTHK, ABHQ).
