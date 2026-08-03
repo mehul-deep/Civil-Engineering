@@ -39,3 +39,9 @@ Today we accomplished the complete end-to-end integration of the Spheroid Tank c
 - **Data Mapping**: Developed `FabricationOutputRowBuilder.cs` to properly calculate and map software inputs/results (Base Plate, Segments, Anchor Bolts) to template keys (e.g. BPDIA, BPTHK, ABHQ).
 - **Template Overhaul**: Modified `ExportFabricationOutput.cs` to abandon destructive deletion. The engine now creates a 100% fresh, blank `XLWorkbook` from scratch, dynamically recreates the 14 tabs from the company template, copies strictly the column headers, and injects ONLY the calculated data from the application (preventing template bloating).
 - **Compiler Fixes**: Resolved XML `<ItemGroup>` mismatches in .csproj and resolved entity namespace references. Application .exe successfully rebuilt.
+
+### August 3 Update: Anchor Bolt Math & 100Kinputs Audit
+- **Verification Complete**: Compared UI outputs for Single-Column Anchor Bolts against `100kinputs.xlsx` and `Anchor Bolt Design.pdf`.
+- **Improved Accuracy**: Application correctly utilizes the exact Bolt Circle Radius for overturning lever arm calculations rather than approximating with the inner tank radius.
+- **Bug Fix in Legacy Sheets**: App dynamically respects UI Resistance Factor (e.g., 0.8), fixing a legacy bug where the 100K Excel spreadsheet ignored the input and hardcoded 0.75.
+- **Strict Logic Isolation**: Confirmed single-column logic (0.67D lever arm, $k_c$=24 breakout) does not leak into the multi-leg anchor bolt logic ($4/3 r$ lever arm) inside `FoundationEquations.cs`.

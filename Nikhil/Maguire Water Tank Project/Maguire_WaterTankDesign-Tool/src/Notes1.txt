@@ -123,3 +123,19 @@ I am ready to continue building out the remaining foundation modules and future 
 
 
 "$env:LOCALAPPDATA\agy\bin\agy.exe"
+
+================================================================================
+### 🚀 LATEST SESSION ACHIEVEMENTS (AUGUST 3): ANCHOR BOLT VERIFICATION
+================================================================================
+
+We performed a deep-dive audit comparing the application's Single-Column Anchor Bolt outputs to the legacy "100Kinputs.xlsx" document and the updated "Anchor Bolt Design.pdf".
+
+1. **Math Verification**: 
+   - Confirmed the application correctly strictly follows the "Anchor Bolt Design.pdf" formulas for Single-Column structures (e.g., Overturning Lever Arm = `0.67 * D`, and Concrete Breakout $k_c = 24$).
+   - The application dynamically utilizes exact UI inputs, resolving a hardcoded bug in the 100K Excel sheet where the user's `0.8` Resistance Factor input was ignored in favor of a hardcoded `0.75`.
+
+2. **Geometric Precision**: 
+   - The app correctly utilizes the true Bolt Circle Diameter ($21.5\text{ ft}$) for overturning calculations rather than the nominal inner Tank Radius ($21.0\text{ ft}$) used in the old spreadsheet approximations, resulting in a more precise (and safer) uplift force calculation (336 kips vs 344 kips).
+
+3. **Logic Isolation**: 
+   - Verified that the Single-Column 0.67D logic is strictly sandboxed from the Multi-Leg anchor bolt logic (which uses the $4/3 r$ formula), ensuring no cross-contamination between tank types.
