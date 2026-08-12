@@ -108,3 +108,11 @@ Current Standing & Verified Infrastructure:
 Next Steps:
 I am ready to continue building out the remaining foundation modules and future implementations. Our NEXT DEVELOPMENT PHASE can focus on RING WALL AND FOOTING DESIGN (`RingWallFoundation.cs`, `RingWallProperties.cs`, and `GeoTechnicalProperties.cs`) or any other engineering features as requested. Please assist with reviewing code, running tests, or implementing new calculations!
 ```
+
+
+
+
+read all the .txt and notes file and your .md file for you to get the full context of what we did in our last session and where we are standing and for you to understand my whole codebase. Once
+  done let me know
+
+   "Hey, please read Notes7_MultiColumn_AnchorBolt_Audit.txt and Notes8_MultiColumn_BasePlate_Audit.txt in the src folder to catch up on where we left off."

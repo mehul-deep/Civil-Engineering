@@ -1,0 +1,26 @@
+## Session Summary: Multi-Column Anchor Bolt Audit & Fixes
+
+**Objective Completed:** Audited the `MultiColumnAnchorBoltEquations` against the updated `Multileganchorboltupdated.pdf` document and implemented the necessary mathematical fixes while keeping the single-column module fully sandboxed and untouched.
+
+### Accomplishments:
+1. **Interaction Ratio Fix (ACI 318-19):**
+   - Discovered that the previous code used a square power `^2` for the interaction equation. 
+   - Updated `MultiColumnAnchorBoltEquations.InteractionRatio()` in `FoundationEquations.cs` to use the correct `^(5/3)` power required by the PDF and ACI 318-19.
+
+2. **Automated Net Tensile Area Lookup:**
+   - Identified that the PDF engineering table relied on explicit Net Tensile Areas (e.g., 1.90 in² for a 1.75" bolt) rather than the basic gross circular area math.
+   - Replaced the simple `Math.PI * r^2` math in `BoltArea()` with an automated lookup table for standard AISC/ACI bolts (1.5" -> 1.77, 1.75" -> 1.90, 2.0" -> 2.50, 2.25" -> 3.25). 
+   - Retained the gross circular area math purely as a fallback mechanism if a non-standard bolt diameter is entered.
+
+3. **UI Updates (AnchorBoltParameters.cs):**
+   - Converted the `Bolt Area (Ab)` text box to a read-only field.
+   - Bound a `TextChanged` event to the `db` (Nominal Diameter) field so that when the engineer types in a diameter (like 1.75), the `Ab` textbox dynamically calculates and displays the exact Net Tensile Area (1.90) in real time. 
+
+4. **PDF Math Validation (Nu vs Pu):**
+   - Verified that the `25.91 kips` tension demand ($T_{bolt}$) calculated in the software from overturning is 100% mathematically correct.
+   - Diagnosed several leftover copy-paste typos in the engineering PDF (e.g., $N_u = 46.07$ and a pullout check of $34.55$). Concluded that the software's dynamic variables perfectly supersede the PDF's typos, requiring no further changes to the math engine. The code passes the correct $25.91 \text{ kips}$ tension to all capacity checks.
+
+### Next Steps For Next Session:
+- Review the **Multi-Leg Base Plate** solver equations.
+- Review the **Concrete Footing / Ringwall** logic for the multi-column module.
+- Begin building the **Excel Export** functionality for the multi-column module.

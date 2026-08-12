@@ -232,7 +232,7 @@ namespace WaterTankTool_WFA.Foundation_Design
 
                 // Create new labels and textboxes
                 lblAb = new Label { Text = "Bolt Area (Ab) (in²)", Location = label3.Location, AutoSize = true };
-                txtAb = new TextBox { Location = textBox3.Location, Size = textBox3.Size };
+                txtAb = new TextBox { Location = textBox3.Location, Size = textBox3.Size, ReadOnly = true, BackColor = SystemColors.Control };
 
                 lblPedestalSize = new Label { Text = "Pedestal Size (B x L) (in)", Location = label4.Location, AutoSize = true };
                 txtPedestalSize = new TextBox { Location = textBox4.Location, Size = textBox4.Size };
@@ -261,6 +261,21 @@ namespace WaterTankTool_WFA.Foundation_Design
                 groupBox1.Controls.Add(txtDcone);
                 groupBox1.Controls.Add(lblPu);
                 groupBox1.Controls.Add(txtPu);
+
+                // Dynamically update the read-only Bolt Area text box when the diameter changes
+                textBox2.TextChanged += (s, ev) => 
+                {
+                    if (double.TryParse(textBox2.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double db) ||
+                        double.TryParse(textBox2.Text, NumberStyles.Any, CultureInfo.CurrentCulture, out db))
+                    {
+                        var eq = new WaterTankTool_WFA.Solver_Equation.FoundationEquations.MultiColumnAnchorBoltEquations();
+                        txtAb.Text = eq.BoltArea(db).ToString("F4", CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        txtAb.Text = "";
+                    }
+                };
             }
         }
 

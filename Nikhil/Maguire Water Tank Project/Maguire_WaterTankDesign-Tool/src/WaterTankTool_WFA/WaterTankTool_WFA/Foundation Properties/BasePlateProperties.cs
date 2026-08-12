@@ -145,9 +145,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             this.Text = "Multi-Leg Base Plate Design Results";
 
             // Hide Single-Column specific centroid and bolt dropdown controls
-            label15.Visible = textBox15.Visible = false; // Centroid X
             label16.Visible = textBox16.Visible = false; // Centroid Y
-            label10.Visible = textBox10.Visible = false; // Centroid angle
             labelBoltSelect.Visible = comboBoxBoltSelect.Visible = false;
             labelLocationDetail.Visible = labelAngleDetail.Visible = false;
             labelXCoordDetail.Visible = labelYCoordDetail.Visible = false;
@@ -159,26 +157,36 @@ namespace WaterTankTool_WFA.Foundation_Properties
             textBox21.Location = new System.Drawing.Point(210, 232);
 
             // Re-align Right Column to remove gaps
-            label13.Location = new System.Drawing.Point(330, 148);
-            textBox13.Location = new System.Drawing.Point(530, 145);
-            labelThicknessStatus.Location = new System.Drawing.Point(635, 148);
+            label10.Visible = true;
+            textBox10.Visible = true;
+            label10.Location = new System.Drawing.Point(330, 148);
+            textBox10.Location = new System.Drawing.Point(530, 145);
 
-            label14.Location = new System.Drawing.Point(330, 177);
-            textBox14.Location = new System.Drawing.Point(530, 174);
-            labelCompactnessStatus.Location = new System.Drawing.Point(635, 177);
+            label15.Visible = true;
+            textBox15.Visible = false; // Hide the textbox, we only need the label for PASS/FAIL
+            label15.Location = new System.Drawing.Point(635, 119);
+            label15.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
 
-            label22.Location = new System.Drawing.Point(330, 206);
-            textBox22.Location = new System.Drawing.Point(530, 203);
+            label13.Location = new System.Drawing.Point(330, 177);
+            textBox13.Location = new System.Drawing.Point(530, 174);
+            labelThicknessStatus.Location = new System.Drawing.Point(635, 177);
 
-            label17.Location = new System.Drawing.Point(330, 235);
-            textBox17.Location = new System.Drawing.Point(530, 232);
+            label14.Location = new System.Drawing.Point(330, 206);
+            textBox14.Location = new System.Drawing.Point(530, 203);
+            labelCompactnessStatus.Location = new System.Drawing.Point(635, 206);
 
-            label18.Location = new System.Drawing.Point(330, 264);
-            textBox18.Location = new System.Drawing.Point(530, 261);
+            label22.Location = new System.Drawing.Point(330, 235);
+            textBox22.Location = new System.Drawing.Point(530, 232);
+
+            label17.Location = new System.Drawing.Point(330, 264);
+            textBox17.Location = new System.Drawing.Point(530, 261);
+
+            label18.Location = new System.Drawing.Point(330, 293);
+            textBox18.Location = new System.Drawing.Point(530, 290);
 
             // Resize form to fit snugly without bottom empty space
-            groupBox1.Height = 310;
-            this.ClientSize = new System.Drawing.Size(this.ClientSize.Width, 345);
+            groupBox1.Height = 330;
+            this.ClientSize = new System.Drawing.Size(this.ClientSize.Width, 365);
 
             // Update Labels for Multi-Column
             label1.Text = "Base Plate Area A1 (in²)";
@@ -191,6 +199,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label7.Text = "Factored Mu,ped (kip-in)";
             label8.Text = "Load Pu,ped (kips)";
             label9.Text = "Bearing Capacity Pn (kips)";
+            label10.Text = "Load Pu,comp (kips)";
 
             label11.Text = "Bearing Stress Fp (ksi)";
             label12.Text = "Eccentricity e (in)";
@@ -235,6 +244,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double muPedFt = eq.FactoredMomentPerPedestal(totalMuKipFt, totalLegs);
             double muPedIn = eq.ConvertMomentToKipIn(muPedFt);
             double puPed = totalLegs > 0 ? Math.Round(totalPuKips / totalLegs, 2) : totalPuKips;
+            double puComp = eq.AppliedLoadPerCompressionPedestal(totalPuKips, totalLegs);
             double eVal = eq.EquivalentEccentricity(muPedIn, puPed);
             double nLimit = eq.BearingConditionLimit(n);
 
@@ -260,6 +270,12 @@ namespace WaterTankTool_WFA.Foundation_Properties
             textBox7.Text = muPedIn.ToString("F2", CultureInfo.InvariantCulture);
             textBox8.Text = puPed.ToString("F2", CultureInfo.InvariantCulture);
             textBox9.Text = pn.ToString("F2", CultureInfo.InvariantCulture);
+            textBox10.Text = puComp.ToString("F2", CultureInfo.InvariantCulture);
+            
+            bool capacityPass = pn >= puComp;
+            textBox9.BackColor = capacityPass ? Color.LightGreen : Color.LightCoral;
+            label15.Text = capacityPass ? "PASS" : "FAIL";
+            label15.ForeColor = capacityPass ? Color.Green : Color.Red;
 
             textBox11.Text = fp.ToString("F4", CultureInfo.InvariantCulture);
             textBox12.Text = eVal.ToString("F2", CultureInfo.InvariantCulture);

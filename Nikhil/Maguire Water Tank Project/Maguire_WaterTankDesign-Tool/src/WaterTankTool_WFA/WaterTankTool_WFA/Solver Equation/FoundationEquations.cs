@@ -580,7 +580,7 @@ namespace WaterTankTool_WFA.Solver_Equation
 
                 if (netTensileStrain <= yieldStrain)
                     return 0.65;
-
+                
                 return R(0.65 + 0.25 * ((netTensileStrain - yieldStrain) / 0.003));
             }
 
@@ -859,6 +859,13 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             public double BoltArea(double db)
             {
+                // AISC/ACI Net Tensile Area lookup for standard threaded anchor bolts
+                if (db == 1.5) return 1.77;
+                if (db == 1.75) return 1.90;
+                if (db == 2.0) return 2.50;
+                if (db == 2.25) return 3.25;
+
+                // Fallback to gross circular area for unknown/custom sizes
                 return R(Math.PI * Math.Pow(db, 2) / 4.0);
             }
 
@@ -915,7 +922,7 @@ namespace WaterTankTool_WFA.Solver_Equation
             public double InteractionRatio(double tu, double phiNn, double vu, double phiVn)
             {
                 if (phiNn <= 0 || phiVn <= 0) return 0;
-                return R(Math.Pow(tu / phiNn, 2) + Math.Pow(vu / phiVn, 2));
+                return R(Math.Pow(tu / phiNn, 5.0 / 3.0) + Math.Pow(vu / phiVn, 5.0 / 3.0));
             }
 
             public bool InteractionPass(double interactionRatio)
