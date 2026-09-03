@@ -960,7 +960,7 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             // Step 2: Pedestal Area & Base Plate Area & Bearing Stress
             public double PedestalArea(double p, double l) => R(p * l);
-            public double BasePlateArea(double b, double n) => R(b * n);
+            public double BasePlateArea(double d_o) => R(Math.PI * Math.Pow(d_o, 2) / 4.0);
 
             public double MaximumBearingStress(double fcPrimeKsi, double a2, double a1, double phiC = 0.65)
             {
@@ -997,9 +997,9 @@ namespace WaterTankTool_WFA.Solver_Equation
                 return R(muPedKipIn / puPedKips);
             }
 
-            public double BearingConditionLimit(double n)
+            public double BearingConditionLimit(double d_o)
             {
-                return R(n / 6.0);
+                return R(d_o / 8.0); // D/8 for solid circular section limit
             }
 
             // Step 6: Determine Base Plate Thickness
@@ -1017,9 +1017,9 @@ namespace WaterTankTool_WFA.Solver_Equation
             }
 
             // 6.3 Plate Projection (m)
-            public double PlateProjection(double plateWidthN, double pipeDiameterD)
+            public double PlateProjection(double outerDiameterDo, double pipeDiameterD)
             {
-                return R((plateWidthN - pipeDiameterD) / 2.0);
+                return R((outerDiameterDo - pipeDiameterD) / 2.0);
             }
 
             // 6.4 Plastic Moment per 1-in Strip (Mplu)

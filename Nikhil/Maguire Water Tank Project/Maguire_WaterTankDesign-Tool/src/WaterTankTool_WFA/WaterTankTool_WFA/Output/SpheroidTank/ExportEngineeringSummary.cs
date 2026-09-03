@@ -212,8 +212,7 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 int totalLegs = (anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
                 double p = anchorBolt?.PedestalSize ?? 39.0;
                 double l = anchorBolt?.PedestalSize ?? 39.0;
-                double b = basePlate?.Ro ?? 30.0;
-                double n = basePlate?.Ri ?? 30.0;
+                double d_o = basePlate?.Ro ?? 30.0;
                 double dpip = basePlate?.Dbp ?? (anchorBolt?.Dcone ?? 20.04);
                 double t = basePlate?.T ?? 1.50;
                 double fy = basePlate?.Fy ?? 36.0;
@@ -222,7 +221,7 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 double totalMuKipFt = basePlate?.OverturningMoment ?? (anchorBolt?.Mu ?? 0);
                 double totalPuKips = basePlate?.Pu ?? (anchorBolt?.Pu ?? 0);
 
-                double a1 = mcBpEq.BasePlateArea(b, n);
+                double a1 = mcBpEq.BasePlateArea(d_o);
                 double a2 = mcBpEq.PedestalArea(p, l);
                 double fp = mcBpEq.MaximumBearingStress(fcPrimeKsi, a2, a1, 0.65);
                 double fpLimit = mcBpEq.BearingStressLimit(fcPrimeKsi, 0.65);
@@ -231,12 +230,13 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 double muPedFt = mcBpEq.FactoredMomentPerPedestal(totalMuKipFt, totalLegs);
                 double muPedIn = mcBpEq.ConvertMomentToKipIn(muPedFt);
                 double puPed = totalLegs > 0 ? Math.Round(totalPuKips / totalLegs, 2) : totalPuKips;
+                double puComp = mcBpEq.AppliedLoadPerCompressionPedestal(totalPuKips, totalLegs);
                 double eVal = mcBpEq.EquivalentEccentricity(muPedIn, puPed);
-                double nLimit = mcBpEq.BearingConditionLimit(n);
+                double nLimit = mcBpEq.BearingConditionLimit(d_o);
 
                 double colArea = mcBpEq.ColumnBearingArea(dpip);
                 double qVal = mcBpEq.BearingPressure(puPed, colArea);
-                double mVal = mcBpEq.PlateProjection(n, dpip);
+                double mVal = mcBpEq.PlateProjection(d_o, dpip);
                 double mplu = mcBpEq.StripPlasticMoment(qVal, mVal);
                 double treq = mcBpEq.RequiredThickness(mplu, fy, 0.90);
 
@@ -245,16 +245,17 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 double totalWeight = weightPerPlate * totalLegs;
 
                 row = AddDataRow(ws, row, "Tower Supporting Legs (Ns)", totalLegs, "Pipe Column Diameter Dpip (in)", dpip);
-                row = AddDataRow(ws, row, "Plate Width B (Ro) (in)", b, "Plate Length N (Ri) (in)", n);
+                row = AddDataRow(ws, row, "Outer Diameter Do (Ro) (in)", d_o, "N/A", "-");
                 row = AddDataRow(ws, row, "Pedestal Size P x L (in)", $"{p} x {l}", "Base Plate Area A1 (in²)", Math.Round(a1, 4));
                 row = AddDataRow(ws, row, "Supporting Area A2 (in²)", Math.Round(a2, 4), "Bearing Stress Demand Fp (ksi)", Math.Round(fp, 4));
                 row = AddDataRow(ws, row, "Design Bearing Limit (phi*Fp) (ksi)", Math.Round(fpLimit, 4), "Bearing Capacity Pn (kips)", Math.Round(pn, 4));
-                row = AddDataRow(ws, row, "Factored Axial Load Pu,ped (kips)", Math.Round(puPed, 4), "Factored Moment Mu,ped (kip-ft)", Math.Round(muPedFt, 4));
-                row = AddDataRow(ws, row, "Equivalent Eccentricity e (in)", Math.Round(eVal, 4), "Bearing Limit N/6 (in)", Math.Round(nLimit, 4));
-                row = AddDataRow(ws, row, "Bearing Pressure Demand q (ksi)", Math.Round(qVal, 4), "Cantilever Projection m (in)", Math.Round(mVal, 4));
-                row = AddDataRow(ws, row, "Plastic Moment Mplu (kip-in/in)", Math.Round(mplu, 4), "Weight per Plate (kips)", Math.Round(weightPerPlate, 4));
-                row = AddDataRow(ws, row, "Actual Plate Thickness t (in)", t, "Required Thickness treq (in)", Math.Round(treq, 4));
-                row = AddDataRow(ws, row, "Total Weight across all Legs (kips)", Math.Round(totalWeight, 4), "Plate Compactness Status", (t >= treq && fp <= fpLimit) ? "COMPACT / OK" : "CHECK THICKNESS / BEARING");
+                row = AddDataRow(ws, row, "Factored Axial Load Pu,ped (kips)", Math.Round(puPed, 4), "Max Compression Load Pu,comp (kips)", Math.Round(puComp, 4));
+                row = AddDataRow(ws, row, "Factored Moment Mu,ped (kip-ft)", Math.Round(muPedFt, 4), "Equivalent Eccentricity e (in)", Math.Round(eVal, 4));
+                row = AddDataRow(ws, row, "Bearing Limit D/8 (in)", Math.Round(nLimit, 4), "Bearing Pressure Demand q (ksi)", Math.Round(qVal, 4));
+                row = AddDataRow(ws, row, "Cantilever Projection m (in)", Math.Round(mVal, 4), "Plastic Moment Mplu (kip-in/in)", Math.Round(mplu, 4));
+                row = AddDataRow(ws, row, "Required Thickness treq (in)", Math.Round(treq, 4), "Actual Plate Thickness t (in)", t);
+                row = AddDataRow(ws, row, "Weight per Plate (kips)", Math.Round(weightPerPlate, 4), "Total Weight across all Legs (kips)", Math.Round(totalWeight, 4));
+                row = AddDataRow(ws, row, "Plate Compactness Status", (t >= treq && pn >= puComp && fp <= fpLimit) ? "COMPACT / OK" : "CHECK THICKNESS / BEARING", "", "");
                 row++;
             }
             else

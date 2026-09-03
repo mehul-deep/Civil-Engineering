@@ -47,23 +47,23 @@ namespace WaterTankTool_WFA.Foundation_Design
                 label7.Visible = textBox10.Visible = false; // No of Bolt hole in one segment (Nh)
                 label16.Visible = textBox16.Visible = false; // Width of ring wall (Wrw)
 
-                // Update labels for Multi-Column rectangular base plate
-                label1.Text = "Pipe Diameter (Dpip) (in)";
-                label2.Text = "Plate Width B (in)";
-                label3.Text = "Plate Length N (in)";
+                // Update labels for Multi-Column circular base plate
+                label1.Text = "Pipe Diam (Dpip) (in)";
+                label2.Text = "Outer Diameter Do (in)";
+                label3.Visible = textBox3.Visible = false;
                 label4.Text = "Plate Thickness (in)";
-                label8.Text = "Anchor Bolt Diam (db) (in)";
+                label8.Text = "Bolt Diam (db) (in)";
                 label17.Text = "Total Bolts per Pedestal";
 
                 // Re-position Left Column items to remove empty gaps
-                label4.Location = new Point(label1.Location.X, 131);
-                textBox5.Location = new Point(textBox1.Location.X, 128);
+                label4.Location = new Point(label1.Location.X, 98);
+                textBox5.Location = new Point(textBox1.Location.X, 95);
 
-                label11.Location = new Point(label1.Location.X, 164);
-                textBox11.Location = new Point(textBox1.Location.X, 161);
+                label11.Location = new Point(label1.Location.X, 131);
+                textBox11.Location = new Point(textBox1.Location.X, 128);
 
-                label12.Location = new Point(label1.Location.X, 205);
-                textBox12.Location = new Point(textBox1.Location.X, 202);
+                label12.Location = new Point(label1.Location.X, 164);
+                textBox12.Location = new Point(textBox1.Location.X, 161);
 
                 // Re-position Right Column items to remove empty gaps and align with Left Column
                 label8.Location = new Point(270, 32);
@@ -226,8 +226,8 @@ namespace WaterTankTool_WFA.Foundation_Design
                 if (AppState.CurrentTankType == TankType.MultiColumn)
                 {
                     entity.Dbp = ParseDoubleRequired(textBox1, "Pipe Diameter");
-                    entity.Ro = ParseDoubleRequired(textBox2, "Plate Width B");
-                    entity.Ri = ParseDoubleRequired(textBox3, "Plate Length N");
+                    entity.Ro = ParseDoubleRequired(textBox2, "Outer Diameter Do");
+                    entity.Ri = 0;
                     entity.T = ParseDoubleRequired(textBox5, "Thickness");
                     entity.Dh = ParseDoubleRequired(textBox7, "Anchor Bolt Diameter");
                     entity.Nb = ParseIntNullable(textBox17);
@@ -434,14 +434,14 @@ namespace WaterTankTool_WFA.Foundation_Design
                     gMulti.DrawRectangle(pPed, cxMulti - halfP, cyMulti - halfP, 2 * halfP, 2 * halfP);
                 }
 
-                // Draw Base Plate (Blue/Steel)
+                // Draw Base Plate (Blue/Steel - Circular)
                 using (Brush bPlate = new SolidBrush(Color.FromArgb(80, 70, 130, 180)))
                 {
-                    gMulti.FillRectangle(bPlate, cxMulti - halfB, cyMulti - halfB, 2 * halfB, 2 * halfB);
+                    gMulti.FillEllipse(bPlate, cxMulti - halfB, cyMulti - halfB, 2 * halfB, 2 * halfB);
                 }
                 using (Pen pPlate = new Pen(Color.Navy, 2.2f))
                 {
-                    gMulti.DrawRectangle(pPlate, cxMulti - halfB, cyMulti - halfB, 2 * halfB, 2 * halfB);
+                    gMulti.DrawEllipse(pPlate, cxMulti - halfB, cyMulti - halfB, 2 * halfB, 2 * halfB);
                 }
 
                 // Draw Pipe Column (Center Circle)
@@ -459,25 +459,12 @@ namespace WaterTankTool_WFA.Foundation_Design
                 int.TryParse(textBox17.Text.Trim(), out nbMulti);
                 if (nbMulti <= 0) nbMulti = 4;
 
-                float boltOffset = 48f;
-                PointF[] boltPositions;
-                if (nbMulti == 4)
+                float boltOffset = 52f; // Bolt circle radius for multi-column
+                PointF[] boltPositions = new PointF[nbMulti];
+                for (int i = 0; i < nbMulti; i++)
                 {
-                    boltPositions = new PointF[] {
-                        new PointF(cxMulti - boltOffset, cyMulti - boltOffset),
-                        new PointF(cxMulti + boltOffset, cyMulti - boltOffset),
-                        new PointF(cxMulti + boltOffset, cyMulti + boltOffset),
-                        new PointF(cxMulti - boltOffset, cyMulti + boltOffset)
-                    };
-                }
-                else
-                {
-                    boltPositions = new PointF[nbMulti];
-                    for (int i = 0; i < nbMulti; i++)
-                    {
-                        double angle = 2 * Math.PI * i / nbMulti + Math.PI / 4.0;
-                        boltPositions[i] = new PointF((float)(cxMulti + boltOffset * Math.Cos(angle)), (float)(cyMulti + boltOffset * Math.Sin(angle)));
-                    }
+                    double angle = 2 * Math.PI * i / nbMulti + Math.PI / 4.0;
+                    boltPositions[i] = new PointF((float)(cxMulti + boltOffset * Math.Cos(angle)), (float)(cyMulti + boltOffset * Math.Sin(angle)));
                 }
 
                 using (Brush bBolt = new SolidBrush(Color.Crimson))
@@ -502,21 +489,20 @@ namespace WaterTankTool_WFA.Foundation_Design
                     gMulti.DrawLine(pCenter, cxMulti - halfP - 10f, cyMulti, cxMulti + halfP + 10f, cyMulti);
                     gMulti.DrawLine(pCenter, cxMulti, cyMulti - halfP - 10f, cxMulti, cyMulti + halfP + 10f);
 
-                    // Top Horizontal Dimension Line (Length N)
+                    // Top Horizontal Dimension Line (Outer Diameter Do)
                     float topDimY = cyMulti - halfB - 10f;
                     gMulti.DrawLine(pDim, cxMulti - halfB, topDimY, cxMulti + halfB, topDimY);
                     gMulti.DrawLine(pDim, cxMulti - halfB, topDimY - 4f, cxMulti - halfB, topDimY + 4f);
                     gMulti.DrawLine(pDim, cxMulti + halfB, topDimY - 4f, cxMulti + halfB, topDimY + 4f);
-                    string nVal = textBox3.Text.Trim();
-                    gMulti.DrawString(string.IsNullOrEmpty(nVal) ? "N" : $"N = {nVal}\"", fBold, bText, cxMulti - 20f, topDimY - 16f);
+                    string doVal = textBox2.Text.Trim();
+                    gMulti.DrawString(string.IsNullOrEmpty(doVal) ? "Do" : $"Do = {doVal}\"", fBold, bText, cxMulti - 25f, topDimY - 16f);
 
-                    // Left Vertical Dimension Line (Width B)
-                    float leftDimX = cxMulti - halfB - 10f;
-                    gMulti.DrawLine(pDim, leftDimX, cyMulti - halfB, leftDimX, cyMulti + halfB);
-                    gMulti.DrawLine(pDim, leftDimX - 4f, cyMulti - halfB, leftDimX + 4f, cyMulti - halfB);
-                    gMulti.DrawLine(pDim, leftDimX - 4f, cyMulti + halfB, leftDimX + 4f, cyMulti + halfB);
-                    string bVal = textBox2.Text.Trim();
-                    gMulti.DrawString(string.IsNullOrEmpty(bVal) ? "B" : $"B = {bVal}\"", fBold, bText, 5f, cyMulti - 8f);
+                    // Left Vertical Dimension Line (Pedestal P)
+                    float leftDimX = cxMulti - halfP - 10f;
+                    gMulti.DrawLine(pDim, leftDimX, cyMulti - halfP, leftDimX, cyMulti + halfP);
+                    gMulti.DrawLine(pDim, leftDimX - 4f, cyMulti - halfP, leftDimX + 4f, cyMulti - halfP);
+                    gMulti.DrawLine(pDim, leftDimX - 4f, cyMulti + halfP, leftDimX + 4f, cyMulti + halfP);
+                    gMulti.DrawString("P", fBold, bTextGray, 5f, cyMulti - 8f);
 
                     // Center Pipe Column Label
                     string dVal = textBox1.Text.Trim();

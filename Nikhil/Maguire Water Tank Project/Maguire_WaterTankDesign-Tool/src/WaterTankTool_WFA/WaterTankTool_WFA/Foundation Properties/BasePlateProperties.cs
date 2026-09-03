@@ -224,8 +224,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
                 l = anchorBolt.PedestalSize.Value;
             }
 
-            double b = _entity.Ro > 0 ? _entity.Ro : 30.0;
-            double n = _entity.Ri > 0 ? _entity.Ri : 30.0;
+            double d_o = _entity.Ro > 0 ? _entity.Ro : 30.0;
             double dpip = _entity.Dbp > 0 ? _entity.Dbp : 20.04;
             double t = _entity.T > 0 ? _entity.T : 1.50;
             double fy = _entity.Fy > 0 ? _entity.Fy : 36.0;
@@ -235,7 +234,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double totalPuKips = _entity.Pu ?? 0;
 
             // Calculations using our new engine!
-            double a1 = eq.BasePlateArea(b, n);
+            double a1 = eq.BasePlateArea(d_o);
             double a2 = eq.PedestalArea(p, l);
             double fp = eq.MaximumBearingStress(fcPrimeKsi, a2, a1, 0.65);
             double fpLimit = eq.BearingStressLimit(fcPrimeKsi, 0.65);
@@ -246,11 +245,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double puPed = totalLegs > 0 ? Math.Round(totalPuKips / totalLegs, 2) : totalPuKips;
             double puComp = eq.AppliedLoadPerCompressionPedestal(totalPuKips, totalLegs);
             double eVal = eq.EquivalentEccentricity(muPedIn, puPed);
-            double nLimit = eq.BearingConditionLimit(n);
+            double nLimit = eq.BearingConditionLimit(d_o);
 
             double colArea = eq.ColumnBearingArea(dpip);
             double qVal = eq.BearingPressure(puPed, colArea);
-            double mVal = eq.PlateProjection(n, dpip);
+            double mVal = eq.PlateProjection(d_o, dpip);
             double mplu = eq.StripPlasticMoment(qVal, mVal);
             double treq = eq.RequiredThickness(mplu, fy, 0.90);
 
