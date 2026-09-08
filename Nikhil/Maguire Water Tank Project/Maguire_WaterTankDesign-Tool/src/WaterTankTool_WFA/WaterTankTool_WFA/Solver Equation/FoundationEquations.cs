@@ -1035,5 +1035,133 @@ namespace WaterTankTool_WFA.Solver_Equation
                 return R(Math.Sqrt((4.0 * mplu) / (phiB * fyKsi)));
             }
         }
+
+        public class MultiColumnPedestalEquations
+        {
+            private double R(double value) => Math.Round(value, 5);
+
+            // Step 1: Gravity axial load per leg
+            public double GravityAxialLoadPerLeg(double totalAxialLoadPu, int numberOfLegs)
+            {
+                if (numberOfLegs <= 0) return 0;
+                return R(totalAxialLoadPu / numberOfLegs);
+            }
+
+            // Step 2: Maximum Compression Pedestal Load
+            public double MaxCompressionPedestalLoad(double gravityLoadPerLeg, double tensionPerLeg)
+            {
+                return R(gravityLoadPerLeg + tensionPerLeg);
+            }
+
+            public double PedestalSelfWeight(double widthIn, double lengthIn, double heightFt, double gammaC_pcf = 150.0)
+            {
+                // Volume in cubic feet: (W * L / 144) * H
+                double volume = (widthIn * lengthIn / 144.0) * heightFt;
+                // Weight in kips
+                return R(volume * (gammaC_pcf / 1000.0));
+            }
+
+            public double FactoredPedestalSelfWeight(double pedestalSelfWeight)
+            {
+                return R(1.2 * pedestalSelfWeight);
+            }
+
+            // Step 3: Pedestal Concrete Bearing Check
+            public double BearingEnhancementFactor(double basePlateAreaA1, double pedestalAreaA2)
+            {
+                if (basePlateAreaA1 <= 0) return 0;
+                double ratio = Math.Sqrt(pedestalAreaA2 / basePlateAreaA1);
+                return R(Math.Min(ratio, 2.0)); // ACI limit is 2.0
+            }
+
+            public double PedestalBearingCapacity(double fcPrimeKsi, double basePlateAreaA1, double enhancementFactor, double phi = 0.65)
+            {
+                // phi * 0.85 * f'c * A1 * sqrt(A2/A1)
+                return R(phi * 0.85 * fcPrimeKsi * basePlateAreaA1 * enhancementFactor);
+            }
+
+            // Step 4: Pedestal longitudinal Reinforcement
+            public double MinimumReinforcementArea(double grossAreaAg)
+            {
+                // 0.005Ag for cast-in-place pedestal-to-foundation interface
+                return R(0.005 * grossAreaAg);
+            }
+
+            public bool LongitudinalReinforcementPass(double providedAs, double requiredAs)
+            {
+                return providedAs >= requiredAs;
+            }
+
+            // Step 5: Axial Compression Capacity
+            public double NominalConcentricCompressionStrength(double fcPrimeKsi, double grossAreaAg, double steelAreaAs, double fyKsi)
+            {
+                // Po = 0.85 * f'c * (Ag - As) + fy * As
+                return R(0.85 * fcPrimeKsi * (grossAreaAg - steelAreaAs) + fyKsi * steelAreaAs);
+            }
+
+            public double DesignAxialCompressionCapacity(double poKips, double phi = 0.65, double maxAxialFactor = 0.80)
+            {
+                // phi * 0.80 * Po
+                return R(phi * maxAxialFactor * poKips);
+            }
+
+            // Step 6: Pedestal Uplift Check
+            public double DesignTensileCapacity(double steelAreaAs, double fyKsi, double phi = 0.90)
+            {
+                // phi * As * fy
+                return R(phi * steelAreaAs * fyKsi);
+            }
+
+            // Step 7: Horizontal Shear per Pedestal
+            public double HorizontalShearPerPedestal(double totalShearVu, int numberOfLegs)
+            {
+                if (numberOfLegs <= 0) return 0;
+                return R(totalShearVu / numberOfLegs);
+            }
+
+            // Step 8: Pedestal One-Way Shear Check
+            public double NominalShearCapacity(double fcPrimePsi, double bwIn, double dIn)
+            {
+                // Vc = 2 * sqrt(f'c) * bw * d (in lbs)
+                double vcLbs = 2.0 * Math.Sqrt(fcPrimePsi) * bwIn * dIn;
+                return R(vcLbs / 1000.0); // convert to kips
+            }
+
+            public double DesignShearCapacity(double vcKips, double phi = 0.75)
+            {
+                return R(phi * vcKips);
+            }
+
+            // Step 9: Pedestal Flexure Check
+            public double FactoredFlexuralMoment(double vuPedestalKips, double pedestalHeightFt)
+            {
+                // Mu = Vu * Hp
+                return R(vuPedestalKips * pedestalHeightFt);
+            }
+            
+            // Required flexural reinforcement
+            public double RequiredFlexuralReinforcement(double muKipFt, double fyKsi, double dIn, double phi = 0.90)
+            {
+                // Approx As = Mu / (phi * fy * j * d). Assuming j ~ 0.9.
+                // Mu in kip-in = MuKipFt * 12
+                double muKipIn = muKipFt * 12.0;
+                if (phi <= 0 || fyKsi <= 0 || dIn <= 0) return 0;
+                return R(muKipIn / (phi * fyKsi * 0.9 * dIn));
+            }
+
+            // Step 11: Pedestal-to-Footing Development
+            public double RequiredPedestalToFootingSteel(double tuKips, double fyKsi, double phi = 0.90)
+            {
+                if (phi <= 0 || fyKsi <= 0) return 0;
+                return R(tuKips / (phi * fyKsi));
+            }
+            
+            // D/C Ratio Helper
+            public double DemandCapacityRatio(double demand, double capacity)
+            {
+                if (capacity <= 0) return 0;
+                return R(demand / capacity);
+            }
+        }
     }
 }

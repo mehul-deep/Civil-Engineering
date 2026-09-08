@@ -27,8 +27,8 @@ public class WaterTankDbContext : DbContext
 
     //Foundations
     public DbSet<AnchorBoltEntity> AnchorBoltEntity { get; set; }
-
     public DbSet<BasePlateEntity> BasePlateEntity { get; set; }
+    public DbSet<RingWallEntity> RingWallEntity { get; set; }
 
     // Spheroid Tank Components
     public DbSet<TransitionsEntity> TransitionsEntity { get; set; }
@@ -87,6 +87,7 @@ public class WaterTankDbContext : DbContext
             UpdateBasePlateSchema();
             UpdateAnchorBoltSchema();
             UpdateSpheroidSchema();
+            UpdateRingWallSchema();
         }
         catch (Exception ex)
         {
@@ -201,6 +202,47 @@ public class WaterTankDbContext : DbContext
         catch (Exception ex)
         {
             Console.WriteLine($"Error updating BasePlateEntity schema: {ex.Message}");
+        }
+    }
+
+    private void UpdateRingWallSchema()
+    {
+        try
+        {
+            var connection = Database.GetDbConnection();
+            if (connection.State != System.Data.ConnectionState.Open)
+                connection.Open();
+
+            using (var command = connection.CreateCommand())
+            {
+                // Create table if missing (e.g. older EF databases)
+                command.CommandText = @"CREATE TABLE IF NOT EXISTS RingWallEntity (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Trw REAL NOT NULL, B REAL NOT NULL, Rcl REAL NOT NULL, TCE REAL NOT NULL, 
+                    Tedge REAL NOT NULL, Cc REAL NOT NULL, Rin REAL NOT NULL, Rout REAL NOT NULL, 
+                    A REAL NOT NULL, Rrw REAL NOT NULL
+                );";
+                try { command.ExecuteNonQuery(); } catch { }
+
+                string[] columns = new string[]
+                {
+                    "FcPrime", "Fy", "Hef", "Hp", "GammaC", "PedestalSizeB", "PedestalSizeL", "PedestalAsProv", "FootingAsProv"
+                };
+
+                foreach (var col in columns)
+                {
+                    try
+                    {
+                        command.CommandText = $"ALTER TABLE RingWallEntity ADD COLUMN {col} REAL NULL;";
+                        command.ExecuteNonQuery();
+                    }
+                    catch { /* Column probably already exists */ }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating RingWallEntity schema: {ex.Message}");
         }
     }
 }

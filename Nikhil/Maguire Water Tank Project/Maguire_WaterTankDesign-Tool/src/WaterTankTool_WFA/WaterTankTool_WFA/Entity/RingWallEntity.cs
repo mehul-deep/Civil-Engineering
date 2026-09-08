@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -59,5 +59,18 @@ namespace WaterTankTool_WFA.Entity
         /// Ring wall centerline radius (ft)
         /// </summary>
         public double Rrw { get; set; }
+
+        // --- Multi-Leg Pedestal Properties ---
+
+        public double? FcPrime { get; set; }
+        public double? Fy { get; set; }
+        public double? Hef { get; set; }
+        public double? Hp { get; set; }
+        public double? GammaC { get; set; }
+        public double? PedestalSizeB { get; set; }
+        public double? PedestalSizeL { get; set; }
+
+        public double? PedestalAsProv { get; set; } // e.g. 7.92
+        public double? FootingAsProv { get; set; }  // e.g. 5.28
     }
 }
