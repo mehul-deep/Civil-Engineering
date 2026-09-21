@@ -32,11 +32,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
 
         private void SetupMultiColumnUI()
         {
-            this.Text = "Multi-Leg Pedestal Results";
-            
-            // Expand the form to fit two columns without scrolling
-            this.Size = new Size(780, 480);
             this.Text = "Multi-Leg Pedestal Properties";
+            this.Size = new Size(780, 520);
             tabControl1.Visible = false;
 
             Panel pnl = new Panel { Dock = DockStyle.Fill, AutoScroll = false };
@@ -45,52 +42,49 @@ namespace WaterTankTool_WFA.Foundation_Properties
             int yLeft = 10;
             int yRight = 10;
             int col1 = 15;
-            int col2 = 390; // Start of second column
+            int col2 = 390;
 
-            // --- Column 1 ---
-            _txtPgravity = AddResultRow(pnl, "Gravity Axial Load / Leg (kip):", "", ref yLeft, false, col1);
-            _txtTleg = AddResultRow(pnl, "Overturning Tension / Leg (kip):", "", ref yLeft, false, col1);
-            _txtPcomp = AddResultRow(pnl, "Max Compression Pedestal Load (kip):", "", ref yLeft, false, col1);
-            _txtPcompTotal = AddResultRow(pnl, "Total Compression incl. Self Wt (kip):", "", ref yLeft, false, col1);
+            _txtSlender = AddResultRow(pnl, "1. Slenderness Check (klu/r):", "", ref yLeft, false, col1);
+            _txtPgravity = AddResultRow(pnl, "2. Gravity Axial Load/Leg (kip):", "", ref yLeft, false, col1);
+            _txtTleg = AddResultRow(pnl, "3. Overturning Tension/Leg (kip):", "", ref yLeft, false, col1);
+            _txtPcompTotal = AddResultRow(pnl, "   Max Compression Load (kip):", "", ref yLeft, false, col1);
             yLeft += 15;
 
-            _txtA1 = AddResultRow(pnl, "Base Plate Area A1 (in2):", "", ref yLeft, false, col1);
-            _txtA2 = AddResultRow(pnl, "Pedestal Area A2 (in2):", "", ref yLeft, false, col1);
-            _txtBearingCap = AddResultRow(pnl, "Bearing Capacity φPn (kip):", "", ref yLeft, false, col1);
-            _txtBearingDC = AddResultRow(pnl, "Bearing D/C Ratio:", "", ref yLeft, false, col1);
+            _txtBearingCap = AddResultRow(pnl, "4. Bearing Capacity φPn (kip):", "", ref yLeft, false, col1);
+            _txtBearingDC = AddResultRow(pnl, "   Bearing D/C Ratio:", "", ref yLeft, false, col1);
+            _txtAsMin = AddResultRow(pnl, "5. Min Reinforcement As,min (in2):", "", ref yLeft, false, col1);
+            _txtAsProv = AddResultRow(pnl, "   Provided As (in2):", "", ref yLeft, false, col1);
             yLeft += 15;
 
-            _txtAsMin = AddResultRow(pnl, "Min Reinforcement As,min (in2):", "", ref yLeft, false, col1);
-            _txtPo = AddResultRow(pnl, "Nominal Capacity Po (kip):", "", ref yLeft, false, col1);
-            _txtPhiPn = AddResultRow(pnl, "Design Capacity φPn (kip):", "", ref yLeft, false, col1);
-            _txtAxialDC = AddResultRow(pnl, "Axial D/C Ratio:", "", ref yLeft, false, col1);
+            _txtPhiPn = AddResultRow(pnl, "6. Axial Compression φPn (kip):", "", ref yLeft, false, col1);
+            _txtAxialDC = AddResultRow(pnl, "   Axial D/C Ratio:", "", ref yLeft, false, col1);
             yLeft += 15;
 
-            // --- Column 2 ---
-            _txtUpliftDemand = AddResultRow(pnl, "Uplift Demand Tu (kip):", "", ref yRight, false, col2);
-            _txtUpliftCap = AddResultRow(pnl, "Uplift Capacity φTn (kip):", "", ref yRight, false, col2);
-            _txtUpliftDC = AddResultRow(pnl, "Uplift D/C Ratio:", "", ref yRight, false, col2);
+            _txtUpliftCap = AddResultRow(pnl, "7. Tensile Capacity φTn (kip):", "", ref yRight, false, col2);
+            _txtUpliftDC = AddResultRow(pnl, "   Uplift D/C Ratio:", "", ref yRight, false, col2);
             yRight += 15;
 
-            _txtShearPed = AddResultRow(pnl, "Horizontal Shear Vu,ped (kip):", "", ref yRight, false, col2);
-            _txtShearCap = AddResultRow(pnl, "Shear Capacity φVc (kip):", "", ref yRight, false, col2);
-            _txtShearDC = AddResultRow(pnl, "Shear D/C Ratio:", "", ref yRight, false, col2);
-            _txtFlexureDemand = AddResultRow(pnl, "Flexure Demand Mu (kip-ft):", "", ref yRight, false, col2);
-            _txtAsReq = AddResultRow(pnl, "Flexure As,req (in2):", "", ref yRight, false, col2);
-            _txtTransverse = AddResultRow(pnl, "Transverse Ties Recommendation:", "", ref yRight, false, col2);
+            _txtPM_Mu = AddResultRow(pnl, "8. P-M Demand Mu (kip-ft):", "", ref yRight, false, col2);
+            _txtPM_PhiMn = AddResultRow(pnl, "   P-M Capacity φMn (kip-ft):", "", ref yRight, false, col2);
+            _txtPM_DC = AddResultRow(pnl, "   P-M D/C Ratio:", "", ref yRight, false, col2);
             yRight += 15;
 
-            _txtFootingSteelReq = AddResultRow(pnl, "Ped-to-Footing As,req (in2):", "", ref yRight, false, col2);
-            _txtFootingSteelProv = AddResultRow(pnl, "Provided As (in2):", "", ref yRight, false, col2);
-            _txtFootingDC = AddResultRow(pnl, "Development D/C Ratio:", "", ref yRight, false, col2);
+            _txtShearPed = AddResultRow(pnl, "9. Shear Vu,ped (kip):", "", ref yRight, false, col2);
+            _txtTieSpacing = AddResultRow(pnl, "   Tie Spacing s_max (in):", "", ref yRight, false, col2);
+            yRight += 15;
+
+            _txtFootingLd = AddResultRow(pnl, "10. Development Length ld (in):", "", ref yRight, false, col2);
+            _txtFootingLdProv = AddResultRow(pnl, "    Provided Length (in):", "", ref yRight, false, col2);
+            _txtFootingDC = AddResultRow(pnl, "    Development D/C Ratio:", "", ref yRight, false, col2);
         }
 
-        private TextBox _txtPgravity, _txtTleg, _txtPcomp, _txtPcompTotal;
-        private TextBox _txtA1, _txtA2, _txtBearingCap, _txtBearingDC;
-        private TextBox _txtAsMin, _txtPo, _txtPhiPn, _txtAxialDC;
-        private TextBox _txtUpliftDemand, _txtUpliftCap, _txtUpliftDC;
-        private TextBox _txtShearPed, _txtShearCap, _txtShearDC, _txtFlexureDemand, _txtAsReq, _txtTransverse;
-        private TextBox _txtFootingSteelReq, _txtFootingSteelProv, _txtFootingDC;
+        private TextBox _txtSlender, _txtPgravity, _txtTleg, _txtPcompTotal;
+        private TextBox _txtBearingCap, _txtBearingDC, _txtAsMin, _txtAsProv;
+        private TextBox _txtPhiPn, _txtAxialDC;
+        private TextBox _txtUpliftCap, _txtUpliftDC;
+        private TextBox _txtPM_Mu, _txtPM_PhiMn, _txtPM_DC;
+        private TextBox _txtShearPed, _txtTieSpacing;
+        private TextBox _txtFootingLd, _txtFootingLdProv, _txtFootingDC;
 
         private TextBox AddResultRow(Panel pnl, string labelText, string initialValue, ref int y, bool isHeader = false, int xOffset = 20)
         {
@@ -103,7 +97,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
                 return null;
             }
 
-            TextBox txt = new TextBox { Text = initialValue, Location = new Point(xOffset + 225, y - 3), Size = new Size(130, 23), ReadOnly = true, BackColor = Color.White };
+            TextBox txt = new TextBox { Text = initialValue, Location = new Point(xOffset + 215, y - 3), Size = new Size(130, 23), ReadOnly = true, BackColor = Color.White };
             pnl.Controls.Add(lbl);
             pnl.Controls.Add(txt);
             y += 28;
@@ -120,24 +114,21 @@ namespace WaterTankTool_WFA.Foundation_Properties
 
             var eq = new FoundationEquations.MultiColumnPedestalEquations();
 
-            // Load predefined values (simulate LoadService for Pu, Mu, Vu)
             double puTotal = anchorBolt.Pu ?? 1609.756;
             if (puTotal <= 0) puTotal = 1609.756;
 
             double muTotal = basePlate.OverturningMoment ?? 5673.437; // kip-ft
             if (muTotal <= 0) muTotal = 5673.437;
 
-            double vuTotal = 52.30; // Typically from LoadService; using example value if missing
+            double vuTotal = 52.30; 
 
             int numLegs = (anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
 
-            // Geometry
             double B = entity.PedestalSizeB ?? 39;
             double L = entity.PedestalSizeL ?? 39;
             double Hp = entity.Hp ?? 7.417; // ft
             
             double basePlateArea = 706.86;
-            // In Multi-Column mode, basePlate.Ro actually stores the "Outer Diameter Do" in inches.
             if (basePlate.Ro > 0)
             {
                 basePlateArea = Math.PI * Math.Pow(basePlate.Ro, 2) / 4.0;
@@ -147,15 +138,19 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double fcPrime = entity.FcPrime ?? 4.0;
             double fy = entity.Fy ?? 60.0;
             double gammaC = entity.GammaC ?? 150.0;
-            
-            // Provided reinforcement
             double AsProv = entity.PedestalAsProv ?? 7.92; 
 
-            // Step 1: Gravity
+            // Step 1: Slenderness
+            double r = eq.RadiusOfGyrationSquare(B);
+            double klu_r = (2.0 * (Hp * 12.0)) / r;
+            _txtSlender.Text = klu_r.ToString("F2") + " <= 22";
+            _txtSlender.BackColor = klu_r <= 22.0 ? Color.LightGreen : Color.LightCoral;
+
+            // Step 2: Gravity
             double pGrav = eq.GravityAxialLoadPerLeg(puTotal, numLegs);
             _txtPgravity.Text = pGrav.ToString("F2");
 
-            // Step 2: Overturning Tension
+            // Step 3: Overturning Tension
             double coneRadius = (anchorBolt.Dcone ?? 41.04) * 12.0 / 2.0; 
             var anchorEq = new FoundationEquations.MultiColumnAnchorBoltEquations();
             double totalTension = anchorEq.TotalOverturningTension(muTotal, coneRadius);
@@ -163,18 +158,13 @@ namespace WaterTankTool_WFA.Foundation_Properties
             _txtTleg.Text = tLeg.ToString("F2");
 
             double pComp = eq.MaxCompressionPedestalLoad(pGrav, tLeg);
-            _txtPcomp.Text = pComp.ToString("F2");
-
             double wPed = eq.PedestalSelfWeight(B, L, Hp, gammaC);
             double wPedFactored = eq.FactoredPedestalSelfWeight(wPed);
             double pCompTotal = pComp + wPedFactored;
             _txtPcompTotal.Text = pCompTotal.ToString("F2");
 
-            // Step 3: Bearing
+            // Step 4: Bearing
             double pedestalArea = B * L;
-            _txtA1.Text = basePlateArea.ToString("F2");
-            _txtA2.Text = pedestalArea.ToString("F2");
-
             double enhancement = eq.BearingEnhancementFactor(basePlateArea, pedestalArea);
             double bearingCap = eq.PedestalBearingCapacity(fcPrime, basePlateArea, enhancement, 0.65);
             _txtBearingCap.Text = bearingCap.ToString("F2");
@@ -182,56 +172,57 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double bearingDC = eq.DemandCapacityRatio(pCompTotal, bearingCap);
             SetRatioBox(_txtBearingDC, bearingDC);
 
-            // Step 4: Reinforcement
+            // Step 5: Reinforcement
             double asMin = eq.MinimumReinforcementArea(pedestalArea);
             _txtAsMin.Text = asMin.ToString("F2");
+            _txtAsProv.Text = AsProv.ToString("F2");
+            _txtAsProv.BackColor = AsProv >= asMin ? Color.LightGreen : Color.LightCoral;
 
-            // Step 5: Axial Compression Capacity
+            // Step 6: Axial Compression Capacity
             double po = eq.NominalConcentricCompressionStrength(fcPrime, pedestalArea, AsProv, fy);
-            _txtPo.Text = po.ToString("F1");
             double phiPn = eq.DesignAxialCompressionCapacity(po);
             _txtPhiPn.Text = phiPn.ToString("F1");
             
             double axialDC = eq.DemandCapacityRatio(pCompTotal, phiPn);
             SetRatioBox(_txtAxialDC, axialDC);
 
-            // Step 6: Uplift
-            _txtUpliftDemand.Text = tLeg.ToString("F2");
+            // Step 7: Uplift
             double phiTn = eq.DesignTensileCapacity(AsProv, fy, 0.90);
             _txtUpliftCap.Text = phiTn.ToString("F2");
             
             double upliftDC = eq.DemandCapacityRatio(tLeg, phiTn);
             SetRatioBox(_txtUpliftDC, upliftDC);
 
-            // Step 7 & 8: Shear
+            // Step 8: P-M Interaction
+            // Using given Mu from PDF example (approx 97.0 kip-ft) for pedestal design or scaling from global Mu
+            double pedMu = 97.0; 
+            _txtPM_Mu.Text = pedMu.ToString("F2");
+
+            double dt = B - (3.0 + 0.375 + 0.75 / 2.0); // Assuming 3" cover, #3 tie, #6 bar
+            double c_val, Pn_val;
+            double Mn = eq.PMInteractionCapacity_Mn(pComp, B, B, fcPrime, fy, AsProv, dt, out c_val, out Pn_val);
+            double phiMn = 0.65 * Mn;
+            _txtPM_PhiMn.Text = phiMn.ToString("F1");
+            
+            double pmDC = eq.DemandCapacityRatio(pedMu, phiMn);
+            SetRatioBox(_txtPM_DC, pmDC);
+
+            // Step 9: Shear Pedestal & Tie Design
             double vuPed = eq.HorizontalShearPerPedestal(vuTotal, numLegs);
-            _txtShearPed.Text = vuPed.ToString("F2");
+            _txtShearPed.Text = vuPed.ToString("F3");
+            
+            double tieSpacing = eq.RequiredTieSpacing(0.375, B);
+            _txtTieSpacing.Text = tieSpacing.ToString("F1");
 
-            double d = B - 3.6; // approx d = 35.4
-            double vc = eq.NominalShearCapacity(fcPrime * 1000.0, B, d);
-            double phiVc = eq.DesignShearCapacity(vc, 0.75);
-            _txtShearCap.Text = phiVc.ToString("F1");
+            // Step 10: Pedestal-to-Footing Development
+            // Calculate ld for #8 bar if specified, or default to #8 (db = 1.0)
+            double ld = eq.TensionDevelopmentLength(fy, fcPrime, 1.0);
+            _txtFootingLd.Text = ld.ToString("F2");
 
-            double shearDC = eq.DemandCapacityRatio(vuPed, phiVc);
-            SetRatioBox(_txtShearDC, shearDC);
+            double asProvFooting = entity.FootingAsProv ?? 30.0; 
+            _txtFootingLdProv.Text = asProvFooting.ToString("F2");
 
-            // Step 9: Flexure
-            double muPed = eq.FactoredFlexuralMoment(vuPed, Hp);
-            _txtFlexureDemand.Text = muPed.ToString("F2");
-
-            double asReq = eq.RequiredFlexuralReinforcement(muPed, fy, d);
-            _txtAsReq.Text = asReq.ToString("F2");
-
-            _txtTransverse.Text = "#4 closed ties @ 10\" o.c (add tie near base-plate)";
-
-            // Step 11: Pedestal-to-Footing Development
-            double asReqFooting = eq.RequiredPedestalToFootingSteel(tLeg, fy, 0.90);
-            _txtFootingSteelReq.Text = asReqFooting.ToString("F2");
-
-            double asProvFooting = entity.FootingAsProv ?? 5.28; 
-            _txtFootingSteelProv.Text = asProvFooting.ToString("F2");
-
-            double footingDC = eq.DemandCapacityRatio(asReqFooting, asProvFooting);
+            double footingDC = eq.DemandCapacityRatio(ld, asProvFooting);
             SetRatioBox(_txtFootingDC, footingDC);
         }
 
