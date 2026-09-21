@@ -773,8 +773,15 @@ namespace WaterTankTool_WFA
 
         private void footingToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            // Placeholder for Footing design logic
-            MessageBox.Show("Footing Design module coming soon.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                WaterTankTool_WFA.Foundation_Design.FootingParameters footingParams = new WaterTankTool_WFA.Foundation_Design.FootingParameters();
+                footingParams.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("Footing Design module for Single-Leg is integrated into Ring Wall. Multi-Leg Footing is available.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private void materialToolStripMenuItem1_Click(object sender, EventArgs e)

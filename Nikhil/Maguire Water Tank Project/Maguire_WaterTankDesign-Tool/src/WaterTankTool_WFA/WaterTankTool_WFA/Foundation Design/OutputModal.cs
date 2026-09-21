@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -38,7 +38,15 @@ namespace WaterTankTool_WFA.Foundation_Design
 
         private void button4_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Footing Analysis module coming soon.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                FootingProperties footingProperties = new FootingProperties();
+                footingProperties.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("Footing Analysis for Single-Leg is integrated into Ring Wall.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
     }
 }

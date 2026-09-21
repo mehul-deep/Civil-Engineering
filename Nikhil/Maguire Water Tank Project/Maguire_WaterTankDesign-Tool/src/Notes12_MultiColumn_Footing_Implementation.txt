@@ -1,0 +1,27 @@
+================================================================================
+NOTES 12: MULTI-LEG FOOTING ENGINEERING ENGINE & UI IMPLEMENTATION
+================================================================================
+
+1. Database & Infrastructure
+- Created a new `FootingEntity.cs` to store essential parameters (Size B/L, Thickness, Cover, Rebar, Qallow, Friction).
+- Updated `WaterTankDbContext` with a new `UpdateFootingSchema()` migration.
+- Repaired the Application Routing Architecture: 
+  - `Foundation -> Footing` now properly opens the Input window (`FootingParameters.cs`).
+  - `Foundation -> Analyze -> OutputModal (Footing)` now properly opens the Result window (`FootingProperties.cs`).
+
+2. Math Engine (FootingEquations.cs)
+Flawlessly implemented the 8-step logic from `Footingmultileg.pdf`:
+- Step 1: Calculated Compression Side Load ($P_c = 520.2$ kip) including dynamic overturning tension and Pedestal self-weight.
+- Step 2 & 3: Computed Required Footing Area and verified applied bearing pressure ($2.85$ ksf).
+- Step 6: Computed Sliding Check Factor of Safety ($FS = \mu P / V_{leg} > 1.5$).
+- Step 7: Executed Two-Way Punching Shear Check:
+  - Calculated effective depth $d$ and critical perimeter $b_o$.
+  - Found upward soil reaction inside the perimeter and calculated net factored punching shear force ($V_{u,punch} = 435.1$ kip).
+  - Computed ultimate shear stress ($v_u$) and compared it against ACI capacity ($\phi v_c = \phi \times 4\sqrt{f'_c}$).
+- Step 8: Calculated total allowable Punching Shear Force Capacity and performed final Demand/Capacity verification.
+
+3. User Interface
+- Built `FootingParameters.cs` for clean multi-leg parameter input (Size B, Size L, Thickness, Cover, Rebar, Qallow, Friction).
+- Built `FootingProperties.cs` displaying a professional 2-column results window.
+  - Left Column: Gravity Loads, Area Requirements, Soil Pressures, Sliding Check.
+  - Right Column: Effective Depth, Critical Perimeter, Punching Shear Stress & Force, and D/C Ratios (highlighting bright green for PASS, light coral for FAIL).

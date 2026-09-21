@@ -125,3 +125,7 @@ read all the .txt and notes file and your .md file for you to get the full conte
    • Implemented Tension Development Length equations for the Pedestal-to-Footing interface.
    • Upgraded RingWallProperties.cs to display a detailed 2-column layout representing all 10 specific steps, correctly mapping upstream variables (Pu, Mu, Vu, and base plate area Do) from EF Core.
    • NEXT OBJECTIVE: Implement the Multi-Leg **Footing** logic and UI integration.
+7. **Multi-Leg Footing Engineering Engine & UI Architecture Fix**
+   ? Database mapped FootingEntity.cs into WaterTankDbContext.
+   ? Fixed application routing: Foundation -> Footing routes to new input window (FootingParameters.cs). Foundation -> Analyze -> Footing routes to new result window (FootingProperties.cs).
+   ? Implemented 8-step logic from Footingmultileg.pdf inside FootingEquations.cs (Gravity loads, soil bearing, sliding check, and a full 2-way punching shear capacity verification).

@@ -29,6 +29,7 @@ public class WaterTankDbContext : DbContext
     public DbSet<AnchorBoltEntity> AnchorBoltEntity { get; set; }
     public DbSet<BasePlateEntity> BasePlateEntity { get; set; }
     public DbSet<RingWallEntity> RingWallEntity { get; set; }
+    public DbSet<FootingEntity> FootingEntity { get; set; }
 
     // Spheroid Tank Components
     public DbSet<TransitionsEntity> TransitionsEntity { get; set; }
@@ -88,6 +89,7 @@ public class WaterTankDbContext : DbContext
             UpdateAnchorBoltSchema();
             UpdateSpheroidSchema();
             UpdateRingWallSchema();
+            UpdateFootingSchema();
         }
         catch (Exception ex)
         {
@@ -243,6 +245,31 @@ public class WaterTankDbContext : DbContext
         catch (Exception ex)
         {
             Console.WriteLine($"Error updating RingWallEntity schema: {ex.Message}");
+        }
+    }
+
+    private void UpdateFootingSchema()
+    {
+        try
+        {
+            var connection = Database.GetDbConnection();
+            if (connection.State != System.Data.ConnectionState.Open)
+                connection.Open();
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = @"CREATE TABLE IF NOT EXISTS FootingEntity (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FootingSizeB REAL NULL, FootingSizeL REAL NULL, FootingThickness REAL NULL,
+                    ConcreteCover REAL NULL, Qallow REAL NULL, FrictionCoeff REAL NULL,
+                    BottomRebarArea REAL NULL, TopRebarArea REAL NULL, RebarDiameter REAL NULL
+                );";
+                try { command.ExecuteNonQuery(); } catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating FootingEntity schema: {ex.Message}");
         }
     }
 }
