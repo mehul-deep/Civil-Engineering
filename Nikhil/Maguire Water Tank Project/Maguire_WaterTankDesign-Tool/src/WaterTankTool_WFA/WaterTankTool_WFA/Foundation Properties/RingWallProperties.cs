@@ -44,41 +44,31 @@ namespace WaterTankTool_WFA.Foundation_Properties
             int col1 = 15;
             int col2 = 390;
 
-            _txtSlender = AddResultRow(pnl, "1. Slenderness Check (klu/r):", "", ref yLeft, false, col1);
-            _txtPgravity = AddResultRow(pnl, "2. Gravity Axial Load/Leg (kip):", "", ref yLeft, false, col1);
-            _txtTleg = AddResultRow(pnl, "3. Overturning Tension/Leg (kip):", "", ref yLeft, false, col1);
-            _txtPcompTotal = AddResultRow(pnl, "   Max Compression Load (kip):", "", ref yLeft, false, col1);
-            yLeft += 15;
+            _txtPedClass = AddResultRow(pnl, "Pedestal Class (lu/B):", "", ref yLeft, false, col1);
+            _txtSlender = AddResultRow(pnl, "Slenderness (klu/r):", "", ref yLeft, false, col1);
+            _txtPgravity = AddResultRow(pnl, "Gravity Axial Load/Leg (kip):", "", ref yLeft, false, col1);
+            _txtTleg = AddResultRow(pnl, "Overturning Tension/Leg (kip):", "", ref yLeft, false, col1);
+            _txtPcompTotal = AddResultRow(pnl, "Max Compression Load (kip):", "", ref yLeft, false, col1);
+            _txtBearingCap = AddResultRow(pnl, "Bearing Capacity φPn (kip):", "", ref yLeft, false, col1);
+            _txtBearingDC = AddResultRow(pnl, "Bearing D/C Ratio:", "", ref yLeft, false, col1);
+            _txtAsMin = AddResultRow(pnl, "Min Reinforcement As,min (in2):", "", ref yLeft, false, col1);
+            _txtAsProv = AddResultRow(pnl, "Provided As (in2):", "", ref yLeft, false, col1);
+            _txtPhiPn = AddResultRow(pnl, "Axial Compression φPn (kip):", "", ref yLeft, false, col1);
+            _txtAxialDC = AddResultRow(pnl, "Axial D/C Ratio:", "", ref yLeft, false, col1);
 
-            _txtBearingCap = AddResultRow(pnl, "4. Bearing Capacity φPn (kip):", "", ref yLeft, false, col1);
-            _txtBearingDC = AddResultRow(pnl, "   Bearing D/C Ratio:", "", ref yLeft, false, col1);
-            _txtAsMin = AddResultRow(pnl, "5. Min Reinforcement As,min (in2):", "", ref yLeft, false, col1);
-            _txtAsProv = AddResultRow(pnl, "   Provided As (in2):", "", ref yLeft, false, col1);
-            yLeft += 15;
-
-            _txtPhiPn = AddResultRow(pnl, "6. Axial Compression φPn (kip):", "", ref yLeft, false, col1);
-            _txtAxialDC = AddResultRow(pnl, "   Axial D/C Ratio:", "", ref yLeft, false, col1);
-            yLeft += 15;
-
-            _txtUpliftCap = AddResultRow(pnl, "7. Tensile Capacity φTn (kip):", "", ref yRight, false, col2);
-            _txtUpliftDC = AddResultRow(pnl, "   Uplift D/C Ratio:", "", ref yRight, false, col2);
-            yRight += 15;
-
-            _txtPM_Mu = AddResultRow(pnl, "8. P-M Demand Mu (kip-ft):", "", ref yRight, false, col2);
-            _txtPM_PhiMn = AddResultRow(pnl, "   P-M Capacity φMn (kip-ft):", "", ref yRight, false, col2);
-            _txtPM_DC = AddResultRow(pnl, "   P-M D/C Ratio:", "", ref yRight, false, col2);
-            yRight += 15;
-
-            _txtShearPed = AddResultRow(pnl, "9. Shear Vu,ped (kip):", "", ref yRight, false, col2);
-            _txtTieSpacing = AddResultRow(pnl, "   Tie Spacing s_max (in):", "", ref yRight, false, col2);
-            yRight += 15;
-
-            _txtFootingLd = AddResultRow(pnl, "10. Development Length ld (in):", "", ref yRight, false, col2);
-            _txtFootingLdProv = AddResultRow(pnl, "    Provided Length (in):", "", ref yRight, false, col2);
-            _txtFootingDC = AddResultRow(pnl, "    Development D/C Ratio:", "", ref yRight, false, col2);
+            _txtUpliftCap = AddResultRow(pnl, "Tensile Capacity φTn (kip):", "", ref yRight, false, col2);
+            _txtUpliftDC = AddResultRow(pnl, "Uplift D/C Ratio:", "", ref yRight, false, col2);
+            _txtPM_Mu = AddResultRow(pnl, "P-M Demand Mu (kip-ft):", "", ref yRight, false, col2);
+            _txtPM_PhiMn = AddResultRow(pnl, "P-M Capacity φMn (kip-ft):", "", ref yRight, false, col2);
+            _txtPM_DC = AddResultRow(pnl, "P-M D/C Ratio:", "", ref yRight, false, col2);
+            _txtShearPed = AddResultRow(pnl, "Shear Vu,ped (kip):", "", ref yRight, false, col2);
+            _txtTieSpacing = AddResultRow(pnl, "Tie Spacing s_max (in):", "", ref yRight, false, col2);
+            _txtFootingLd = AddResultRow(pnl, "Development Length ld (in):", "", ref yRight, false, col2);
+            _txtFootingLdProv = AddResultRow(pnl, "Provided Length (in):", "", ref yRight, false, col2);
+            _txtFootingDC = AddResultRow(pnl, "Development D/C Ratio:", "", ref yRight, false, col2);
         }
 
-        private TextBox _txtSlender, _txtPgravity, _txtTleg, _txtPcompTotal;
+        private TextBox _txtPedClass, _txtSlender, _txtPgravity, _txtTleg, _txtPcompTotal;
         private TextBox _txtBearingCap, _txtBearingDC, _txtAsMin, _txtAsProv;
         private TextBox _txtPhiPn, _txtAxialDC;
         private TextBox _txtUpliftCap, _txtUpliftDC;
@@ -140,11 +130,16 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double gammaC = entity.GammaC ?? 150.0;
             double AsProv = entity.PedestalAsProv ?? 7.92; 
 
-            // Step 1: Slenderness
+            // Step 1A: Pedestal Classification
+            double lu_b = (Hp * 12.0) / B;
+            _txtPedClass.Text = lu_b.ToString("F2") + " <= 3.0";
+            _txtPedClass.BackColor = eq.IsPedestal(Hp * 12.0, B) ? Color.LightGreen : Color.LightCoral;
+
+            // Step 1B: Slenderness
             double r = eq.RadiusOfGyrationSquare(B);
             double klu_r = (2.0 * (Hp * 12.0)) / r;
             _txtSlender.Text = klu_r.ToString("F2") + " <= 22";
-            _txtSlender.BackColor = klu_r <= 22.0 ? Color.LightGreen : Color.LightCoral;
+            _txtSlender.BackColor = eq.NeglectSlenderness(2.0, Hp * 12.0, r) ? Color.LightGreen : Color.LightCoral;
 
             // Step 2: Gravity
             double pGrav = eq.GravityAxialLoadPerLeg(puTotal, numLegs);

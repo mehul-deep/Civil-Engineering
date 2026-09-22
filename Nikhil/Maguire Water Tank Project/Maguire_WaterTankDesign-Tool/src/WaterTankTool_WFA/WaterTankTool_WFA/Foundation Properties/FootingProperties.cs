@@ -13,12 +13,13 @@ namespace WaterTankTool_WFA.Foundation_Properties
         private FootingEquations _eq;
         
         private Panel pnlLeft;
+        private Panel pnlMid;
         private Panel pnlRight;
-        
+
         public FootingProperties()
         {
             this.Text = "Multi-Leg Footing Properties";
-            this.Size = new Size(820, 520);
+            this.Size = new Size(1220, 620);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -32,9 +33,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
 
         private void SetupUI()
         {
-            pnlLeft = new Panel { Location = new Point(10, 10), Size = new Size(390, 460) };
-            pnlRight = new Panel { Location = new Point(410, 10), Size = new Size(390, 460) };
+            pnlLeft = new Panel { Location = new Point(10, 10), Size = new Size(390, 560) };
+            pnlMid = new Panel { Location = new Point(410, 10), Size = new Size(390, 560) };
+            pnlRight = new Panel { Location = new Point(810, 10), Size = new Size(390, 560) };
             this.Controls.Add(pnlLeft);
+            this.Controls.Add(pnlMid);
             this.Controls.Add(pnlRight);
         }
 
@@ -102,6 +105,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double cover = entity?.ConcreteCover ?? 3.0; // in
             double qAllow = entity?.Qallow ?? 3.0; // ksf
             double muFriction = entity?.FrictionCoeff ?? 0.50;
+            double bottomAs = entity?.BottomRebarArea ?? 1.185; // in2/ft
+            double dowelAs = entity?.TopRebarArea ?? 7.92; // in2 (repurposed TopRebarArea)
             double db = entity?.RebarDiameter ?? 1.0; // #8 bar
             double fcPrime = ringWall?.FcPrime ?? 4.0;
             
@@ -145,38 +150,82 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double phi_v_c_force = 0.75 * v_c_force; // kips
             double punchingForceUtilization = _eq.DemandCapacityRatio(v_u_punch, phi_v_c_force);
 
+            // Step 7: One-Way Shear
+            double m = _eq.OneWayShearCantilever(B_footing, B_pedestal / 12.0); // ft
+            double v_u_oneway = _eq.OneWayShearForce(qApplied, B_footing, m, d); // kips
+            double phi_v_c_oneway = 0.75 * _eq.OneWayShearCapacity(fcPrime * 1000.0, bottomAs, B_footing * 12.0, d); // kips
+            double oneWayUtilization = _eq.DemandCapacityRatio(v_u_oneway, phi_v_c_oneway);
+
+            // Step 8: Flexure and Reinforcement
+            double mu_flexure = _eq.FlexureMoment(qApplied, m); // kip-ft/ft
+            double as_min = _eq.MinimumReinforcement(h_footing); // in2/ft
+            double flexureUtilization = _eq.DemandCapacityRatio(as_min, bottomAs); // Demand As / Provided As
+
+            // Step 9: Pedestal/Footing Bearing
+            double n1_bearing = _eq.PedestalBearingCapacity(fcPrime * 1000.0, B_pedestal); // kips
+            double bearingUtilization = _eq.DemandCapacityRatio(pCompTotal, n1_bearing);
+
+            // Step 10: Dowel Reinforcement
+            double as_dowel_min = _eq.DowelMinimumArea(B_pedestal); // in2
+            double dowelUtilization = _eq.DemandCapacityRatio(as_dowel_min, dowelAs); // Demand As / Provided As
+
+            // Step 11: Development Length
+            double fy = ringWall?.Fy ?? 60.0; // ksi
+            double fyPsi = fy * 1000.0;
+            double db_dowel = 0.75; // #6 dowel typical based on PDF
+            double ldc = _eq.DevelopmentLength(fyPsi, fcPrime * 1000.0, db_dowel);
+
             // Display UI
             int yLeft = 10;
+            int yMid = 10;
             int yRight = 10;
             
-            // Left Column
-            AddResultRow(pnlLeft, "1. Gravity Load/Leg (kip):", pLeg.ToString("F2"), ref yLeft, false, 15);
-            AddResultRow(pnlLeft, "   Compression Side Load (kip):", pCompTotal.ToString("F2"), ref yLeft, false, 15);
-            yLeft += 10;
-            AddResultRow(pnlLeft, "2. Required Footing Area (ft2):", areaReq.ToString("F2"), ref yLeft, false, 15);
-            AddResultRow(pnlLeft, "   Provided Footing Area (ft2):", areaProv.ToString("F2"), ref yLeft, false, 15);
-            yLeft += 10;
-            AddResultRow(pnlLeft, "3. Applied Pressure q (ksf):", qApplied.ToString("F2"), ref yLeft, false, 15);
-            AddResultRow(pnlLeft, "   Allowable q_allow (ksf):", qAllow.ToString("F2"), ref yLeft, false, 15);
-            TextBox txtBearing = AddResultRow(pnlLeft, "   Bearing D/C Ratio:", "", ref yLeft, true, 15);
+            // === LEFT COLUMN ===
+            AddResultRow(pnlLeft, "Gravity Load/Leg (kip):", pLeg.ToString("F2"), ref yLeft, false, 10);
+            AddResultRow(pnlLeft, "Compression Side Load (kip):", pCompTotal.ToString("F2"), ref yLeft, false, 10);
+
+            AddResultRow(pnlLeft, "Required Footing Area (ft2):", areaReq.ToString("F2"), ref yLeft, false, 10);
+            AddResultRow(pnlLeft, "Provided Footing Area (ft2):", areaProv.ToString("F2"), ref yLeft, false, 10);
+
+            AddResultRow(pnlLeft, "Applied Pressure q (ksf):", qApplied.ToString("F2"), ref yLeft, false, 10);
+            AddResultRow(pnlLeft, "Allowable q_allow (ksf):", qAllow.ToString("F2"), ref yLeft, false, 10);
+            TextBox txtBearing = AddResultRow(pnlLeft, "Bearing D/C Ratio:", "", ref yLeft, true, 10);
             SetRatioBox(txtBearing, _eq.DemandCapacityRatio(qApplied, qAllow));
-            yLeft += 10;
-            AddResultRow(pnlLeft, "6. Sliding Check FS:", fsSliding.ToString("F1") + " > 1.5", ref yLeft, false, 15);
-            
-            // Right Column
-            AddResultRow(pnlRight, "7. Effective Depth d (in):", d.ToString("F1"), ref yRight, false, 15);
-            AddResultRow(pnlRight, "   Crit. Perimeter bo (in):", b_o.ToString("F2"), ref yRight, false, 15);
-            AddResultRow(pnlRight, "   Area Inside Perim Ao (ft2):", a_o.ToString("F2"), ref yRight, false, 15);
-            yRight += 10;
-            AddResultRow(pnlRight, "   Factored Punch Shear (kip):", v_u_punch.ToString("F1"), ref yRight, false, 15);
-            AddResultRow(pnlRight, "   Punch Shear Stress (psi):", v_u_stress.ToString("F1"), ref yRight, false, 15);
-            AddResultRow(pnlRight, "   Capacity phi_vc (psi):", phi_v_c_stress.ToString("F1"), ref yRight, false, 15);
-            TextBox txtPunchingStress = AddResultRow(pnlRight, "   Punching Stress D/C:", "", ref yRight, true, 15);
-            SetRatioBox(txtPunchingStress, punchingUtilization);
-            yRight += 10;
-            AddResultRow(pnlRight, "8. Design Capacity phi_Vc (kip):", phi_v_c_force.ToString("F0"), ref yRight, false, 15);
-            TextBox txtPunchingForce = AddResultRow(pnlRight, "   Punching Force D/C:", "", ref yRight, true, 15);
+
+            AddResultRow(pnlLeft, "Sliding Check FS:", fsSliding.ToString("F1") + " > 1.5", ref yLeft, false, 10);
+
+            // === MIDDLE COLUMN ===
+            AddResultRow(pnlMid, "Effective Depth d (in):", d.ToString("F1"), ref yMid, false, 10);
+
+            AddResultRow(pnlMid, "Crit. Perimeter bo (in):", b_o.ToString("F2"), ref yMid, false, 10);
+            AddResultRow(pnlMid, "Area Inside Perim Ao (ft2):", a_o.ToString("F2"), ref yMid, false, 10);
+            AddResultRow(pnlMid, "Factored Punch Shear (kip):", v_u_punch.ToString("F1"), ref yMid, false, 10);
+            AddResultRow(pnlMid, "Design Capacity phi_Vc (kip):", phi_v_c_force.ToString("F1"), ref yMid, false, 10);
+            TextBox txtPunchingForce = AddResultRow(pnlMid, "Punching Force D/C:", "", ref yMid, true, 10);
             SetRatioBox(txtPunchingForce, punchingForceUtilization);
+
+            AddResultRow(pnlMid, "One-Way Shear Vu (kip):", v_u_oneway.ToString("F2"), ref yMid, false, 10);
+            AddResultRow(pnlMid, "Capacity phi_Vc (kip):", phi_v_c_oneway.ToString("F2"), ref yMid, false, 10);
+            TextBox txtOneWay = AddResultRow(pnlMid, "One-Way Shear D/C:", "", ref yMid, true, 10);
+            SetRatioBox(txtOneWay, oneWayUtilization);
+
+            // === RIGHT COLUMN ===
+            AddResultRow(pnlRight, "Flexure Mu (kip-ft/ft):", mu_flexure.ToString("F2"), ref yRight, false, 10);
+            AddResultRow(pnlRight, "Required As_min (in2/ft):", as_min.ToString("F3"), ref yRight, false, 10);
+            AddResultRow(pnlRight, "Provided As (in2/ft):", bottomAs.ToString("F3"), ref yRight, false, 10);
+            TextBox txtFlexure = AddResultRow(pnlRight, "Flexure As D/C:", "", ref yRight, true, 10);
+            SetRatioBox(txtFlexure, flexureUtilization);
+
+            AddResultRow(pnlRight, "Pedestal Bearing N1 (kip):", n1_bearing.ToString("F1"), ref yRight, false, 10);
+            TextBox txtPedBearing = AddResultRow(pnlRight, "Pedestal Bearing D/C:", "", ref yRight, true, 10);
+            SetRatioBox(txtPedBearing, bearingUtilization);
+
+            AddResultRow(pnlRight, "Dowel As_min (in2):", as_dowel_min.ToString("F3"), ref yRight, false, 10);
+            AddResultRow(pnlRight, "Provided Dowel As (in2):", dowelAs.ToString("F3"), ref yRight, false, 10);
+            TextBox txtDowel = AddResultRow(pnlRight, "Dowel As D/C:", "", ref yRight, true, 10);
+            SetRatioBox(txtDowel, dowelUtilization);
+
+            AddResultRow(pnlRight, "Min Develop Length (in):", ldc.ToString("F2"), ref yRight, false, 10);
         }
     }
 }

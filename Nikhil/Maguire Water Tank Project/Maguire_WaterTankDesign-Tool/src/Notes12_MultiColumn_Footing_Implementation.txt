@@ -1,27 +1,34 @@
 ================================================================================
-NOTES 12: MULTI-LEG FOOTING ENGINEERING ENGINE & UI IMPLEMENTATION
+NOTES 12: MULTI-LEG FOOTING ENGINEERING ENGINE & UI IMPLEMENTATION (UPDATED)
 ================================================================================
 
 1. Database & Infrastructure
-- Created a new `FootingEntity.cs` to store essential parameters (Size B/L, Thickness, Cover, Rebar, Qallow, Friction).
-- Updated `WaterTankDbContext` with a new `UpdateFootingSchema()` migration.
-- Repaired the Application Routing Architecture: 
-  - `Foundation -> Footing` now properly opens the Input window (`FootingParameters.cs`).
-  - `Foundation -> Analyze -> OutputModal (Footing)` now properly opens the Result window (`FootingProperties.cs`).
+- `FootingEntity.cs` mapped into `WaterTankDbContext` safely.
+- Repurposed the unused `TopRebarArea` parameter as `DowelArea` to safely accept dowel steel inputs without breaking EF Core migrations.
+- UI Routing fixed: `Foundation -> Footing` opens `FootingParameters.cs` and `Foundation -> Analyze -> OutputModal (Footing)` opens `FootingProperties.cs`.
 
 2. Math Engine (FootingEquations.cs)
-Flawlessly implemented the 8-step logic from `Footingmultileg.pdf`:
-- Step 1: Calculated Compression Side Load ($P_c = 520.2$ kip) including dynamic overturning tension and Pedestal self-weight.
-- Step 2 & 3: Computed Required Footing Area and verified applied bearing pressure ($2.85$ ksf).
-- Step 6: Computed Sliding Check Factor of Safety ($FS = \mu P / V_{leg} > 1.5$).
-- Step 7: Executed Two-Way Punching Shear Check:
-  - Calculated effective depth $d$ and critical perimeter $b_o$.
-  - Found upward soil reaction inside the perimeter and calculated net factored punching shear force ($V_{u,punch} = 435.1$ kip).
-  - Computed ultimate shear stress ($v_u$) and compared it against ACI capacity ($\phi v_c = \phi \times 4\sqrt{f'_c}$).
-- Step 8: Calculated total allowable Punching Shear Force Capacity and performed final Demand/Capacity verification.
+Successfully implemented the complete 11-step logic from `Updatedfootingmultileg.pdf`:
+- Step 1: Calculated Compression Side Load ($P_c = 520.2$ kip) including dynamic overturning tension derived from anchor bolt cone geometry and Pedestal self-weight.
+- Step 2 & 3: Computed Required Footing Area and verified applied bearing pressure ($q_u = 2.85$ ksf).
+- Step 4: Effective Depth ($d = 26.5$ in) explicitly calculated.
+- Step 5 & 6 (Two-Way Shear): Computed critical perimeter $b_o$, interior area, and net factored punching shear force ($V_{u,punch} = 435.0$ kip). Compared against ACI capacity ($\phi V_c = 1317.3$ kip) using Equation 1 (size effect factor neglected per shallow foundation rules).
+- Step 7 (One-Way Shear): Calculated cantilever projection $m$ and one-way shear demand $V_u$. Evaluated one-way shear capacity $0.75 [8(\rho_w)^{1/3} \sqrt{f'_c}] b_w d$.
+- Step 8 (Flexure & Reinforcement): Computed flexural moment per 1-ft strip ($M_u$) and validated provided bottom reinforcement against ACI minimum ($0.0018 A_g$).
+- Step 9 (Pedestal Bearing): Checked compression side load against allowable bearing limit $N_1 = \phi(0.85 f'_c A_1)$.
+- Step 10 (Dowel Reinforcement): Verified provided pedestal-to-footing interface steel exceeds $0.005 A_1$.
+- Step 11 (Development Length): Computed straight development length $l_{dc}$ with dynamic $F_y$ extraction from `RingWallEntity` and enforced the $0.0003 f_y d_b$ code minimum.
 
 3. User Interface
-- Built `FootingParameters.cs` for clean multi-leg parameter input (Size B, Size L, Thickness, Cover, Rebar, Qallow, Friction).
-- Built `FootingProperties.cs` displaying a professional 2-column results window.
+- Built `FootingParameters.cs` for clean multi-leg parameter input.
+  - Relabeled "Top Rebar As (in2)" to "Dowel Area (in2)".
+  - Relabeled "Bottom Rebar As" to explicitly state "(in2/ft)".
+  - Updated default auto-fill parameters to match the PDF ($A_s = 1.185$, Dowel = $7.92$).
+- Upgraded `FootingProperties.cs` to a massive 3-column results window to gracefully fit all 11 steps.
   - Left Column: Gravity Loads, Area Requirements, Soil Pressures, Sliding Check.
-  - Right Column: Effective Depth, Critical Perimeter, Punching Shear Stress & Force, and D/C Ratios (highlighting bright green for PASS, light coral for FAIL).
+  - Middle Column: Effective Depth, Critical Perimeter, Punching Shear Force D/C, One-Way Shear Force D/C.
+  - Right Column: Flexure (Mu & As), Pedestal Bearing check, Dowel Reinforcement check, and Minimum Development Length.
+  - Color Logic: All D/C ratios highlight bright green for PASS, light coral for FAIL.
+
+4. Next Session Pending Tasks
+- Final UI polish and alignments for the Multi-Leg Ring Wall and Footing modules.

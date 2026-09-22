@@ -45,8 +45,8 @@ namespace WaterTankTool_WFA.Foundation_Design
             txtCover = AddInputRow("Concrete Cover (in):", ref y);
             txtQallow = AddInputRow("Allowable Bearing q (ksf):", ref y);
             txtFriction = AddInputRow("Friction Coefficient:", ref y);
-            txtBotAs = AddInputRow("Bottom Rebar As (in2):", ref y);
-            txtTopAs = AddInputRow("Top Rebar As (in2):", ref y);
+            txtBotAs = AddInputRow("Bottom Rebar As (in2/ft):", ref y);
+            txtTopAs = AddInputRow("Dowel Area (in2):", ref y);
             txtDb = AddInputRow("Rebar Diameter db (in):", ref y);
 
             btnAccept = new Button { Text = "Accept", Location = new Point(160, y + 10) };
@@ -93,8 +93,8 @@ namespace WaterTankTool_WFA.Foundation_Design
                 txtCover.Text = "3.0";
                 txtQallow.Text = "3.0";
                 txtFriction.Text = "0.50";
-                txtBotAs.Text = "6.32";
-                txtTopAs.Text = "4.40";
+                txtBotAs.Text = "1.185";
+                txtTopAs.Text = "7.92";
                 txtDb.Text = "1.0";
             }
         }
