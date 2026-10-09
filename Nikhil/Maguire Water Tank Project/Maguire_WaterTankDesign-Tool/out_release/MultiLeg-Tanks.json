@@ -1,0 +1,95 @@
+{
+  "tanks": [
+    {
+      "type": "50K-DE",
+      "diameter": "24.00",
+      "Centroid": "11.50",
+      "height": "23.00",
+      "Weight_of_Water": "421.00",
+      "Weight_of_Steel": "25.0264",
+      "Total_Weight": "446.03",
+      "Projected_Area": "470.00",
+      "thickness": "0",
+      "Weight_of_Bowl_and_cone": "0"
+
+    },
+    {
+      "type": "100K-DE",
+      "diameter": "32.00",
+      "Centroid": "12.60",
+      "height": "25.21",
+      "Weight_of_Water": "879.00",
+      "Weight_of_Steel": "40.3865",
+      "Total_Weight": "919.39",
+      "Projected_Area": "612.00",
+      "thickness": "0",
+      "Weight_of_Bowl_and_cone": "0"
+
+    },
+    {
+      "type": "200K-DE",
+      "diameter": "38.00",
+      "Centroid": "16.00",
+      "height": "31.83",
+      "Weight_of_Water": "1729.00",
+      "Weight_of_Steel": "63.6953",
+      "Total_Weight": "1792.70",
+      "Projected_Area": "982.00",
+      "thickness": "0",
+      "Weight_of_Bowl_and_cone": "0"
+
+    },
+    {
+      "type": "250K-TORO",
+      "diameter": "43.00",
+      "Centroid": "14.10",
+      "height": "29.6777",
+      "Weight_of_Water": "2139.00",
+      "Weight_of_Steel": "69.91",
+      "Total_Weight": "2208.91",
+      "Projected_Area": "1067.00",
+      "thickness": "0",
+      "Weight_of_Bowl_and_cone": "5.30"
+
+    },
+    {
+      "type": "300K-TORO",
+      "diameter": "43.00",
+      "Centroid": "16.00",
+      "height": "34.5944",
+      "Weight_of_Water": "2581.00",
+      "Weight_of_Steel": "84.741",
+      "Total_Weight": "2665.74",
+      "Projected_Area": "1278.00",
+      "thickness": "0",
+      "Weight_of_Bowl_and_cone": "6.30"
+
+    },
+    {
+      "type": "400K-TORO",
+      "diameter": "50.00",
+      "Centroid": "15.80",
+      "height": "34.3946",
+      "Weight_of_Water": "3353.00",
+      "Weight_of_Steel": "83.7002",
+      "Total_Weight": "3436.70",
+      "Projected_Area": "1437.00",
+      "thickness": "0",
+      "Weight_of_Bowl_and_cone": "10.25"
+
+    },
+    {
+      "type": "500K-TORO",
+      "diameter": "56.00",
+      "Centroid": "15.00",
+      "height": "34.86",
+      "Weight_of_Water": "4199.00",
+      "Weight_of_Steel": "133.1450",
+      "Total_Weight": "4332.15",
+      "Projected_Area": "1617.00",
+      "thickness": "0",
+      "Weight_of_Bowl_and_cone": "14.40"
+      
+    }
+  ]
+}

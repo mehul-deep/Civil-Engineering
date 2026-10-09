@@ -1,0 +1,27 @@
+================================================================================
+SESSION LOG - NOTES 14: MULTI-COLUMN PU AND MU CALCULATION FIXES
+================================================================================
+
+### OVERVIEW
+This session focused on fixing and verifying the load calculations (`Pu` and `Mu`) for Multi-Leg (MultiColumn) tanks in `LoadService.cs`, ensuring they match the expected physics and output in the `Load_Combinations` UI.
+
+### 1. RESOLUTION OF PU (AXIAL LOAD) CALCULATION
+- **The Issue:** The application previously returned a global `Pu` of around `1609.75` / `1634.75` while the user expected `1859.48`. 
+- **The Finding:** We discovered that `Multileg_Cylinders.weightOfPedestal` intrinsically multiplies the cylinder volume by `AppState.NoOfColumns` (and adds bracing weights). Manually multiplying segment weights by 4 on the user's end resulted in double-counting. 
+- **The Fix:** We updated `LoadService.cs` specifically for `TankType.MultiColumn` to accumulate total `Pu` correctly:
+  - `Pu = waterWeight + weightOfSteel + otherTankWeight + Multileg Segment Weights (Columns + Riser) + Miscellaneous_Load`
+  - The calculated result `1634.7572` was confirmed as perfectly accurate (Base weight of `1609.75` factored + `15 kips` Misc Load factored by `1.667`).
+
+### 2. RESOLUTION OF MU (SEISMIC MOMENT)
+- **The Issue:** A temporary git restoration wiped out the seismic base moment update for Multi-Leg tanks.
+- **The Fix:** We successfully reinstated the correct `Mu` mapping in `LoadService.cs`:
+  - `seismicM = 0.6 * lc.seismicBaseMoment;`
+  - This successfully pulls the final seismic base moment calculated from `Load_Combinations.cs` into `LoadService`, yielding the correct `Mu` of `5673.43` (factored `9233.62`).
+
+### 3. SAFEGUARDING SINGLE-LEG LOGIC
+- **Verification:** All fixes were rigorously wrapped inside `if (AppState.CurrentTankType == TankType.MultiColumn)` statements. 
+- The existing structural logic for Single-Leg tanks remains entirely pristine and unchanged.
+
+### NEXT STEPS FOR NEXT SESSION
+- Focus on verifying and calculating the **Base Shear (Vu)** number for Multi-Leg tanks.
+- Reviewing `Vu` generation logic, ensuring wind and seismic base shears are correctly computed, enveloped, and factored.

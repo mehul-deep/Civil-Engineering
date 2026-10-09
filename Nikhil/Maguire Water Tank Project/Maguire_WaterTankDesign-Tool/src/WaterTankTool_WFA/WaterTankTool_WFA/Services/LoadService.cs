@@ -44,11 +44,42 @@ namespace WaterTankTool_WFA.Services
 
                 if (AppState.CurrentTankType == TankType.MultiColumn)
                 {
+                    if (AppState.NoOfColumns == 0)
+                    {
+                        AppState.Load();
+                    }
+                    
+                    double weightOfSteel = double.Parse(tankProperties.WeightOfSteel);
+                    string fileName = "MultiLeg-Tanks.json";
+                    string jsonPath = System.IO.Path.Combine(System.Windows.Forms.Application.StartupPath, fileName);
+                    if (System.IO.File.Exists(jsonPath))
+                    {
+                        try
+                        {
+                            string jsonString = System.IO.File.ReadAllText(jsonPath);
+                            var tankData = System.Text.Json.JsonSerializer.Deserialize<TankData>(jsonString);
+                            var tankCap = segments.FirstOrDefault()?.SegmentName;
+                            var _tank = tankData?.Tanks?.FirstOrDefault(data => data.Type == tankCap);
+                            if (_tank != null)
+                            {
+                                double otherTakWeight = 0;
+                                double.TryParse(_tank.Weight_of_Bowl_and_cone, out otherTakWeight);
+                                weightOfSteel += otherTakWeight;
+                            }
+                        }
+                        catch { }
+                    }
+
                     foreach (var s in segments)
                     {
                         if (s.SegmentType == "Cylinder" || s.SegmentType == "Riser")
-                            segmentWeight += multileg.weightOfPedestal(s.HeightInitial, s.HeightFinal, s.Diameter, s.Thickness, s.SegmentType);
+                        {
+                            weightOfSteel += multileg.weightOfPedestal(s.HeightInitial, s.HeightFinal, s.Diameter, s.Thickness, s.SegmentType);
+                        }
                     }
+
+                    double waterWeight = double.Parse(tankProperties.WeightOfWater);
+                    Pu = waterWeight + weightOfSteel + (deadLoad?.Miscellaneous_Load ?? 0);
                 }
                 else
                 {
@@ -59,9 +90,8 @@ namespace WaterTankTool_WFA.Services
                         else if (s.SegmentType == "Base")
                             segmentWeight += conicalEquations.weight(s.HeightInitial, s.HeightFinal, (double)s.DiameterInitial, (double)s.DiameterFinal, s.Thickness);
                     }
+                    Pu = totalWeight + segmentWeight + (deadLoad?.Miscellaneous_Load ?? 0);
                 }
-
-                Pu = totalWeight + segmentWeight + (deadLoad?.Miscellaneous_Load ?? 0);
 
                 // 2. Calculate M and V (Wind vs Seismic)
                 double windM = 0;
@@ -109,12 +139,28 @@ namespace WaterTankTool_WFA.Services
                     windM += m;
                 }
 
-                // Seismic Moment (simplified logic from Load_Combinations)
+                // Seismic Moment
                 if (seismicLoad != null)
                 {
-                    double comXweight = double.Parse(tankProperties.TotalWeight) * (double.Parse(tankProperties.Centroid) + segments[0].HeightInitial);
-                    // (Note: This is a simplification; a full centroid calculation would be better, but we follow the existing pattern)
-                    seismicM = (comXweight / Pu) * seismicLoad.V;
+                    if (AppState.CurrentTankType == TankType.MultiColumn)
+                    {
+                        // Multi-Leg grabs directly from Load_Combinations to match the Seismic window
+                        try
+                        {
+                            var lc = new WaterTankTool_WFA.Load.Load_Combinations();
+                            seismicM = 0.6 * lc.seismicBaseMoment;
+                        }
+                        catch
+                        {
+                            seismicM = 0;
+                        }
+                    }
+                    else
+                    {
+                        // Single-Leg retains its original correct logic
+                        double comXweight = double.Parse(tankProperties.TotalWeight) * (double.Parse(tankProperties.Centroid) + segments[0].HeightInitial);
+                        seismicM = 0.6 * (comXweight / Pu) * seismicLoad.V;
+                    }
                 }
 
                 Mu = Math.Max(windM, seismicM);

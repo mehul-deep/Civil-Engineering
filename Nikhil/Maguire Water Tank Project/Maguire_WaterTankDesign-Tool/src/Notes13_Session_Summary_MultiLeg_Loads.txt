@@ -1,0 +1,36 @@
+================================================================================
+SESSION LOG - NOTES 13: MULTI-COLUMN LOAD CALCULATION & GEOMETRY REVIEW
+================================================================================
+
+### OVERVIEW
+This session focused on a deep-dive architectural review of how the `WaterTankTool_WFA` calculates and distributes forces (`Pu`, `Mu`, `Vu`) for Multi-Leg (Tower) tanks. We traced the math from user inputs in the Geometry window down to the final Base Plate and Anchor Bolt demands.
+
+### 1. GEOMETRY & SEGMENT DEFINITION LOGIC
+- **Vertical Tiers vs. Individual Legs:** In the Geometry window, defining "Cylinder 1", "Cylinder 2", etc., does NOT define individual left/right legs. Instead, each "Cylinder" represents a horizontal slice or "vertical tier" for ALL legs simultaneously.
+- **Dynamic Column Count:** The multiplier isn't hardcoded to 4. The application captures `AppState.NoOfColumns` via a specialized pop-up (`AddNoOfColumns.cs`) the very first time the user adds a "Cylinder" segment. The software then mathematically clones the defined tier profile across the 4, 6, or 8 legs specified.
+
+### 2. GLOBAL LOAD CALCULATION (LoadService.cs)
+The engine calculates the total gravity, shear, and overturning moment for the entire tower:
+- **Axial Load (Global Pu):**
+  - Starts with the user-inputted `TotalWeight` (Water payload + upper steel bowl).
+  - Calculates the volume of the central **Riser** pipe (using the hollow cylinder formula) and multiplies by steel density (`ConstantsClass.rs = 490 lbs/ft`).
+  - Calculates the volume of the **Legs**: It calculates the steel weight of the tier, multiplies it by `NoOfColumns`, and dynamically adds the weight of the **Struts** and **Cross-Bracing** associated with that elevation.
+- **Base Shear (Global Vu) & Overturning Moment (Global Mu):**
+  - Runs parallel simulations for Wind (calculating wind profiles against the bowl and every leg) and Seismic (using the Center of Mass).
+  - Takes the max envelope: `Mu = Max(Wind_Mu, Seismic_Mu)` and `Vu = Max(Wind_Vu, Seismic_Vu)`.
+- **Safety Factor:** Multiplies Global `Pu`, `Mu`, and `Vu` by the ACI/AISC Ultimate Load Factor of `1.667`.
+
+### 3. FOUNDATION LOAD DISTRIBUTION (FoundationEquations.cs)
+The global loads are then distributed to individual pedestals for foundation design:
+- **Compression per Leg (Pu,pedestal):** The global downward weight is assumed to be resisted by the legs on the tipping side.
+  - `Pu,pedestal = Global Pu / (NoOfColumns / 2)` (Passed to Base Plate math).
+- **Tension/Uplift per Leg (Tu,pedestal):** The global tipping moment is converted into a vertical pull-out force based on the tower's radius.
+  - `Total Tension = Global Mu / (4/3 * Tower Radius)`
+  - `Tu,pedestal = Total Tension / (NoOfColumns / 2)` (Passed to Anchor Bolt math).
+- **Shear per Leg (Vu,pedestal):** The lateral sliding force is divided equally.
+  - `Vu,pedestal = Global Vu / NoOfColumns`.
+
+### NEXT STEPS FOR NEXT SESSION
+- The user is preparing to set up a test project to manually verify these structural calculations.
+- We will walk through the application together to validate the generated forces against expected engineering results.
+- We also have pending Phase 1 / Phase 2 backlog items to tackle (e.g., standardizing shop accessories like Side Chairs and Shims, and building the Multi-Leg Excel export template).
