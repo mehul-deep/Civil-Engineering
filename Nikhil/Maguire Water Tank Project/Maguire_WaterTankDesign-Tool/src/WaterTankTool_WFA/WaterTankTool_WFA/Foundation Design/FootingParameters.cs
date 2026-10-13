@@ -1,8 +1,10 @@
 using System;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using WaterTankTool_WFA.Entity;
+using WaterTankTool_WFA.Services;
 
 namespace WaterTankTool_WFA.Foundation_Design
 {
@@ -10,6 +12,12 @@ namespace WaterTankTool_WFA.Foundation_Design
     {
         private WaterTankDbContext _context;
         
+        // Governing Load display fields (Auto-populated / Read-only)
+        private TextBox txtPu;
+        private TextBox txtMu;
+        private TextBox txtVu;
+
+        // Footing input fields
         private TextBox txtB;
         private TextBox txtL;
         private TextBox txtH;
@@ -25,7 +33,7 @@ namespace WaterTankTool_WFA.Foundation_Design
         public FootingParameters()
         {
             this.Text = "Multi-Leg Footing Parameters";
-            this.Size = new Size(350, 420);
+            this.Size = new Size(640, 420);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -38,40 +46,97 @@ namespace WaterTankTool_WFA.Foundation_Design
 
         private void SetupUI()
         {
-            int y = 20;
-            txtB = AddInputRow("Footing Size B (ft):", ref y);
-            txtL = AddInputRow("Footing Size L (ft):", ref y);
-            txtH = AddInputRow("Footing Thickness (in):", ref y);
-            txtCover = AddInputRow("Concrete Cover (in):", ref y);
-            txtQallow = AddInputRow("Allowable Bearing q (ksf):", ref y);
-            txtFriction = AddInputRow("Friction Coefficient:", ref y);
-            txtBotAs = AddInputRow("Bottom Rebar As (in2/ft):", ref y);
-            txtTopAs = AddInputRow("Dowel Area (in2):", ref y);
-            txtDb = AddInputRow("Rebar Diameter db (in):", ref y);
+            // --- GroupBox 1: Governing Loads ---
+            GroupBox grpLoads = new GroupBox
+            {
+                Text = "Governing Loads (From Tank Analysis)",
+                Location = new Point(15, 15),
+                Size = new Size(290, 310)
+            };
+            this.Controls.Add(grpLoads);
 
-            btnAccept = new Button { Text = "Accept", Location = new Point(160, y + 10) };
+            int yLoad = 35;
+            txtPu = AddRowToGroup(grpLoads, "Axial Pu (kips):", ref yLoad, true);
+            txtMu = AddRowToGroup(grpLoads, "Moment Mu (k-ft):", ref yLoad, true);
+            txtVu = AddRowToGroup(grpLoads, "Shear Vu (kips):", ref yLoad, true);
+
+            // Informational label
+            Label lblNote = new Label
+            {
+                Text = "Note: Loads are automatically\ninherited from tank analysis\n(Wind/Seismic & Dead Load)\nand Anchor Bolt calculation.",
+                Location = new Point(15, yLoad + 20),
+                Size = new Size(255, 70),
+                ForeColor = Color.DimGray
+            };
+            grpLoads.Controls.Add(lblNote);
+
+            // --- GroupBox 2: Footing Geometry & Soil ---
+            GroupBox grpGeom = new GroupBox
+            {
+                Text = "Footing Geometry & Soil Properties",
+                Location = new Point(315, 15),
+                Size = new Size(295, 310)
+            };
+            this.Controls.Add(grpGeom);
+
+            int yGeom = 25;
+            txtB = AddRowToGroup(grpGeom, "Footing Size B (ft):", ref yGeom, false);
+            txtL = AddRowToGroup(grpGeom, "Footing Size L (ft):", ref yGeom, false);
+            txtH = AddRowToGroup(grpGeom, "Footing Thickness (in):", ref yGeom, false);
+            txtCover = AddRowToGroup(grpGeom, "Concrete Cover (in):", ref yGeom, false);
+            txtQallow = AddRowToGroup(grpGeom, "Allowable Bearing q (ksf):", ref yGeom, false);
+            txtFriction = AddRowToGroup(grpGeom, "Friction Coefficient:", ref yGeom, false);
+            txtBotAs = AddRowToGroup(grpGeom, "Bottom Rebar As (in2/ft):", ref yGeom, false);
+            txtTopAs = AddRowToGroup(grpGeom, "Dowel Area (in2):", ref yGeom, false);
+            txtDb = AddRowToGroup(grpGeom, "Rebar Diameter db (in):", ref yGeom, false);
+
+            // --- Action Buttons ---
+            btnAccept = new Button { Text = "Accept", Location = new Point(220, 340), Size = new Size(85, 28) };
             btnAccept.Click += BtnAccept_Click;
             this.Controls.Add(btnAccept);
 
-            btnCancel = new Button { Text = "Cancel", Location = new Point(250, y + 10) };
+            btnCancel = new Button { Text = "Cancel", Location = new Point(320, 340), Size = new Size(85, 28) };
             btnCancel.Click += (s, e) => this.Close();
             this.Controls.Add(btnCancel);
         }
 
-        private TextBox AddInputRow(string labelText, ref int y)
+        private TextBox AddRowToGroup(GroupBox grp, string labelText, ref int y, bool isReadOnly)
         {
-            Label lbl = new Label { Text = labelText, Location = new Point(20, y), AutoSize = true };
-            this.Controls.Add(lbl);
+            Label lbl = new Label { Text = labelText, Location = new Point(12, y + 2), AutoSize = true };
+            grp.Controls.Add(lbl);
 
-            TextBox txt = new TextBox { Location = new Point(180, y - 3), Width = 100 };
-            this.Controls.Add(txt);
+            TextBox txt = new TextBox
+            {
+                Location = new Point(155, y),
+                Width = 115,
+                ReadOnly = isReadOnly,
+                BackColor = isReadOnly ? Color.FromArgb(240, 240, 240) : Color.White
+            };
+            grp.Controls.Add(txt);
 
-            y += 30;
+            y += 28;
             return txt;
         }
 
         private void LoadData()
         {
+            // Auto-populate governing loads from AnchorBolt / BasePlate / LoadService
+            var anchorBolt = _context.AnchorBoltEntity?.FirstOrDefault();
+            var basePlate = _context.BasePlateEntity?.FirstOrDefault();
+            var loadService = new LoadService();
+            var (puGov, muGov, vuGov) = loadService.GetGoverningLoads();
+
+            double pu = (anchorBolt?.Pu.HasValue == true && anchorBolt.Pu.Value > 0) ? anchorBolt.Pu.Value : puGov;
+            double mu = (basePlate?.OverturningMoment.HasValue == true && basePlate.OverturningMoment.Value > 0)
+                        ? basePlate.OverturningMoment.Value
+                        : ((anchorBolt?.Mu.HasValue == true && anchorBolt.Mu.Value > 0) ? anchorBolt.Mu.Value : muGov);
+            double vu = (anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : vuGov;
+
+            txtPu.Text = pu.ToString("F4", CultureInfo.InvariantCulture);
+            txtMu.Text = mu.ToString("F4", CultureInfo.InvariantCulture);
+            txtVu.Text = vu.ToString("F4", CultureInfo.InvariantCulture);
+
+            // Footing geometric/material properties
             var entity = _context.FootingEntity?.FirstOrDefault();
             if (entity != null)
             {

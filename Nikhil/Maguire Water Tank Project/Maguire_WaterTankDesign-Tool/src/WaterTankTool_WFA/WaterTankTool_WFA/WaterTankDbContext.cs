@@ -90,6 +90,7 @@ public class WaterTankDbContext : DbContext
             UpdateSpheroidSchema();
             UpdateRingWallSchema();
             UpdateFootingSchema();
+            UpdateWindLoadSchema();
         }
         catch (Exception ex)
         {
@@ -270,6 +271,30 @@ public class WaterTankDbContext : DbContext
         catch (Exception ex)
         {
             Console.WriteLine($"Error updating FootingEntity schema: {ex.Message}");
+        }
+    }
+
+    private void UpdateWindLoadSchema()
+    {
+        try
+        {
+            var connection = Database.GetDbConnection();
+            if (connection.State != System.Data.ConnectionState.Open)
+                connection.Open();
+
+            using (var command = connection.CreateCommand())
+            {
+                try
+                {
+                    command.CommandText = "ALTER TABLE WindLoadEntity ADD COLUMN WindShear REAL NULL;";
+                    command.ExecuteNonQuery();
+                }
+                catch { /* Column probably already exists */ }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating WindLoadEntity schema: {ex.Message}");
         }
     }
 }

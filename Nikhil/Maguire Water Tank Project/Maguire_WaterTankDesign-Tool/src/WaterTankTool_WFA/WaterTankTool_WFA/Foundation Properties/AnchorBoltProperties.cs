@@ -354,8 +354,10 @@ namespace WaterTankTool_WFA.Foundation_Properties
             label17.Visible = textBox17.Visible = false;
             labelBreakoutStatus.Visible = false;
             
-            labelTbp.Visible = textBoxTbp.Visible = false;
-            labelMu.Visible = textBoxMu.Visible = false;
+            labelTbp.Text = "Shear Vu (kips):";
+            labelTbp.Visible = textBoxTbp.Visible = true;
+            labelMu.Text = "Moment Mu (k-ft):";
+            labelMu.Visible = textBoxMu.Visible = true;
             labelFcPrime.Visible = textBoxFcPrime.Visible = false;
             labelHef.Visible = textBoxHef.Visible = false;
             labelDistMethod.Visible = textBoxDistMethod.Visible = false;
@@ -418,6 +420,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double minEdgeDistance = eq.MinimumEdgeDistance(db);
 
             // Populate textboxes
+            textBoxTbp.Text = vu.ToString("F4");
+            textBoxMu.Text = mu.ToString("F4");
             textBox1.Text = tensionLegs.ToString();
             textBox2.Text = legRadius.ToString("F2");
             textBox3.Text = tensionPerLeg.ToString("F2");

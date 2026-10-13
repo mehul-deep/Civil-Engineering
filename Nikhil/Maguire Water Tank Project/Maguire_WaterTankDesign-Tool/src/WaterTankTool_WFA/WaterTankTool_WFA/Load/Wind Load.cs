@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -10,6 +10,8 @@ using System.Windows.Forms;
 using WaterTankTool_WFA.Constants;
 using WaterTankTool_WFA.Designer_Notes;
 using WaterTankTool_WFA.Entity;
+using WaterTankTool_WFA.Solver_Equation;
+using WaterTankTool_WFA.Tanks;
 
 namespace WaterTankTool_WFA.Load
 {
@@ -18,6 +20,7 @@ namespace WaterTankTool_WFA.Load
     {
         private WaterTankDbContext _context;
         private Double Q;
+        private double calculatedWindShear = 0;
 
 
 
@@ -69,7 +72,15 @@ namespace WaterTankTool_WFA.Load
 
                 richTextBox2.Text = "q = " + Q.ToString("F5");
 
-
+                if (windData.WindShear.HasValue)
+                {
+                    calculatedWindShear = windData.WindShear.Value;
+                    textBoxWindShear.Text = calculatedWindShear.ToString("F2");
+                }
+                else
+                {
+                    UpdateWindShearDisplay();
+                }
             }
         }
 
@@ -84,6 +95,113 @@ namespace WaterTankTool_WFA.Load
 
                 Q = Lambda.Y * 0.00256 * Kzt * Kd * Math.Pow(V, 2);
                 richTextBox2.Text = "q = " + Q.ToString("F5");
+
+                UpdateWindShearDisplay();
+            }
+        }
+
+        private void UpdateWindShearDisplay()
+        {
+            try
+            {
+                var segments = _context.SegmentProperties.ToList();
+                var tankProperties = _context.TankProperties.FirstOrDefault();
+
+                if (segments == null || segments.Count == 0 || tankProperties == null)
+                {
+                    textBoxWindShear.Text = "Awaiting Geom";
+                    calculatedWindShear = 0;
+                    return;
+                }
+
+                double kzt = double.TryParse(textBox1.Text, out double _kzt) ? _kzt : 1.0;
+                double kd = double.TryParse(textBox3.Text, out double _kd) ? _kd : 1.0;
+                double g = double.TryParse(textBox4.Text, out double _g) ? _g : 1.0;
+                double v = double.TryParse(textBox6.Text, out double _v) ? _v : 90.0;
+                double zg = double.TryParse(textBox7.Text, out double _zg) ? _zg : 900.0;
+                double alpha = double.TryParse(textBox8.Text, out double _a) ? _a : 9.5;
+                double lambda = double.TryParse(textBox9.Text, out double _l) ? _l : 0.6;
+                double cf = double.TryParse(textBox11.Text, out double _cf) ? _cf : 0.5;
+
+                var tempWind = new WindLoadEntity
+                {
+                    Exposure = comboBox1.Text,
+                    Kzt = kzt,
+                    Ke = 1.0,
+                    Kd = kd,
+                    G = g,
+                    I = 1.0,
+                    V = v,
+                    Zg = zg,
+                    alpha = alpha,
+                    lambda = lambda,
+                    Cf = cf,
+                    Q = Q
+                };
+
+                double totalWindV = 0;
+
+                if (AppState.CurrentTankType == TankType.MultiColumn)
+                {
+                    if (AppState.NoOfColumns == 0)
+                    {
+                        AppState.Load();
+                    }
+
+                    var multileg = new Multileg_Cylinders(tempWind);
+
+                    var tankSegment = segments.FirstOrDefault(x => x.SegmentType == "Tanks");
+                    if (tankSegment != null && double.TryParse(tankProperties.ProjectedArea, out double projArea))
+                    {
+                        double fTank = multileg.F_Tank(tankSegment.HeightInitial, tankSegment.HeightFinal, tankSegment.Diameter, projArea);
+                        totalWindV += fTank;
+                    }
+
+                    foreach (var s in segments)
+                    {
+                        if (s.SegmentType == "Cylinder" || s.SegmentType == "Riser")
+                        {
+                            double f = multileg.F(s.HeightInitial, s.HeightFinal, s.Diameter, s.SegmentType);
+                            totalWindV += f;
+                        }
+                    }
+                }
+                else
+                {
+                    var cylinderEquations = new Segment_Cylinder_Equations(tempWind);
+                    var conicalEquations = new Segment_Conical_Equations(tempWind);
+                    var multileg = new Multileg_Cylinders(tempWind);
+
+                    var tankSegment = segments.FirstOrDefault(x => x.SegmentType == "Tanks");
+                    if (tankSegment != null && double.TryParse(tankProperties.ProjectedArea, out double projArea))
+                    {
+                        double fTank = multileg.F_Tank(tankSegment.HeightInitial, tankSegment.HeightFinal, tankSegment.Diameter, projArea);
+                        totalWindV += fTank;
+                    }
+
+                    foreach (var s in segments)
+                    {
+                        double f = 0;
+                        if (s.SegmentType == "Cylinder")
+                        {
+                            f = cylinderEquations.F(s.HeightInitial, s.HeightFinal, s.Diameter);
+                        }
+                        else if (s.SegmentType == "Base")
+                        {
+                            var avgDia = ((double)s.DiameterFinal + (double)s.DiameterInitial) / 2;
+                            f = conicalEquations.F(s.HeightInitial, s.HeightFinal, avgDia);
+                        }
+                        totalWindV += f;
+                    }
+                }
+
+                calculatedWindShear = Math.Round(totalWindV, 4);
+                textBoxWindShear.Text = calculatedWindShear.ToString("F2");
+            }
+            catch
+            {
+                textBoxWindShear.Text = "0.00";
+                calculatedWindShear = 0;
             }
         }
 
@@ -121,7 +239,8 @@ namespace WaterTankTool_WFA.Load
                 alpha = double.Parse(textBox8.Text),
                 lambda = double.Parse(textBox9.Text),
                 Cf = double.Parse(textBox11.Text),
-                Q = Q
+                Q = Q,
+                WindShear = calculatedWindShear
             };
 
 
@@ -159,6 +278,7 @@ namespace WaterTankTool_WFA.Load
                 existingData.lambda = windLoad.lambda;
                 existingData.Cf = windLoad.Cf;
                 existingData.Q = windLoad.Q;
+                existingData.WindShear = windLoad.WindShear;
             }
 
             // Save changes to the database

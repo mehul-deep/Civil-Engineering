@@ -139,6 +139,12 @@ namespace WaterTankTool_WFA.Services
                     windM += m;
                 }
 
+                // If WindLoadEntity has saved WindShear from the Wind Load window, use it directly
+                if (windLoad?.WindShear != null && windLoad.WindShear > 0)
+                {
+                    windV = windLoad.WindShear.Value;
+                }
+
                 // Seismic Moment
                 if (seismicLoad != null)
                 {
@@ -164,7 +170,15 @@ namespace WaterTankTool_WFA.Services
                 }
 
                 Mu = Math.Max(windM, seismicM);
-                Vu = Math.Max(windV, seismicV);
+                
+                if (AppState.CurrentTankType == TankType.MultiColumn)
+                {
+                    Vu = windV;
+                }
+                else
+                {
+                    Vu = Math.Max(windV, seismicV);
+                }
 
                 // Apply Multiplier
                 Pu *= Multiplier;

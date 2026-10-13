@@ -1,4 +1,4 @@
-﻿namespace WaterTankTool_WFA.Load
+namespace WaterTankTool_WFA.Load
 {
     partial class Wind_Load
     {
@@ -52,6 +52,9 @@
             label2 = new Label();
             label1 = new Label();
             groupBox2 = new GroupBox();
+            labelWindShear = new Label();
+            textBoxWindShear = new TextBox();
+            labelWindShearUnit = new Label();
             richTextBox2 = new RichTextBox();
             groupBox3 = new GroupBox();
             richTextBox1 = new RichTextBox();
@@ -313,6 +316,9 @@
             // 
             // groupBox2
             // 
+            groupBox2.Controls.Add(labelWindShear);
+            groupBox2.Controls.Add(textBoxWindShear);
+            groupBox2.Controls.Add(labelWindShearUnit);
             groupBox2.Controls.Add(richTextBox2);
             groupBox2.Location = new Point(225, 18);
             groupBox2.Margin = new Padding(2);
@@ -323,12 +329,40 @@
             groupBox2.TabStop = false;
             groupBox2.Text = "Calculation";
             // 
+            // labelWindShear
+            // 
+            labelWindShear.AutoSize = true;
+            labelWindShear.Location = new Point(10, 75);
+            labelWindShear.Name = "labelWindShear";
+            labelWindShear.Size = new Size(116, 15);
+            labelWindShear.TabIndex = 2;
+            labelWindShear.Text = "Wind Base Shear (V):";
+            // 
+            // textBoxWindShear
+            // 
+            textBoxWindShear.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            textBoxWindShear.Location = new Point(10, 95);
+            textBoxWindShear.Name = "textBoxWindShear";
+            textBoxWindShear.ReadOnly = true;
+            textBoxWindShear.Size = new Size(82, 23);
+            textBoxWindShear.TabIndex = 3;
+            // 
+            // labelWindShearUnit
+            // 
+            labelWindShearUnit.AutoSize = true;
+            labelWindShearUnit.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            labelWindShearUnit.Location = new Point(96, 98);
+            labelWindShearUnit.Name = "labelWindShearUnit";
+            labelWindShearUnit.Size = new Size(29, 15);
+            labelWindShearUnit.TabIndex = 4;
+            labelWindShearUnit.Text = "kips";
+            // 
             // richTextBox2
             // 
-            richTextBox2.Location = new Point(10, 56);
+            richTextBox2.Location = new Point(10, 22);
             richTextBox2.Margin = new Padding(2);
             richTextBox2.Name = "richTextBox2";
-            richTextBox2.Size = new Size(133, 50);
+            richTextBox2.Size = new Size(133, 45);
             richTextBox2.TabIndex = 1;
             richTextBox2.Text = "";
             richTextBox2.TextChanged += richTextBox2_TextChanged;
@@ -412,5 +446,8 @@
         private TextBox textBox11;
         private Label label15;
         private RichTextBox richTextBox1;
+        private Label labelWindShear;
+        private TextBox textBoxWindShear;
+        private Label labelWindShearUnit;
     }
 }

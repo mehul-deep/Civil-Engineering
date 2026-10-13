@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -27,5 +27,6 @@ namespace WaterTankTool_WFA.Entity
         public double Cf { get; set; }
 
         public double Q {  get; set; }
+        public double? WindShear { get; set; }
     }
 }

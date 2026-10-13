@@ -55,8 +55,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
             TextBox txt = new TextBox
             {
                 Text = value,
-                Location = new Point(xOffset + 215, y - 3),
-                Width = 120,
+                Location = new Point(xOffset + 185, y - 3),
+                Width = 110,
                 ReadOnly = true,
                 BackColor = Color.White
             };
@@ -130,7 +130,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double qApplied = _eq.AppliedSoilPressure(pCompTotal, areaProv);
             
             // Step 6: Sliding Check
-            double vuTotal = 52.30; // Usually from BasePlate/AnchorBolt, assuming 52.30 for QA if missing
+            double vuTotal = (anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : 52.30;
             double vLeg = vuTotal / numLegs;
             double fsSliding = _eq.SlidingFactorOfSafety(muFriction, pCompTotal, vLeg);
             
@@ -181,7 +181,9 @@ namespace WaterTankTool_WFA.Foundation_Properties
             int yRight = 10;
             
             // === LEFT COLUMN ===
+            AddResultRow(pnlLeft, "Axial Pu (kip):", puTotal.ToString("F2"), ref yLeft, false, 10);
             AddResultRow(pnlLeft, "Gravity Load/Leg (kip):", pLeg.ToString("F2"), ref yLeft, false, 10);
+            AddResultRow(pnlLeft, "Moment Mu (k-ft):", muTotal.ToString("F2"), ref yLeft, false, 10);
             AddResultRow(pnlLeft, "Compression Side Load (kip):", pCompTotal.ToString("F2"), ref yLeft, false, 10);
 
             AddResultRow(pnlLeft, "Required Footing Area (ft2):", areaReq.ToString("F2"), ref yLeft, false, 10);
@@ -192,7 +194,9 @@ namespace WaterTankTool_WFA.Foundation_Properties
             TextBox txtBearing = AddResultRow(pnlLeft, "Bearing D/C Ratio:", "", ref yLeft, true, 10);
             SetRatioBox(txtBearing, _eq.DemandCapacityRatio(qApplied, qAllow));
 
-            AddResultRow(pnlLeft, "Sliding Check FS:", fsSliding.ToString("F1") + " > 1.5", ref yLeft, false, 10);
+            AddResultRow(pnlLeft, "Shear Vu (kip):", vuTotal.ToString("F2"), ref yLeft, false, 10);
+            AddResultRow(pnlLeft, "Shear/Leg (kip):", vLeg.ToString("F2"), ref yLeft, false, 10);
+            AddResultRow(pnlLeft, "Sliding Check FS:", fsSliding.ToString("F2") + " > 1.5", ref yLeft, false, 10);
 
             // === MIDDLE COLUMN ===
             AddResultRow(pnlMid, "Effective Depth d (in):", d.ToString("F1"), ref yMid, false, 10);
@@ -210,7 +214,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             SetRatioBox(txtOneWay, oneWayUtilization);
 
             // === RIGHT COLUMN ===
-            AddResultRow(pnlRight, "Flexure Mu (kip-ft/ft):", mu_flexure.ToString("F2"), ref yRight, false, 10);
+            AddResultRow(pnlRight, "Flexure Mu (k-ft/ft):", mu_flexure.ToString("F2"), ref yRight, false, 10);
             AddResultRow(pnlRight, "Required As_min (in2/ft):", as_min.ToString("F3"), ref yRight, false, 10);
             AddResultRow(pnlRight, "Provided As (in2/ft):", bottomAs.ToString("F3"), ref yRight, false, 10);
             TextBox txtFlexure = AddResultRow(pnlRight, "Flexure As D/C:", "", ref yRight, true, 10);

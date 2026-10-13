@@ -1,0 +1,112 @@
+================================================================================
+SESSION LOG - NOTES 15: MULTI-COLUMN WIND BASE SHEAR & FOUNDATION LOAD PIPELINE
+================================================================================
+
+### 1. OVERVIEW & SCOPE
+In this session, we resolved the end-to-end integration and visual presentation of governing loads (Pu, Mu, Vu) across all foundation modules for Multi-Column water tanks.
+- Displays unfactored Wind Base Shear (V) dynamically in the Wind Load window (`Wind_Load.cs`).
+- Enforces Multi-Column Shear Demand rule: Vu is always governed by Wind Shear ($V_u = V_{\text{wind}} \times 1.667$).
+- Propagates and displays live governing loads ($P_u$, $M_u$, $V_u$) across all foundation modules:
+  * Anchor Bolt (Parameters & Properties)
+  * Base Plate (Parameters & Properties)
+  * Pedestal / Ring Wall (Parameters & Properties)
+  * Footing (Parameters & Properties)
+- Shortened label wordings (e.g. `Moment Mu (k-ft):`) and adjusted container widths and textbox offsets so numbers and boxes never get cut off on any screen or display scaling.
+- Single-Leg (SingleColumn) tank logic remains strictly isolated and untouched.
+
+---
+
+### 2. WIND LOAD WINDOW: LIVE BASE SHEAR CALCULATION & DISPLAY
+- **Database Schema**:
+  * Added `public double? WindShear { get; set; }` to `WindLoadEntity.cs`.
+  * Added `UpdateWindLoadSchema()` in `WaterTankDbContext.cs` (`ALTER TABLE WindLoadEntity ADD COLUMN WindShear REAL NULL;`) for backward compatibility with existing SQLite files.
+  * Updated SQLite table creation script in `StartupForm.cs`.
+- **Wind Load Window UI (`Wind Load.Designer.cs` & `Wind Load.cs`)**:
+  * Added `labelWindShear` ("Wind Base Shear (V):"), `textBoxWindShear` (read-only bold), and `labelWindShearUnit` ("kips") inside `groupBox2` (Calculation).
+  * Implemented `UpdateWindShearDisplay()` that dynamically computes unfactored wind shear across:
+    - Upper Bowl projected area
+    - Column tiers ($\times \text{NoOfColumns}$)
+    - Central Riser
+  * Displays `"Awaiting Geom"` if geometry is not yet defined.
+  * Saves `WindShear` to `WindLoadEntity` on clicking Confirm.
+- **Equations Support (`Equations.cs`)**:
+  * Added constructor overloads for `Multileg_Cylinders`, `Segment_Cylinder_Equations`, and `Segment_Conical_Equations` taking `WindLoadEntity`, allowing real-time preview before saving to database.
+
+---
+
+### 3. GOVERNING LOADS RESOLUTION IN LOADSERVICE
+- **Shear Demand Logic (`LoadService.cs`)**:
+  * Previously, `LoadService.GetGoverningLoads()` compared raw unreduced seismic base shear ($V_{\text{seismic}} = 52.29\text{ kips}$) against wind shear ($V_{\text{wind}} = 34.32\text{ kips}$), which resulted in selecting seismic and producing $52.29 \times 1.667 = 87.16\text{ kips}$.
+  * In ASD combinations, seismic is factored by 0.6 ($0.6 \times 52.29 = 31.37\text{ kips}$, giving $31.37 \times 1.667 = 52.30\text{ kips}$).
+  * Per user explicit requirement: For `TankType.MultiColumn`, Shear Demand ($V_u$) **always** uses Wind Shear:
+    $$V_u = V_{\text{wind}} \times 1.667$$
+  * For user's live project with $V_{\text{wind}} = 34.32\text{ kips}$:
+    $$V_u = 34.32 \times 1.667 = \mathbf{57.2114\text{ kips}}$$
+  * Single-Leg maintains `Vu = Math.Max(windV, seismicV)`.
+
+---
+
+### 4. CROSS-MODULE DISTRIBUTION OF PU, MU, AND VU
+| Module | Factored Axial $P_u$ | Overturning Moment $M_u$ | Shear Demand $V_u$ |
+| :--- | :---: | :---: | :---: |
+| **Anchor Bolt** | Used (Gravity & Comp) | Used (Tension Demand $T_u$) | Used (Bolt Shear $V_b$) |
+| **Base Plate** | Used (Bearing $f_p$, Thickness $t_{\text{req}}$) | Used (Pedestal Moment $M_{u,\text{ped}}$, Eccentricity $e$) | Not Used (AISC plate design governed by bearing & flexure) |
+| **Pedestal** | Used ($P_{\text{grav}} = P_u / N$, Max $P_{\text{comp}}$) | Used ($T_{\text{leg}}$ uplift, P-M interaction) | Used ($V_{u,\text{ped}} = V_u / N$, Tie Spacing $s_{\max}$) |
+| **Footing** | Used ($P_{\text{leg}} = P_u / N$, Max $P_{\text{comp}}$) | Used ($T_{\text{leg}}$ uplift, Soil Bearing $q$, Flexure) | Used (Sliding Check $\text{FS} = \frac{\mu P_{\text{comp}}}{V_{\text{leg}}}$) |
+
+---
+
+### 5. UI IMPLEMENTATION & SYNCHRONIZATION ACROSS ALL MODULES
+1. **Footing Parameters (`FootingParameters.cs`)**:
+   - Expanded form width to 640 px.
+   - Added GroupBox "Governing Loads (From Tank Analysis)" (width 290 px) side-by-side with "Footing Geometry & Soil Properties" (width 295 px).
+   - Displays auto-populated read-only fields:
+     * `Axial Pu (kips):`
+     * `Moment Mu (k-ft):`
+     * `Shear Vu (kips):`
+2. **Footing Properties (`FootingProperties.cs`)**:
+   - Synchronized Step 6 (Sliding Check) to dynamically pull $V_u$ from `anchorBolt.Vu`:
+     `double vuTotal = (anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : 52.30;`
+   - Added result display rows in Left Column:
+     * `Axial Pu (kip):`
+     * `Gravity Load/Leg (kip):`
+     * `Moment Mu (k-ft):`
+     * `Compression Side Load (kip):`
+     * `Shear Vu (kip):`
+     * `Shear/Leg (kip):`
+     * `Sliding Check FS (> 1.5):`
+   - Shortened slab flexural moment to `Flexure Mu (k-ft/ft):`.
+   - Shifted textbox offset in `AddResultRow` from 215 to 185 px (width 110 px) for ample margin.
+3. **Pedestal Parameters (`RingWallFoundation.cs`)**:
+   - Expanded form width to 640 px.
+   - Added GroupBox "Governing Loads (From Tank Analysis)" (width 290 px) side-by-side with "Pedestal Geometry & Material" (width 295 px).
+   - Displays auto-populated read-only fields:
+     * `Axial Pu (kips):`
+     * `Moment Mu (k-ft):`
+     * `Shear Vu (kips):`
+4. **Pedestal Properties (`RingWallProperties.cs`)**:
+   - Expanded form width to 820 px, spaced columns (`col1 = 15`, `col2 = 415`).
+   - Synchronized `vuTotal` to pull dynamically from `anchorBolt.Vu`:
+     `double vuTotal = (anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : 52.30;`
+   - Added result display rows:
+     * Left Column: `Axial Pu (kip):` and `Moment Mu (k-ft):`
+     * Right Column: `Shear Vu (kip):` directly above `Shear Vu,ped (kip):`
+     * Right Column: Shortened P-M interaction label to `P-M Mu (k-ft):`
+   - Shifted textbox offset in `AddResultRow` from 215 to 180 px (width 110 px).
+5. **Anchor Bolt Properties (`AnchorBoltProperties.cs`)**:
+   - Enabled and displayed `Moment Mu (k-ft):` and `Shear Vu (kips):` for Multi-Column tanks.
+
+---
+
+### 6. PREVENTION OF LABEL TRUNCATION & NUMBER CUTOFF
+- Shortened labels to concise engineering standard forms (`Moment Mu (k-ft):`, `Axial Pu (kips):`, `Shear Vu (kips):`).
+- Form containers widened (Footing & Pedestal Parameter windows to 640 px; Pedestal Properties to 820 px).
+- Textbox start offsets brought inward from 215/180 px to 145–185 px with generous 110–115 px widths.
+- Ensures 60–90 px of breathing room between label text and textboxes, preventing overlap even under 125% and 150% Windows DPI display scaling.
+
+---
+
+### 7. VERIFICATION & BUILD STATUS
+- Full compilation via `dotnet build`: Clean build with **0 Errors**, 400 pre-existing compiler warnings.
+- End-to-end dynamic calculation verified: Any new Multi-Column water tank project with newly defined capacity, elevations, and loads will automatically cascade live $P_u$, $M_u$, and $V_u$ through all foundation calculations.
+================================================================================

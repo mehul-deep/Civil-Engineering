@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -32,8 +32,11 @@ namespace WaterTankTool_WFA.Solver_Equation
         public Segment_Cylinder_Equations() {
             _context = WaterTankDbContext.GetInstance();
             Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
+        }
 
-
+        public Segment_Cylinder_Equations(WindLoadEntity windLoad) {
+            _context = WaterTankDbContext.GetInstance();
+            Qwind = windLoad ?? _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
         }
 
         public double ProjectedArea(double heightInitial,double heightfinal, double diameter)
@@ -162,7 +165,12 @@ namespace WaterTankTool_WFA.Solver_Equation
         {
             _context = WaterTankDbContext.GetInstance();
             Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
+        }
 
+        public Segment_Conical_Equations(WindLoadEntity windLoad)
+        {
+            _context = WaterTankDbContext.GetInstance();
+            Qwind = windLoad ?? _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
         }
 
         public double ProjectedArea(double heightInitial, double heightfinal, double diameter)
@@ -347,6 +355,12 @@ namespace WaterTankTool_WFA.Solver_Equation
         {
             _context = WaterTankDbContext.GetInstance();
             Qwind = _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
+        }
+
+        public Multileg_Cylinders(WindLoadEntity windLoad)
+        {
+            _context = WaterTankDbContext.GetInstance();
+            Qwind = windLoad ?? _context.WindLoadEntity.FirstOrDefault() ?? new WindLoadEntity { Exposure = "C", Cf = 1.0, G = 1.0, Q = 0.0 };
         }
 
         public double ProjectedArea(double heightInitial, double heightfinal, double diameter)

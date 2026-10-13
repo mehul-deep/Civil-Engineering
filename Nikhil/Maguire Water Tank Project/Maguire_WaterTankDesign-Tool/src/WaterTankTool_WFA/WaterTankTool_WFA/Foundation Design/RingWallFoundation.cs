@@ -12,6 +12,8 @@ namespace WaterTankTool_WFA.Foundation_Design
         private RingWallEntity? _existingEntity;
         
         private TextBox txtFcPrime, txtFy, txtHef, txtHp, txtGammaC, txtPedestalB, txtPedestalL, txtPedestalAs, txtFootingAs;
+        private TextBox? txtPu, txtMu, txtVu;
+        private GroupBox? groupBoxLoads;
 
         public RingWallFoundation()
         {
@@ -32,7 +34,37 @@ namespace WaterTankTool_WFA.Foundation_Design
             if (AppState.CurrentTankType == TankType.MultiColumn)
             {
                 this.Text = "Multi-Leg Pedestal Foundation";
+                this.Size = new Size(640, 420);
+                this.FormBorderStyle = FormBorderStyle.FixedDialog;
+                this.MaximizeBox = false;
+
+                // --- GroupBox 1: Governing Loads ---
+                groupBoxLoads = new GroupBox
+                {
+                    Text = "Governing Loads (From Tank Analysis)",
+                    Location = new Point(12, 12),
+                    Size = new Size(290, 320)
+                };
+                this.Controls.Add(groupBoxLoads);
+
+                int yLoad = 35;
+                txtPu = AddFieldToGroup(groupBoxLoads, "Axial Pu (kips):", yLoad, true);
+                txtMu = AddFieldToGroup(groupBoxLoads, "Moment Mu (k-ft):", yLoad + 28, true);
+                txtVu = AddFieldToGroup(groupBoxLoads, "Shear Vu (kips):", yLoad + 56, true);
+
+                Label lblNote = new Label
+                {
+                    Text = "Note: Loads are automatically\ninherited from tank analysis\n(Wind/Seismic & Dead Load)\nand Anchor Bolt calculation.",
+                    Location = new Point(15, yLoad + 95),
+                    Size = new Size(255, 70),
+                    ForeColor = Color.DimGray
+                };
+                groupBoxLoads.Controls.Add(lblNote);
+
+                // --- GroupBox 2: Pedestal Geometry & Material ---
                 groupBox2.Text = "Pedestal Geometry & Material";
+                groupBox2.Location = new Point(315, 12);
+                groupBox2.Size = new Size(295, 320);
 
                 label1.Visible = textBox1.Visible = false;
                 label2.Visible = textBox2.Visible = false;
@@ -45,37 +77,59 @@ namespace WaterTankTool_WFA.Foundation_Design
                 label9.Visible = textBox9.Visible = false;
                 label10.Visible = textBox10.Visible = false;
 
-                int startY = 30;
+                int startY = 25;
                 int gapY = 28;
                 
-                txtFcPrime = AddField("Concrete f'c (ksi):", startY);
-                txtFy = AddField("Steel fy (ksi):", startY + gapY * 1);
-                txtHef = AddField("Embedment Depth hef (in):", startY + gapY * 2);
-                txtHp = AddField("Pedestal Clear Height Hp (ft):", startY + gapY * 3);
-                txtGammaC = AddField("Concrete Unit Wt (pcf):", startY + gapY * 4);
-                txtPedestalB = AddField("Pedestal Size B (in):", startY + gapY * 5);
-                txtPedestalL = AddField("Pedestal Size L (in):", startY + gapY * 6);
-                txtPedestalAs = AddField("Provided Pedestal As (in2):", startY + gapY * 7);
-                txtFootingAs = AddField("Provided Footing As (in2):", startY + gapY * 8);
+                txtFcPrime = AddFieldToGroup(groupBox2, "Concrete f'c (ksi):", startY, false);
+                txtFy = AddFieldToGroup(groupBox2, "Steel fy (ksi):", startY + gapY * 1, false);
+                txtHef = AddFieldToGroup(groupBox2, "Embedment Depth hef (in):", startY + gapY * 2, false);
+                txtHp = AddFieldToGroup(groupBox2, "Pedestal Clear Height Hp (ft):", startY + gapY * 3, false);
+                txtGammaC = AddFieldToGroup(groupBox2, "Concrete Unit Wt (pcf):", startY + gapY * 4, false);
+                txtPedestalB = AddFieldToGroup(groupBox2, "Pedestal Size B (in):", startY + gapY * 5, false);
+                txtPedestalL = AddFieldToGroup(groupBox2, "Pedestal Size L (in):", startY + gapY * 6, false);
+                txtPedestalAs = AddFieldToGroup(groupBox2, "Provided Pedestal As (in2):", startY + gapY * 7, false);
+                txtFootingAs = AddFieldToGroup(groupBox2, "Provided Footing As (in2):", startY + gapY * 8, false);
                 
-                groupBox2.Height = startY + gapY * 10;
-                this.Height = groupBox2.Bottom + 80;
-                button1.Top = groupBox2.Bottom + 10;
-                button2.Top = groupBox2.Bottom + 10;
+                button1.Location = new Point(220, 345);
+                button2.Location = new Point(320, 345);
             }
         }
         
-        private TextBox AddField(string labelText, int yPos)
+        private TextBox AddFieldToGroup(GroupBox grp, string labelText, int yPos, bool isReadOnly)
         {
-            Label lbl = new Label { Text = labelText, Location = new Point(15, yPos), AutoSize = true };
-            TextBox txt = new TextBox { Location = new Point(180, yPos - 3), Size = new Size(84, 23) };
-            groupBox2.Controls.Add(lbl);
-            groupBox2.Controls.Add(txt);
+            Label lbl = new Label { Text = labelText, Location = new Point(12, yPos + 2), AutoSize = true };
+            TextBox txt = new TextBox
+            {
+                Location = new Point(155, yPos),
+                Size = new Size(115, 23),
+                ReadOnly = isReadOnly,
+                BackColor = isReadOnly ? Color.FromArgb(240, 240, 240) : Color.White
+            };
+            grp.Controls.Add(lbl);
+            grp.Controls.Add(txt);
             return txt;
         }
 
         private void LoadExistingData()
         {
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                var anchorBolt = _context.AnchorBoltEntity?.FirstOrDefault();
+                var basePlate = _context.BasePlateEntity?.FirstOrDefault();
+                var loadService = new Services.LoadService();
+                var (puGov, muGov, vuGov) = loadService.GetGoverningLoads();
+
+                double pu = (anchorBolt?.Pu.HasValue == true && anchorBolt.Pu.Value > 0) ? anchorBolt.Pu.Value : puGov;
+                double mu = (basePlate?.OverturningMoment.HasValue == true && basePlate.OverturningMoment.Value > 0)
+                            ? basePlate.OverturningMoment.Value
+                            : ((anchorBolt?.Mu.HasValue == true && anchorBolt.Mu.Value > 0) ? anchorBolt.Mu.Value : muGov);
+                double vu = (anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : vuGov;
+
+                if (txtPu != null) txtPu.Text = pu.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
+                if (txtMu != null) txtMu.Text = mu.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
+                if (txtVu != null) txtVu.Text = vu.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
+            }
+
             _existingEntity = _context.Set<RingWallEntity>().FirstOrDefault();
             if (_existingEntity == null)
             {

@@ -33,7 +33,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
         private void SetupMultiColumnUI()
         {
             this.Text = "Multi-Leg Pedestal Properties";
-            this.Size = new Size(780, 520);
+            this.Size = new Size(820, 560);
             tabControl1.Visible = false;
 
             Panel pnl = new Panel { Dock = DockStyle.Fill, AutoScroll = false };
@@ -42,11 +42,13 @@ namespace WaterTankTool_WFA.Foundation_Properties
             int yLeft = 10;
             int yRight = 10;
             int col1 = 15;
-            int col2 = 390;
+            int col2 = 415;
 
             _txtPedClass = AddResultRow(pnl, "Pedestal Class (lu/B):", "", ref yLeft, false, col1);
             _txtSlender = AddResultRow(pnl, "Slenderness (klu/r):", "", ref yLeft, false, col1);
+            _txtPuTotal = AddResultRow(pnl, "Axial Pu (kip):", "", ref yLeft, false, col1);
             _txtPgravity = AddResultRow(pnl, "Gravity Axial Load/Leg (kip):", "", ref yLeft, false, col1);
+            _txtMuTotal = AddResultRow(pnl, "Moment Mu (k-ft):", "", ref yLeft, false, col1);
             _txtTleg = AddResultRow(pnl, "Overturning Tension/Leg (kip):", "", ref yLeft, false, col1);
             _txtPcompTotal = AddResultRow(pnl, "Max Compression Load (kip):", "", ref yLeft, false, col1);
             _txtBearingCap = AddResultRow(pnl, "Bearing Capacity φPn (kip):", "", ref yLeft, false, col1);
@@ -58,9 +60,10 @@ namespace WaterTankTool_WFA.Foundation_Properties
 
             _txtUpliftCap = AddResultRow(pnl, "Tensile Capacity φTn (kip):", "", ref yRight, false, col2);
             _txtUpliftDC = AddResultRow(pnl, "Uplift D/C Ratio:", "", ref yRight, false, col2);
-            _txtPM_Mu = AddResultRow(pnl, "P-M Demand Mu (kip-ft):", "", ref yRight, false, col2);
+            _txtPM_Mu = AddResultRow(pnl, "P-M Mu (k-ft):", "", ref yRight, false, col2);
             _txtPM_PhiMn = AddResultRow(pnl, "P-M Capacity φMn (kip-ft):", "", ref yRight, false, col2);
             _txtPM_DC = AddResultRow(pnl, "P-M D/C Ratio:", "", ref yRight, false, col2);
+            _txtVuTotal = AddResultRow(pnl, "Shear Vu (kip):", "", ref yRight, false, col2);
             _txtShearPed = AddResultRow(pnl, "Shear Vu,ped (kip):", "", ref yRight, false, col2);
             _txtTieSpacing = AddResultRow(pnl, "Tie Spacing s_max (in):", "", ref yRight, false, col2);
             _txtFootingLd = AddResultRow(pnl, "Development Length ld (in):", "", ref yRight, false, col2);
@@ -69,6 +72,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
         }
 
         private TextBox _txtPedClass, _txtSlender, _txtPgravity, _txtTleg, _txtPcompTotal;
+        private TextBox _txtPuTotal, _txtMuTotal, _txtVuTotal;
         private TextBox _txtBearingCap, _txtBearingDC, _txtAsMin, _txtAsProv;
         private TextBox _txtPhiPn, _txtAxialDC;
         private TextBox _txtUpliftCap, _txtUpliftDC;
@@ -87,7 +91,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
                 return null;
             }
 
-            TextBox txt = new TextBox { Text = initialValue, Location = new Point(xOffset + 215, y - 3), Size = new Size(130, 23), ReadOnly = true, BackColor = Color.White };
+            TextBox txt = new TextBox { Text = initialValue, Location = new Point(xOffset + 180, y - 3), Size = new Size(110, 23), ReadOnly = true, BackColor = Color.White };
             pnl.Controls.Add(lbl);
             pnl.Controls.Add(txt);
             y += 28;
@@ -110,7 +114,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double muTotal = basePlate.OverturningMoment ?? 5673.437; // kip-ft
             if (muTotal <= 0) muTotal = 5673.437;
 
-            double vuTotal = 52.30; 
+            double vuTotal = (anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : 52.30; 
+
+            _txtPuTotal.Text = puTotal.ToString("F2");
+            _txtMuTotal.Text = muTotal.ToString("F2");
+            _txtVuTotal.Text = vuTotal.ToString("F2"); 
 
             int numLegs = (anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
 
