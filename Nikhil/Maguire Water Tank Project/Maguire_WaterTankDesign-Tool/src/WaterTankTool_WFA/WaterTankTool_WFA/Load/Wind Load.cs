@@ -21,8 +21,7 @@ namespace WaterTankTool_WFA.Load
         private WaterTankDbContext _context;
         private Double Q;
         private double calculatedWindShear = 0;
-
-
+        private double calculatedWindMoment = 0;
 
         public Wind_Load()
         {
@@ -72,15 +71,7 @@ namespace WaterTankTool_WFA.Load
 
                 richTextBox2.Text = "q = " + Q.ToString("F5");
 
-                if (windData.WindShear.HasValue)
-                {
-                    calculatedWindShear = windData.WindShear.Value;
-                    textBoxWindShear.Text = calculatedWindShear.ToString("F2");
-                }
-                else
-                {
-                    UpdateWindShearDisplay();
-                }
+                UpdateWindLoadsDisplay();
             }
         }
 
@@ -96,11 +87,11 @@ namespace WaterTankTool_WFA.Load
                 Q = Lambda.Y * 0.00256 * Kzt * Kd * Math.Pow(V, 2);
                 richTextBox2.Text = "q = " + Q.ToString("F5");
 
-                UpdateWindShearDisplay();
+                UpdateWindLoadsDisplay();
             }
         }
 
-        private void UpdateWindShearDisplay()
+        private void UpdateWindLoadsDisplay()
         {
             try
             {
@@ -110,7 +101,9 @@ namespace WaterTankTool_WFA.Load
                 if (segments == null || segments.Count == 0 || tankProperties == null)
                 {
                     textBoxWindShear.Text = "Awaiting Geom";
+                    textBoxWindMoment.Text = "Awaiting Geom";
                     calculatedWindShear = 0;
+                    calculatedWindMoment = 0;
                     return;
                 }
 
@@ -140,6 +133,7 @@ namespace WaterTankTool_WFA.Load
                 };
 
                 double totalWindV = 0;
+                double totalWindM = 0;
 
                 if (AppState.CurrentTankType == TankType.MultiColumn)
                 {
@@ -155,6 +149,10 @@ namespace WaterTankTool_WFA.Load
                     {
                         double fTank = multileg.F_Tank(tankSegment.HeightInitial, tankSegment.HeightFinal, tankSegment.Diameter, projArea);
                         totalWindV += fTank;
+                        if (double.TryParse(tankProperties.Centroid, out double centroid))
+                        {
+                            totalWindM += fTank * (centroid + tankSegment.HeightInitial);
+                        }
                     }
 
                     foreach (var s in segments)
@@ -162,7 +160,9 @@ namespace WaterTankTool_WFA.Load
                         if (s.SegmentType == "Cylinder" || s.SegmentType == "Riser")
                         {
                             double f = multileg.F(s.HeightInitial, s.HeightFinal, s.Diameter, s.SegmentType);
+                            double m = multileg.Mbase(s.HeightInitial, s.HeightFinal, s.Diameter, s.SegmentType);
                             totalWindV += f;
+                            totalWindM += m;
                         }
                     }
                 }
@@ -177,33 +177,47 @@ namespace WaterTankTool_WFA.Load
                     {
                         double fTank = multileg.F_Tank(tankSegment.HeightInitial, tankSegment.HeightFinal, tankSegment.Diameter, projArea);
                         totalWindV += fTank;
+                        if (double.TryParse(tankProperties.Centroid, out double centroid))
+                        {
+                            totalWindM += fTank * (centroid + tankSegment.HeightInitial);
+                        }
                     }
 
                     foreach (var s in segments)
                     {
                         double f = 0;
+                        double m = 0;
                         if (s.SegmentType == "Cylinder")
                         {
                             f = cylinderEquations.F(s.HeightInitial, s.HeightFinal, s.Diameter);
+                            m = cylinderEquations.Mbase(s.HeightInitial, s.HeightFinal, s.Diameter);
                         }
                         else if (s.SegmentType == "Base")
                         {
                             var avgDia = ((double)s.DiameterFinal + (double)s.DiameterInitial) / 2;
                             f = conicalEquations.F(s.HeightInitial, s.HeightFinal, avgDia);
+                            m = conicalEquations.Mbase(s.HeightInitial, s.HeightFinal, avgDia);
                         }
                         totalWindV += f;
+                        totalWindM += m;
                     }
                 }
 
                 calculatedWindShear = Math.Round(totalWindV, 4);
+                calculatedWindMoment = Math.Round(totalWindM, 4);
                 textBoxWindShear.Text = calculatedWindShear.ToString("F2");
+                textBoxWindMoment.Text = calculatedWindMoment.ToString("F2");
             }
             catch
             {
                 textBoxWindShear.Text = "0.00";
+                textBoxWindMoment.Text = "0.00";
                 calculatedWindShear = 0;
+                calculatedWindMoment = 0;
             }
         }
+
+        private void UpdateWindShearDisplay() => UpdateWindLoadsDisplay();
 
         private void richTextBox2_TextChanged(object sender, EventArgs e)
         {
@@ -240,7 +254,8 @@ namespace WaterTankTool_WFA.Load
                 lambda = double.Parse(textBox9.Text),
                 Cf = double.Parse(textBox11.Text),
                 Q = Q,
-                WindShear = calculatedWindShear
+                WindShear = calculatedWindShear,
+                WindMoment = calculatedWindMoment
             };
 
 

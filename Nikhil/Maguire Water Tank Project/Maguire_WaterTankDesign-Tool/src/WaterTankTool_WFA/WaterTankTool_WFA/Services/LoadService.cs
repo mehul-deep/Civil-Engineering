@@ -44,10 +44,7 @@ namespace WaterTankTool_WFA.Services
 
                 if (AppState.CurrentTankType == TankType.MultiColumn)
                 {
-                    if (AppState.NoOfColumns == 0)
-                    {
-                        AppState.Load();
-                    }
+                    AppState.Load();
                     
                     double weightOfSteel = double.Parse(tankProperties.WeightOfSteel);
                     string fileName = "MultiLeg-Tanks.json";
@@ -139,10 +136,15 @@ namespace WaterTankTool_WFA.Services
                     windM += m;
                 }
 
-                // If WindLoadEntity has saved WindShear from the Wind Load window, use it directly
-                if (windLoad?.WindShear != null && windLoad.WindShear > 0)
+                // Use saved WindShear/WindMoment only as fallback if live segment calculation returned 0
+                if (windV <= 0 && windLoad?.WindShear != null && windLoad.WindShear > 0)
                 {
                     windV = windLoad.WindShear.Value;
+                }
+
+                if (windM <= 0 && windLoad?.WindMoment != null && windLoad.WindMoment > 0)
+                {
+                    windM = windLoad.WindMoment.Value;
                 }
 
                 // Seismic Moment
@@ -169,14 +171,14 @@ namespace WaterTankTool_WFA.Services
                     }
                 }
 
-                Mu = Math.Max(windM, seismicM);
-                
                 if (AppState.CurrentTankType == TankType.MultiColumn)
                 {
+                    Mu = Math.Max(0.6 * windM, seismicM);
                     Vu = windV;
                 }
                 else
                 {
+                    Mu = Math.Max(windM, seismicM);
                     Vu = Math.Max(windV, seismicV);
                 }
 

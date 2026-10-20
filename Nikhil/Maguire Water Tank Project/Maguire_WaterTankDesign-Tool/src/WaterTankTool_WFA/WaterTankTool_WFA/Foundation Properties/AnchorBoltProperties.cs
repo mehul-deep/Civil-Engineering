@@ -358,12 +358,17 @@ namespace WaterTankTool_WFA.Foundation_Properties
             labelTbp.Visible = textBoxTbp.Visible = true;
             labelMu.Text = "Moment Mu (k-ft):";
             labelMu.Visible = textBoxMu.Visible = true;
-            labelFcPrime.Visible = textBoxFcPrime.Visible = false;
-            labelHef.Visible = textBoxHef.Visible = false;
-            labelDistMethod.Visible = textBoxDistMethod.Visible = false;
+            labelFcPrime.Text = "Axial Pu (kips):";
+            labelFcPrime.Visible = textBoxFcPrime.Visible = true;
+            labelHef.Text = "Shear per Bolt (kips):";
+            labelHef.Visible = textBoxHef.Visible = true;
+            labelDistMethod.Text = "Number of Legs (Columns):";
+            labelDistMethod.Visible = textBoxDistMethod.Visible = true;
+            textBoxDistMethod.Size = new Size(80, 23);
             groupBoxBoltDetail.Visible = false;
             
             // Step 1
+            AppState.Load();
             int totalColumns = AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4;
             int tensionLegs = eq.TensionLegs(totalColumns);
             
@@ -397,7 +402,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double shearCapacity = eq.SteelShearCapacity(phi, boltArea, fy);
             
             // Step 9
-            double hef = anchorBolt.Hef ?? 40.0;
+            double hef = anchorBolt.Hef ?? 35.0;
             double fcPrime = anchorBolt.FcPrime ?? 4000.0;
             double kc = 24;
             double breakoutCapacity = eq.ConcreteBreakoutStrength(phi, kc, fcPrime, hef);
@@ -420,8 +425,12 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double minEdgeDistance = eq.MinimumEdgeDistance(db);
 
             // Populate textboxes
+            double pu = anchorBolt.Pu ?? 0;
             textBoxTbp.Text = vu.ToString("F4");
             textBoxMu.Text = mu.ToString("F4");
+            textBoxFcPrime.Text = pu.ToString("F4");
+            textBoxHef.Text = shearPerBolt.ToString("F3");
+            textBoxDistMethod.Text = totalColumns.ToString();
             textBox1.Text = tensionLegs.ToString();
             textBox2.Text = legRadius.ToString("F2");
             textBox3.Text = tensionPerLeg.ToString("F2");
@@ -432,7 +441,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             textBox18.Text = breakoutCapacity.ToString("F2");
             textBox10.Text = pulloutCapacity.ToString("F2");
             textBox11.Text = pryoutCapacity.ToString("F2");
-            textBox12.Text = interaction.ToString("F3");
+            textBox12.Text = interaction.ToString("F4");
             textBox13.Text = edgeDistance.ToString("F2");
             textBox14.Text = minEdgeDistance.ToString("F2");
             
@@ -458,6 +467,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             bool edgePass = edgeDistance >= minEdgeDistance;
             textBox13.BackColor = edgePass ? Color.LightGreen : Color.LightCoral;
             
+            labelStatus.Location = new Point(595, textBox12.Top + 3);
             labelStatus.Text = interactionPass ? "PASS" : "FAIL";
             labelStatus.ForeColor = interactionPass ? Color.Green : Color.Red;
         }

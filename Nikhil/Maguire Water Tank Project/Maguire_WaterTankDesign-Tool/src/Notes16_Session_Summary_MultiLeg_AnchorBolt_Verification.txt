@@ -1,0 +1,84 @@
+================================================================================
+SESSION LOG - NOTES 16: MULTI-COLUMN ANCHOR BOLT VERIFICATION (100K, 400K, 500K),
+GOVERNING LOADS (PU, MU, VU), & PER-PROJECT COLUMN COUNT SYNCHRONIZATION
+================================================================================
+
+### 1. OVERVIEW & CODE UPDATES COMPLETED
+1. **Multi-Column Governing Loads (`LoadService.cs`)**:
+   - **Factored Axial Load ($P_u$)**:
+     $$P_u = \left(\text{Tank Water Weight} + \text{Tank Steel Weight} + \text{All Column Segments} + \text{Riser Segments} + \text{Struts/Bracing} + \text{Misc}\right) \times 1.667$$
+   - **Factored Overturning Moment ($M_u$)**:
+     $$M_u = \max\left(0.6 \times M_{\text{wind}}, \; 0.6 \times M_{\text{seismic}}\right) \times 1.667$$
+     *(Matches Row 5 `D + 0.6(W or E)` of the Load Combinations table $\times 1.667$. In 100K and 400K, Seismic governs; in 500K with `173 mph` wind, Wind governs.)*
+   - **Factored Shear Demand ($V_u$)**:
+     $$V_u = V_{\text{wind}} \times 1.667$$
+   - Single-Column (`TankType.SingleColumn`) logic remains 100% untouched.
+
+2. **Automatic Per-Project Column Count (`NoOfColumns`) (`AppState.cs` & `WaterTankDbContext.cs`)**:
+   - `appstate.json` is saved and loaded per project folder alongside `project_data.db`.
+   - Switching between 100K (`4` legs) and 400K/500K (`6` legs) automatically updates `AppState.NoOfColumns`.
+
+3. **Anchor Bolt UI (`AnchorBoltParameters.cs` & `AnchorBoltProperties.cs`)**:
+   - Added read-only `Number of Legs (Columns)` field on both Input and Results screens.
+   - Shortened `Axial Load (Pu) (kips)` label and called `txtPu.BringToFront()` so 7-digit numbers (`7533.555`) are never clipped.
+
+---
+
+### 2. MASTER TABLE 1: GOVERNING LOADS (PU, MU, VU) ACROSS 100K, 400K, AND 500K
+
+| Project / Tank Capacity | Parameter | Software Output (Live DB) | Engineer's PDF Value | Why They Match or Differ |
+| :--- | :--- | :--- | :--- | :--- |
+| **100K (`100K-DE`)**<br>*(4 Legs)* | **$P_u$ (kips)** | **`1637.59`** *(or `1609.76` w/o misc)* | **`1637.6`** *(or `1609.756`)* | **Exact Match** (`100K-DE` water `879` + steel `40.39` + tower $\times 1.667$) |
+| | **$M_u$ (kip-ft)** | **`5666.30` / `5673.44`** | **`5673.437`** | **Exact Match** ($0.6 \times M_{\text{seismic}} \times 1.667$ governs) |
+| | **$V_u$ (kips)** | **`57.2196`** | **`57.2`** *(or `52.30` in old PDF)* | **Exact Match** (`Latest update.txt` has `57.2` from $V_{\text{wind}} \times 1.667$; older PDF had `52.30` from seismic) |
+| **400K (`400K-TORO`)**<br>*(6 Legs)* | **$P_u$ (kips)** | **`5941.0655`** | `4623.218` | **PDF used 300K-TORO loads!** (`4623.218 / 1.667 = 2773.38 kips` is the exact `300K-TORO` weight; `400K-TORO` water alone is `3353 kips` $\rightarrow P_u = 5941.07\text{ kips}$) |
+| | **$M_u$ (kip-ft)** | **`4878.2546`** | `3823.08` | **PDF used 300K-TORO loads!** (`300K-TORO` seismic moment gives `3823.08`; `400K-TORO` gives `4878.2546`) |
+| | **$V_u$ (kips)** | **`91.4892`** | `62.4134` | **PDF used 300K-TORO loads!** (`300K-TORO` wind shear `37.44 * 1.667 = 62.4134`; `400K-TORO` 6-leg wind shear `54.88 * 1.667 = 91.4892`) |
+| **500K (`500K-TORO`)**<br>*(6 Legs)* | **$P_u$ (kips)** | **`7533.5550`** | **`7550.979`** | **Matches `500K-TORO`** (~`10 kip` unfactored difference in tower/misc weight) |
+| | **$M_u$ (kip-ft)** | **`13656.5039`** | **`13656.1295`** | **Exact Match** ($0.6 \times M_{\text{wind}} \times 1.667$ governs at `173 mph` wind speed) |
+| | **$V_u$ (kips)** | **`229.1061`** | `115.783` | **PDF used Seismic Shear instead of Wind Shear!** At `173 mph`, Wind Shear is `137.44 * 1.667 = 229.11 kips`, while PDF used Seismic Shear `69.46 * 1.667 = 115.783 kips` |
+
+---
+
+### 3. MASTER TABLE 2: ALL ANCHOR BOLT RESULTS (100K, 400K, AND 500K)
+
+| Step / Check | **100K (`Test with ahmad`)**<br>Software vs. PDF (`Final update anchor bolt.pdf`) | **400K (`400k test`)**<br>Software (Live 400K / PDF 300K Loads) vs. PDF | **500K (`500k test`)**<br>Software vs. PDF (`500kanchorboltmultileg.pdf`) |
+| :--- | :--- | :--- | :--- |
+| **Number of Legs ($N$)** | **`4`** vs **`4`** | **`6`** vs **`6`** | **`6`** vs **`6`** |
+| **Bolts per Leg ($N_b$)** | **`4`** vs **`4`** | **`4`** vs **`4`** | **`4`** vs **`4`** |
+| **Bolt Diameter ($d_b$)** | **`1.5 in`** ($A_b = 1.77\text{ in}^2$) | **`1.5 in`** ($A_b = 1.77\text{ in}^2$) | **`1.5 in`** ($A_b = 1.77\text{ in}^2$) *(PDF table says `2 in`, math uses `1.5 in`)* |
+| **Step 1: Edge Distance ($e$)** | **`13.50 in`** vs **`13.5 in`** ($\ge 10.50\text{ in}$) | **`13.00 in`** vs **`13 in`** ($\ge 10.50\text{ in}$) | **`13.00 in`** vs **`13 in`** ($\ge 10.50\text{ in}$) |
+| **Step 2: Tension Legs ($n_t$)** | **`2`** vs **`2`** | **`3`** vs **`3`** | **`3`** vs **`3`** |
+| **Step 3: Leg Radius ($r$)** | **`246.28 in`** vs **`246.3 in`** ($D=41.05'$) | **`300.00 in`** vs **`300 in`** ($D=50'$) | **`336.00 in`** vs **`336 in`** ($D=56'$) |
+| **Step 4: Tension/Leg ($T_{\text{leg}}$)** | **`103.65 kips`** vs **`103.7 kips`** | **`48.78 kips`** (`38.23` w/ PDF load) vs **`38.231 kips`** | **`121.93 kips`** vs **`122 kips`** |
+| **Step 5: Tension/Bolt ($T_{\text{bolt}}$)** | **`25.91 kips`** vs **`25.9 kips`** | **`12.20 kips`** (`9.56` w/ PDF load) vs **`9.558 kips`** | **`30.48 kips`** vs **`30.5 kips`** |
+| **Step 6: Req. Steel Area ($A_s$)** | **`0.96 in²`** vs **`0.96 (1.0) in²`** | **`0.45 in²`** (`0.35` w/ PDF load) vs `0.41 in²` | **`1.13 in²`** vs **`1.13 in²`** |
+| **Step 7: Steel Tension ($\phi N_s$)** | **`47.79 kips`** vs **`47.8 kips`** | **`47.79 kips`** vs **`47.8 kips`** | **`47.79 kips`** vs **`47.8 kips`** |
+| **Step 8a: Shear/Bolt ($V_{\text{bolt}}$)** | **`3.58 kips`** vs **`3.6 kips`** | **`3.812 kips`** (`2.601` w/ PDF load) vs **`2.6006 kips`** | **`9.546 kips`** (`4.824` w/ PDF $V_u$) vs **`4.824 kips`** |
+| **Step 8b: Steel Shear ($\phi V_s$)** | **`28.67 kips`** vs `24.3 kips` *(PDF typo)* | **`28.67 kips`** vs `24.3 kips` *(PDF typo)* | **`28.67 kips`** vs `24.3 kips` *(PDF typo)* |
+| **Step 9: Breakout ($\phi N_{cb}$)** | **`235.72 kips`** vs **`235.7 kips`** | **`235.72 kips`** vs **`235.7 kips`** | **`235.72 kips`** vs **`235.7 kips`** |
+| **Step 10: Pullout ($N_p$)** | **`800.00 kips`** vs **`800 kips`** | **`800.00 kips`** vs **`800 kips`** | **`800.00 kips`** vs **`800 kips`** |
+| **Step 11: Pryout ($V_{cp}$)** | **`471.44 kips`** vs `576 kips` *(PDF typo)* | **`471.44 kips`** vs `576 kips` *(PDF typo)* | **`471.44 kips`** vs `576 kips` *(PDF typo)* |
+| **Step 12: Interaction Check** | **`0.3910`** vs `0.6238` *(PDF typo)* | **`0.1419`** (`0.0866` w/ PDF load) vs `0.14` *(PDF typo)* | **`0.6328`** (`0.5240` w/ PDF $V_u$) vs `0.846` *(PDF typo)* |
+================================================================================
+
+---
+
+### 4. SUMMARY OF PDF DISCREPANCIES & FORMULA TYPOS (100K, 400K, 500K)
+1. **Step 8 ($\phi V_s = 24.3\text{ kips}$ vs Software's $28.67\text{ kips}$)**:
+   - All 3 PDFs multiplied by bolt diameter $d_b = 1.50\text{ in}$ ($0.75 \times 0.6 \times 36 \times 1.50 = 24.3\text{ kips}$) instead of bolt net tensile area $A_b = 1.77\text{ in}^2$ ($28.67\text{ kips}$).
+2. **Step 11 ($V_{cp} = 576\text{ kips}$ vs Software's $471.44\text{ kips}$)**:
+   - All 3 PDFs left $V_{cp} = 576\text{ kips}$ from an old $h_{ef} = 40\text{ in}$ sheet instead of $2.0 \times 235.72 = 471.44\text{ kips}$ for $h_{ef} = 35\text{ in}$.
+3. **Step 12 (Interaction Check)**:
+   - All 3 PDFs divided $T_{\text{leg}}$ by $3$ instead of $4$ bolts per leg (`103.65/3 = 34.55`, `38.231/3 = 12.747`, `122/3 = 40.654`) instead of using $T_{\text{bolt}}$ from Step 5 (`25.91`, `9.558`, `30.48`).
+4. **Load Input Mix-Ups on Page 1 of the PDFs**:
+   - **100K PDF**: Used `100K-DE` loads with 250K $D_{cl} = 41.05\text{ ft}$.
+   - **400K PDF**: Used 400K geometry ($D_{cl} = 50\text{ ft}$, $N = 6$) with `300K-TORO` loads ($P_u = 4623.218$, $M_u = 3823.08$, $V_u = 62.4134$).
+   - **500K PDF**: Used `500K-TORO` $P_u$ (`7550.979`) and `173 mph` Wind $M_u$ (`13656.1295`), but used Seismic Shear (`115.783 kips`) for $V_u$ instead of `173 mph` Wind Shear (`229.1061 kips`).
+
+---
+
+### 5. NEXT STEP: MULTI-COLUMN BASE PLATE VERIFICATION (100K, 400K, 500K)
+- Anchor Bolt verification across 100K (`Test with ahmad`), 400K (`400k test`), and 500K (`500k test`) is 100% complete.
+- Next up: Perform the same step-by-step verification for the **Multi-Column Base Plate** module across 100K, 400K, and 500K against the engineer's Base Plate reference PDFs, followed by **Pedestal / Ring Wall** and **Footing**.
+================================================================================

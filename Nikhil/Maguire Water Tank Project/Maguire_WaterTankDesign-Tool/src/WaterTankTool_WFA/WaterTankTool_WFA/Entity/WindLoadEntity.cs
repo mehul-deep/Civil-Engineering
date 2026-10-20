@@ -28,5 +28,6 @@ namespace WaterTankTool_WFA.Entity
 
         public double Q {  get; set; }
         public double? WindShear { get; set; }
+        public double? WindMoment { get; set; }
     }
 }

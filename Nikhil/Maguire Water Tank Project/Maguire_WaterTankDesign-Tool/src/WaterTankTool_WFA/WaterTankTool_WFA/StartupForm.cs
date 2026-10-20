@@ -620,7 +620,8 @@ namespace WaterTankTool_WFA
                         lambda REAL NOT NULL CHECK(lambda >= 0),
                         Cf REAL NOT NULL CHECK(Cf >= 0),
                         Q REAL NOT NULL CHECK(Q >= 0),
-                        WindShear REAL
+                        WindShear REAL,
+                        WindMoment REAL
                     );
                     CREATE TABLE IF NOT EXISTS SeismicLoadEntity (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,

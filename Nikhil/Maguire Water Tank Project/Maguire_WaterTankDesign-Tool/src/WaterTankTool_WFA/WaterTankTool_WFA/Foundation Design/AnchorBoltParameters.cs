@@ -28,8 +28,8 @@ namespace WaterTankTool_WFA.Foundation_Design
             this.Load += AnchorBoltParameters_Load;
         }
 
-        private TextBox txtPedestalSize, txtBoltSpacing, txtWasherSize, txtDcone, txtPu, txtAb;
-        private Label lblPedestalSize, lblBoltSpacing, lblWasherSize, lblDcone, lblPu, lblAb;
+        private TextBox txtPedestalSize, txtBoltSpacing, txtWasherSize, txtDcone, txtPu, txtAb, txtNlegs;
+        private Label lblPedestalSize, lblBoltSpacing, lblWasherSize, lblDcone, lblPu, lblAb, lblNlegs;
 
         private void AnchorBoltParameters_Load(object? sender, EventArgs e)
         {
@@ -196,7 +196,7 @@ namespace WaterTankTool_WFA.Foundation_Design
             if (infoButtonHef.Right + 5 > textBox19.Left)
             {
                 int shift = (infoButtonHef.Right + 5) - textBox19.Left;
-                MoveControlsRight(shift, textBox1, textBox2, textBox3, textBox4, textBox5, textBox6, textBox7, textBox8, textBox17, textBox18, textBox19, comboBox1);
+                MoveControlsRight(shift, textBox1, textBox2, textBox3, textBox4, textBox5, textBox6, textBox7, textBox8, textBox17, textBox18, textBox19, comboBox1, txtAb, txtPedestalSize, txtBoltSpacing, txtWasherSize, txtDcone, txtPu, txtNlegs);
             }
             if (infoButtonEdge.Right + 5 > textBox14.Left)
             {
@@ -221,6 +221,9 @@ namespace WaterTankTool_WFA.Foundation_Design
         {
             if (AppState.CurrentTankType == TankType.MultiColumn)
             {
+                AppState.Load();
+                int totalLegs = AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4;
+
                 // Hide Single-Column specific fields
                 label3.Visible = textBox3.Visible = false; // Hole Diameter
                 label4.Visible = textBox4.Visible = false; // Circle Radius
@@ -246,8 +249,11 @@ namespace WaterTankTool_WFA.Foundation_Design
                 lblDcone = new Label { Text = "Cone Diameter (Dcone) (ft)", Location = label7.Location, AutoSize = true };
                 txtDcone = new TextBox { Location = textBox7.Location, Size = textBox7.Size };
 
-                lblPu = new Label { Text = "Factored Axial Load (Pu) (kips)", Location = label8.Location, AutoSize = true };
+                lblPu = new Label { Text = "Axial Load (Pu) (kips)", Location = label8.Location, AutoSize = true };
                 txtPu = new TextBox { Location = textBox8.Location, Size = textBox8.Size };
+
+                lblNlegs = new Label { Text = "Number of Legs (Columns)", Location = label20.Location, AutoSize = true };
+                txtNlegs = new TextBox { Location = new Point(textBox19.Left, comboBox1.Top), Size = textBox19.Size, ReadOnly = true, BackColor = SystemColors.Control, Text = totalLegs.ToString() };
 
                 groupBox1.Controls.Add(lblAb);
                 groupBox1.Controls.Add(txtAb);
@@ -261,6 +267,9 @@ namespace WaterTankTool_WFA.Foundation_Design
                 groupBox1.Controls.Add(txtDcone);
                 groupBox1.Controls.Add(lblPu);
                 groupBox1.Controls.Add(txtPu);
+                txtPu.BringToFront();
+                groupBox1.Controls.Add(lblNlegs);
+                groupBox1.Controls.Add(txtNlegs);
 
                 // Dynamically update the read-only Bolt Area text box when the diameter changes
                 textBox2.TextChanged += (s, ev) => 
@@ -276,6 +285,21 @@ namespace WaterTankTool_WFA.Foundation_Design
                         txtAb.Text = "";
                     }
                 };
+
+                // Dynamically update Edge Distance e = (B - b) / 2 when Pedestal Size or Bolt Spacing changes (Step 1)
+                EventHandler updateEdgeDist = (s, ev) =>
+                {
+                    if ((double.TryParse(txtPedestalSize.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double pedSize) ||
+                         double.TryParse(txtPedestalSize.Text, NumberStyles.Any, CultureInfo.CurrentCulture, out pedSize)) &&
+                        (double.TryParse(txtBoltSpacing.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double spacing) ||
+                         double.TryParse(txtBoltSpacing.Text, NumberStyles.Any, CultureInfo.CurrentCulture, out spacing)))
+                    {
+                        var eq = new WaterTankTool_WFA.Solver_Equation.FoundationEquations.MultiColumnAnchorBoltEquations();
+                        textBox14.Text = eq.EdgeDistance(pedSize, spacing).ToString("F2", CultureInfo.InvariantCulture);
+                    }
+                };
+                txtPedestalSize.TextChanged += updateEdgeDist;
+                txtBoltSpacing.TextChanged += updateEdgeDist;
             }
         }
 
@@ -307,7 +331,8 @@ namespace WaterTankTool_WFA.Foundation_Design
                     if (AppState.CurrentTankType == TankType.MultiColumn)
                     {
                         txtPu.Text = Pu.ToString(CultureInfo.InvariantCulture);
-                        txtDcone.Text = bottomDiameter.ToString(CultureInfo.InvariantCulture);
+                        txtWasherSize.Text = "5";
+                        txtDcone.Text = "";
                     }
                     else
                     {
@@ -352,8 +377,11 @@ namespace WaterTankTool_WFA.Foundation_Design
                     txtAb.Text = _existingAnchorBolt.Ab.ToString(CultureInfo.InvariantCulture) ?? "";
                     txtPedestalSize.Text = _existingAnchorBolt.PedestalSize?.ToString(CultureInfo.InvariantCulture) ?? "";
                     txtBoltSpacing.Text = _existingAnchorBolt.BoltSpacing?.ToString(CultureInfo.InvariantCulture) ?? "";
-                    txtWasherSize.Text = _existingAnchorBolt.WasherSize?.ToString(CultureInfo.InvariantCulture) ?? "";
-                    txtDcone.Text = _existingAnchorBolt.Dcone?.ToString(CultureInfo.InvariantCulture) ?? bottomDiameter.ToString(CultureInfo.InvariantCulture);
+                    txtWasherSize.Text = (_existingAnchorBolt.WasherSize ?? 5.0).ToString(CultureInfo.InvariantCulture);
+                    double? savedDcone = (_existingAnchorBolt.Dcone.HasValue && Math.Abs(_existingAnchorBolt.Dcone.Value - bottomDiameter) > 0.01)
+                        ? _existingAnchorBolt.Dcone
+                        : null;
+                    txtDcone.Text = savedDcone?.ToString(CultureInfo.InvariantCulture) ?? "";
                     txtPu.Text = Pu.ToString(CultureInfo.InvariantCulture); // Always auto-update Pu
                 }
 

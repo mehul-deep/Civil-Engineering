@@ -1,0 +1,49 @@
+												
+	Anchor Bolt Design Calculation Sheet											
+	USER INPUTS											
+	Pu	Factored axial load	1637.6	kips								
+	Mu	Factored moment	5673.4	kip-ft								
+	Vu	Factored shear	57.2	kips								
+	Nb	Number of anchor bolts	4	-				Washer plate size and Edge distance missing				
+	Dcone	Diameter circle representing axisymmetric spacing between legs/columns	41.1	in	492.56	in						
+	db	Anchor bolt diameter	1.5	in								
+	hef	Effective embedment depth	35.0	in								
+	f'c	Concrete strength	4000.0	psi								
+	Fy	Anchor bolt yield strength	36.0	ksi								
+	Fu	Anchor bolt ultimate strength	58.0	ksi								
+	(B × L)	Pedestal Size	39 × 39	inxin								
+	(b × l)	Bolt arrangement	12 × 12 	inxin								
+	Kc		24.0									
+	ϕ	Strength reduction factor	0.75	-								
+												
+	Design Procedure Equation and Calculation											
+	Step	Description / Equation	Input / Formula	Unit	Result							
+												
+	1	Determine Tesion Side Legs nt=N/2	2.0	-								
+	2	Detrmine Leg Redius D/2	246.3	in								
+	3	Tension Force From Overturning moment T=Mu/r	207.4	kips	103.7	for leg						
+	4	Tension per Bolt Tbolt = Tleg/2	25.9	kips								
+	5	Required Steel Area (As=Tu/ϕfy)	1.0	 in²								
+	6	Select Bolt Diameter (Ab)	1.5	 in²								
+		Selected As based Bd	1.77	 in²								
+	7	Check Steel Tension Capacity (ϕNs=ϕAb Fy)	47.8	kips	Pass							
+	8	Check Steel Shear Capacity 	3.6	kips	Pass							
+			24.3	kips								
+	9	Concrete Breakout Check (Ncb=ϕkc √(fc^' ) hef^1.5)	235.7	kips	Pass							
+	10	Pullout Check (N_p=8A_brg fc^')	800.0	kips	Pass							
+	11	Interaction Check ((Nu/(ϕNn ))^5/3+(Vu/(ϕVn ))^5/2≤1.0)	0.6238	kips								
+	12	Edge Distance Check 	10.5	in								
+												
+												
+	FINAL DESIGN RECOMMENDATION					Diameter	Area	Unit				
+						1.5 in	1.77	in²				
+						1.75 in	1.9	in²				
+	Anchor Rod		ASTM F1554 Gr.36			2.0 in	2.5	in²				
+	Diameter		2.25 in			2.25 in	3.25	in²				
+	Embedment		40 in			A_brg	25	in²				
+	Concrete Strength		4000 psi									
+	Steel Tension		PASS									
+	Steel Shear		PASS									
+	Breakout		PASS									
+	Pullout		PASS									
+	Interaction		PASS									

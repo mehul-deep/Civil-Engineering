@@ -45,6 +45,30 @@ public class WaterTankDbContext : DbContext
     public WaterTankDbContext(string connectionString)
     {
         _defaultConnectionString = connectionString;
+        SyncProjectAppState(connectionString);
+    }
+
+    private static void SyncProjectAppState(string connectionString)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(connectionString))
+            {
+                var prefix = "Data Source=";
+                int idx = connectionString.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+                if (idx >= 0)
+                {
+                    string dbPath = connectionString.Substring(idx + prefix.Length).Split(';')[0].Trim();
+                    string dir = System.IO.Path.GetDirectoryName(dbPath);
+                    if (!string.IsNullOrWhiteSpace(dir))
+                    {
+                        WaterTankTool_WFA.AppState.CurrentProjectDir = dir;
+                        WaterTankTool_WFA.AppState.Load();
+                    }
+                }
+            }
+        }
+        catch { }
     }
 
 
@@ -69,6 +93,7 @@ public class WaterTankDbContext : DbContext
         {
             _defaultConnectionString = connectionString;
             _instance = null; // Reset the instance so it uses the new connection string on the next call
+            SyncProjectAppState(connectionString);
         }
     }
 
@@ -91,11 +116,58 @@ public class WaterTankDbContext : DbContext
             UpdateRingWallSchema();
             UpdateFootingSchema();
             UpdateWindLoadSchema();
+            EnsureProjectAppStateFromGeometry();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error ensuring database is created: {ex.Message}");
         }
+    }
+
+    private void EnsureProjectAppStateFromGeometry()
+    {
+        try
+        {
+            if (WaterTankTool_WFA.AppState.CurrentTankType != WaterTankTool_WFA.TankType.MultiColumn)
+                return;
+
+            string dir = WaterTankTool_WFA.AppState.CurrentProjectDir;
+            if (string.IsNullOrWhiteSpace(dir))
+                return;
+
+            string projectStatePath = System.IO.Path.Combine(dir, "appstate.json");
+            if (System.IO.File.Exists(projectStatePath))
+            {
+                WaterTankTool_WFA.AppState.Load();
+                return;
+            }
+
+            var tankSeg = SegmentProperties.FirstOrDefault(s => s.SegmentType == "Tanks");
+            var cylCount = SegmentProperties.Count(s => s.SegmentType == "Cylinder");
+            if (tankSeg != null)
+            {
+                string cap = tankSeg.SegmentName ?? "";
+                if (cap.StartsWith("400K", StringComparison.OrdinalIgnoreCase) ||
+                    cap.StartsWith("500K", StringComparison.OrdinalIgnoreCase))
+                {
+                    WaterTankTool_WFA.AppState.NoOfColumns = 6;
+                }
+                else if (cap.StartsWith("50K", StringComparison.OrdinalIgnoreCase) ||
+                         cap.StartsWith("100K", StringComparison.OrdinalIgnoreCase) ||
+                         cap.StartsWith("200K", StringComparison.OrdinalIgnoreCase) ||
+                         cap.StartsWith("250K", StringComparison.OrdinalIgnoreCase) ||
+                         cap.StartsWith("300K", StringComparison.OrdinalIgnoreCase))
+                {
+                    WaterTankTool_WFA.AppState.NoOfColumns = 4;
+                }
+                if (cylCount > 0)
+                {
+                    WaterTankTool_WFA.AppState.NoOfSegment = cylCount;
+                }
+                WaterTankTool_WFA.AppState.Save();
+            }
+        }
+        catch { }
     }
 
     private void UpdateSpheroidSchema()
@@ -287,6 +359,13 @@ public class WaterTankDbContext : DbContext
                 try
                 {
                     command.CommandText = "ALTER TABLE WindLoadEntity ADD COLUMN WindShear REAL NULL;";
+                    command.ExecuteNonQuery();
+                }
+                catch { /* Column probably already exists */ }
+
+                try
+                {
+                    command.CommandText = "ALTER TABLE WindLoadEntity ADD COLUMN WindMoment REAL NULL;";
                     command.ExecuteNonQuery();
                 }
                 catch { /* Column probably already exists */ }

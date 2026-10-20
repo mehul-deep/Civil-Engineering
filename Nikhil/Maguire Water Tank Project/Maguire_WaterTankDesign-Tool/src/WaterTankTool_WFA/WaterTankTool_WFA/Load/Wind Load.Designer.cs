@@ -55,6 +55,9 @@ namespace WaterTankTool_WFA.Load
             labelWindShear = new Label();
             textBoxWindShear = new TextBox();
             labelWindShearUnit = new Label();
+            labelWindMoment = new Label();
+            textBoxWindMoment = new TextBox();
+            labelWindMomentUnit = new Label();
             richTextBox2 = new RichTextBox();
             groupBox3 = new GroupBox();
             richTextBox1 = new RichTextBox();
@@ -319,12 +322,15 @@ namespace WaterTankTool_WFA.Load
             groupBox2.Controls.Add(labelWindShear);
             groupBox2.Controls.Add(textBoxWindShear);
             groupBox2.Controls.Add(labelWindShearUnit);
+            groupBox2.Controls.Add(labelWindMoment);
+            groupBox2.Controls.Add(textBoxWindMoment);
+            groupBox2.Controls.Add(labelWindMomentUnit);
             groupBox2.Controls.Add(richTextBox2);
             groupBox2.Location = new Point(225, 18);
             groupBox2.Margin = new Padding(2);
             groupBox2.Name = "groupBox2";
             groupBox2.Padding = new Padding(2);
-            groupBox2.Size = new Size(156, 153);
+            groupBox2.Size = new Size(160, 168);
             groupBox2.TabIndex = 3;
             groupBox2.TabStop = false;
             groupBox2.Text = "Calculation";
@@ -332,7 +338,7 @@ namespace WaterTankTool_WFA.Load
             // labelWindShear
             // 
             labelWindShear.AutoSize = true;
-            labelWindShear.Location = new Point(10, 75);
+            labelWindShear.Location = new Point(10, 62);
             labelWindShear.Name = "labelWindShear";
             labelWindShear.Size = new Size(116, 15);
             labelWindShear.TabIndex = 2;
@@ -341,7 +347,7 @@ namespace WaterTankTool_WFA.Load
             // textBoxWindShear
             // 
             textBoxWindShear.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            textBoxWindShear.Location = new Point(10, 95);
+            textBoxWindShear.Location = new Point(10, 80);
             textBoxWindShear.Name = "textBoxWindShear";
             textBoxWindShear.ReadOnly = true;
             textBoxWindShear.Size = new Size(82, 23);
@@ -351,18 +357,46 @@ namespace WaterTankTool_WFA.Load
             // 
             labelWindShearUnit.AutoSize = true;
             labelWindShearUnit.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
-            labelWindShearUnit.Location = new Point(96, 98);
+            labelWindShearUnit.Location = new Point(96, 83);
             labelWindShearUnit.Name = "labelWindShearUnit";
             labelWindShearUnit.Size = new Size(29, 15);
             labelWindShearUnit.TabIndex = 4;
             labelWindShearUnit.Text = "kips";
             // 
+            // labelWindMoment
+            // 
+            labelWindMoment.AutoSize = true;
+            labelWindMoment.Location = new Point(10, 108);
+            labelWindMoment.Name = "labelWindMoment";
+            labelWindMoment.Size = new Size(135, 15);
+            labelWindMoment.TabIndex = 5;
+            labelWindMoment.Text = "Wind Base Moment (M):";
+            // 
+            // textBoxWindMoment
+            // 
+            textBoxWindMoment.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            textBoxWindMoment.Location = new Point(10, 126);
+            textBoxWindMoment.Name = "textBoxWindMoment";
+            textBoxWindMoment.ReadOnly = true;
+            textBoxWindMoment.Size = new Size(82, 23);
+            textBoxWindMoment.TabIndex = 6;
+            // 
+            // labelWindMomentUnit
+            // 
+            labelWindMomentUnit.AutoSize = true;
+            labelWindMomentUnit.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            labelWindMomentUnit.Location = new Point(96, 129);
+            labelWindMomentUnit.Name = "labelWindMomentUnit";
+            labelWindMomentUnit.Size = new Size(27, 15);
+            labelWindMomentUnit.TabIndex = 7;
+            labelWindMomentUnit.Text = "k-ft";
+            // 
             // richTextBox2
             // 
-            richTextBox2.Location = new Point(10, 22);
+            richTextBox2.Location = new Point(10, 20);
             richTextBox2.Margin = new Padding(2);
             richTextBox2.Name = "richTextBox2";
-            richTextBox2.Size = new Size(133, 45);
+            richTextBox2.Size = new Size(138, 38);
             richTextBox2.TabIndex = 1;
             richTextBox2.Text = "";
             richTextBox2.TextChanged += richTextBox2_TextChanged;
@@ -370,11 +404,11 @@ namespace WaterTankTool_WFA.Load
             // groupBox3
             // 
             groupBox3.Controls.Add(richTextBox1);
-            groupBox3.Location = new Point(225, 175);
+            groupBox3.Location = new Point(225, 192);
             groupBox3.Margin = new Padding(2);
             groupBox3.Name = "groupBox3";
             groupBox3.Padding = new Padding(2);
-            groupBox3.Size = new Size(156, 141);
+            groupBox3.Size = new Size(160, 138);
             groupBox3.TabIndex = 4;
             groupBox3.TabStop = false;
             groupBox3.Text = "Notes";
@@ -382,9 +416,9 @@ namespace WaterTankTool_WFA.Load
             // richTextBox1
             // 
             richTextBox1.Font = new Font("Segoe UI", 8.25F, FontStyle.Italic, GraphicsUnit.Point, 0);
-            richTextBox1.Location = new Point(10, 21);
+            richTextBox1.Location = new Point(10, 20);
             richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(133, 100);
+            richTextBox1.Size = new Size(138, 105);
             richTextBox1.TabIndex = 0;
             richTextBox1.Text = "";
             richTextBox1.TextChanged += richTextBox1_TextChanged;
@@ -449,5 +483,8 @@ namespace WaterTankTool_WFA.Load
         private Label labelWindShear;
         private TextBox textBoxWindShear;
         private Label labelWindShearUnit;
+        private Label labelWindMoment;
+        private TextBox textBoxWindMoment;
+        private Label labelWindMomentUnit;
     }
 }

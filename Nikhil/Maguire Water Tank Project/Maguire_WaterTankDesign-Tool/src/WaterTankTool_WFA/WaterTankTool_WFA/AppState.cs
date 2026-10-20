@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -24,33 +24,40 @@ namespace WaterTankTool_WFA
             Converters = { new JsonStringEnumConverter() }
         };
 
+        public static string CurrentProjectDir { get; set; } = string.Empty;
+
         private static string ConfigDir =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WaterTankTool_WFA");
 
         private static string ConfigPath => Path.Combine(ConfigDir, "appstate.json");
 
-        private static bool _loadedOnce;
-
         public static void Load()
         {
-            if (_loadedOnce) return; // guard against double-load
-            _loadedOnce = true;
-
             try
             {
-                if (!File.Exists(ConfigPath))
+                string pathToRead = ConfigPath;
+                if (!string.IsNullOrWhiteSpace(CurrentProjectDir))
                 {
-                    // First run: make sure folder exists; keep defaults
+                    string projectStatePath = Path.Combine(CurrentProjectDir, "appstate.json");
+                    if (File.Exists(projectStatePath))
+                    {
+                        pathToRead = projectStatePath;
+                    }
+                }
+
+                if (!File.Exists(pathToRead))
+                {
                     Directory.CreateDirectory(ConfigDir);
                     return;
                 }
 
-                var json = File.ReadAllText(ConfigPath);
+                var json = File.ReadAllText(pathToRead);
                 var dto = JsonSerializer.Deserialize<AppStateDto>(json, JsonOpts);
                 if (dto == null) return;
 
                 NoOfColumns = dto.NoOfColumns;
-                CurrentTankType = dto.CurrentTankType;
+                if (dto.CurrentTankType != TankType.None)
+                    CurrentTankType = dto.CurrentTankType;
                 Fy = dto.Fy ?? Fy;
                 Rtc = dto.Rtc;
                 NoOfSegment = dto.NoOfSegment;
@@ -83,6 +90,11 @@ namespace WaterTankTool_WFA
 
                 var json = JsonSerializer.Serialize(dto, JsonOpts);
                 File.WriteAllText(ConfigPath, json);
+
+                if (!string.IsNullOrWhiteSpace(CurrentProjectDir) && Directory.Exists(CurrentProjectDir))
+                {
+                    File.WriteAllText(Path.Combine(CurrentProjectDir, "appstate.json"), json);
+                }
             }
             catch
             {
