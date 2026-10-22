@@ -82,3 +82,62 @@ GOVERNING LOADS (PU, MU, VU), & PER-PROJECT COLUMN COUNT SYNCHRONIZATION
 - Anchor Bolt verification across 100K (`Test with ahmad`), 400K (`400k test`), and 500K (`500k test`) is 100% complete.
 - Next up: Perform the same step-by-step verification for the **Multi-Column Base Plate** module across 100K, 400K, and 500K against the engineer's Base Plate reference PDFs, followed by **Pedestal / Ring Wall** and **Footing**.
 ================================================================================
+
+
+================================================================================
+### 6. MULTI-COLUMN BASE PLATE VERIFICATION (100K, 400K, 500K) & RECTANGULAR PEDESTAL UPDATES
+================================================================================
+
+#### A. Code Updates Completed for Anchor Bolt & Base Plate
+1. **Side-by-Side Rectangular Inputs (`[ B ] x [ L ]`) in Anchor Bolt (`AnchorBoltParameters.cs`, `AnchorBoltEntity.cs`, `WaterTankDbContext.cs`, `AnchorBoltProperties.cs`)**:
+   - Added two side-by-side input boxes (`[ B ] x [ L ]`) for `Pedestal Size (B x L) (in)` (`PedestalSize` and `PedestalLength`) and `Bolt Spacing (b x l) (in)` (`BoltSpacing` and `BoltSpacingLength`) in Multi-Column mode.
+   - Auto-migrates `PedestalLength` and `BoltSpacingLength` columns onto `AnchorBoltEntity` in SQLite.
+   - Displays `"B x L"` on the Anchor Bolt Results screen when `L` is provided.
+2. **Multi-Column Base Plate Updates (`BasePlateProperties.cs` & `FoundationEquations.cs`)**:
+   - Reads `totalLegs` from `AppState.NoOfColumns` (`4` for 100K, `6` for 400K/500K) instead of defaulting to `4`.
+   - Computes rectangular pedestal area $A_2 = B \times L$ using `anchorBolt.PedestalSize` and `anchorBolt.PedestalLength`.
+   - Updated `BearingConditionLimit(double d_o)` in `FoundationEquations.cs` from `d_o / 8.0` to `d_o / 6.0` to match the $N/6$ bearing limit formula and UI label.
+
+#### B. Master Table 3: Multi-Column Base Plate Results (100K, 400K, 500K)
+
+| Parameter | **100K (4 Legs)**<br>Software (`results100kmultileg.PNG`) vs. PDF (`baseplate100kmultileg.pdf`) | **400K (6 Legs)**<br>Software (`results400kmultilegupdated.PNG`) vs. PDF (`baseplate400kmultileg.pdf`) | **500K (6 Legs)**<br>Software (`results500kmultileg.PNG`) vs. PDF (`baseplate500kmultileg.pdf`) |
+| :--- | :---: | :---: | :---: |
+| **Pipe Diam $D_{\text{pip}}$ / Outer Diam $D_o$ ($\text{in}$)** | `20.04` / `30` | `24` / `34` | `30` / `40` |
+| **Pedestal Size $B \times L$ ($\text{in}$)** | `39 x 39` | `54 x 38` | `54 x 48` |
+| **Base Plate Area $A_1$ ($\text{in}^2$)** | **`706.86`** vs **`706.86`** | **`907.92`** vs **`907.9203`** | **`1256.64`** vs **`1256.637`** |
+| **Pedestal Area $A_2$ ($\text{in}^2$)** | **`1521.00`** vs **`1521`** | **`2052.00`** vs **`2052`** | **`2592.00`** vs **`2592.0`** |
+| **Bearing Stress $F_p$ ($\text{ksi}$)** | **`3.2418`** vs **`3.24`** (`PASS`) | **`3.3224`** vs **`3.322`** (`PASS`) | **`3.1740`** vs **`3.174`** (`PASS`) |
+| **Bearing Limit $F_{p,\text{limit}}$ ($\text{ksi}$)** | **`4.4200`** vs **`4.42`** (`PASS`) | **`4.4200`** vs **`4.42`** (`PASS`) | **`4.4200`** vs **`4.42`** (`PASS`) |
+| **Bearing Capacity $P_n$ ($\text{kips}$)** | **`2291.51`** vs `2029`* (`PASS`) | **`3016.51`** vs **`3016.510`** (`PASS`) | **`3988.54`** vs **`3988.547`** (`PASS`) |
+| **Factored $M_{u,\text{ped}}$ ($\text{kip-ft}$)** | **`1416.58`** vs `2363.93`* (Step 1) | **`813.04`** vs `637.18`* | **`2276.08`** vs **`2276.022`** |
+| **Factored $M_{u,\text{ped}}$ ($\text{kip-in}$)** | **`16998.91`** vs **`17020.31`** (Step 4) | **`9756.51`** vs `7646.16`* | **`27313.01`** vs **`27312.259`** |
+| **Load $P_{u,\text{ped}}$ ($\text{kips}$)** | **`409.40`** vs **`409.39`** (Page 1) | **`990.18`** vs `770.536`* | **`1255.59`** vs **`1258.5`** |
+| **Load $P_{u,\text{comp}}$ ($\text{kips}$)** | **`818.80`** vs `929.741`* | **`1980.36`** vs `1541.073`* | **`2511.18`** vs **`2516.993`** |
+| **Eccentricity $e$ ($\text{in}$)** | **`41.52`** vs `36.61`* | **`9.85`** vs **`9.923`** | **`21.75`** vs **`21.702`** |
+| **Bearing Limit $N/6$ ($\text{in}$)** | **`5.0000`** vs **`5.0`** | **`5.6667`** vs **`5.667`** | **`6.6667`** vs **`6.6667`** |
+| **Bearing Pressure $q$ ($\text{ksi}$)** | **`1.2980`** vs **`1.28`** (Step 6.4) | **`2.1888`** vs `1.703`* | **`1.7763`** vs **`1.780`** |
+| **Cantilever Proj $m$ ($\text{in}$)** | **`4.9800`** vs **`4.98`** | **`5.0000`** vs **`5`** | **`5.0000`** vs **`5`** |
+| **Plastic Moment $M_{\text{plu}}$ ($\text{kip-in/in}$)** | **`16.0950`** vs **`15.87`** | **`27.3597`** vs `21.291`* | **`22.2037`** vs **`22.255`** |
+| **Required Thickness $t_{p,\text{req}}$ ($\text{in}$)** | **`1.4096`** vs **`1.40`** (`PASS`) | **`1.8379`** vs `1.621`* (`PASS`) | **`1.6557`** vs **`1.659`** (`PASS`) |
+| **Provided Thickness $t_p$ ($\text{in}$)** | **`1.50`** (`PASS`) | **`2.00`** (PDF: `1.70`) (`PASS`) | **`2.00`** (`PASS`) |
+
+#### C. Summary of Base Plate PDF Discrepancies (100K, 400K, 500K)
+1. **100K Base Plate PDF (`baseplate100kmultileg.pdf`)**:
+   - **Step 1 vs Step 4 ($M_{u,\text{ped}}$)**: Step 1 divided the unfactored $9455.728$ by $4$ (`28,367.184 kip-in`, missing `0.6`), while Step 4 used the true $M_{u,\text{ped}} = 17,020.31\text{ kip-in}$ (matching our `16,998.91 kip-in`).
+   - **Step 3 ($P_n$)**: Multiplied $706.86$ by `2.87` (`2029 kips`) instead of $F_p = 3.24\text{ ksi}$ (`2291.51 kips`).
+   - **Step 3, 4, & 6.2 vs Step 6.4 ($P_{u,\text{ped}}$ & $q$)**: Steps 3, 4, and 6.2 wrote $P_{u,\text{ped}} = 464.871\text{ kips}$ and $q = 1.473\text{ ksi}$ from an older load, but Step 6.4 actually plugged in $q = 1.28\text{ ksi}$ (from Page 1's $P_u = 1637.57 / 4 = 409.39\text{ kips}$, matching our `1.2980 ksi`) to get $M_{\text{plu}} = 15.87\text{ kip-in/in}$ and $t_p = 1.40\text{ in}$.
+2. **400K Base Plate PDF (`baseplate400kmultileg.pdf`)**:
+   - Used `300K-TORO` / unfactored loads ($P_u = 4623.218\text{ kips}$, $M_u = 3823.08\text{ kip-ft}$) instead of `400K-TORO` true governing loads ($P_u = 5941.07\text{ kips}$, $M_u = 4878.25\text{ kip-ft}$), which accounts for 100% of the difference in $M_{u,\text{ped}}$, $P_{u,\text{ped}}$, $P_{u,\text{comp}}$, $q$, $M_{\text{plu}}$, and $t_{p,\text{req}}$ (`1.8379 in` vs `1.621 in`).
+3. **500K Base Plate PDF (`baseplate500kmultileg.pdf`)**:
+   - Matches our software across every step. Page 3 had a display typo writing `Pn = (2.87)(1256.637)`, while Page 4 correctly evaluated $(3.174)(1256.637) = 3988.547\text{ kips}$ (matching our `3988.54 kips`).
+
+---
+
+### 7. NEXT STEP: MULTI-COLUMN PEDESTAL / RING WALL VERIFICATION (100K, 400K, 500K)
+- **Completed**:
+  1. Governing Loads ($P_u, M_u, V_u$) across 100K, 400K, and 500K
+  2. Multi-Column **Anchor Bolt** across 100K, 400K, and 500K
+  3. Multi-Column **Base Plate** across 100K, 400K, and 500K
+- **Next Up**:
+  - Verify Multi-Column **Pedestal / Ring Wall** across 100K (`Test with ahmad`), 400K (`400k test`), and 500K (`500k test`) against the engineer's Pedestal reference PDFs, followed by **Footing**.
+================================================================================

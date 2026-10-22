@@ -999,7 +999,7 @@ namespace WaterTankTool_WFA.Solver_Equation
 
             public double BearingConditionLimit(double d_o)
             {
-                return R(d_o / 8.0); // D/8 for solid circular section limit
+                return R(d_o / 6.0); // N/6 bearing condition limit
             }
 
             // Step 6: Determine Base Plate Thickness

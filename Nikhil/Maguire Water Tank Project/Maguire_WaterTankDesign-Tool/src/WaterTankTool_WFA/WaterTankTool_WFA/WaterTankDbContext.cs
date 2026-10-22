@@ -218,7 +218,7 @@ public class WaterTankDbContext : DbContext
             {
                 string[] columns = new string[]
                 {
-                    "PedestalSize", "BoltSpacing", "WasherSize", "Dcone", "Pu"
+                    "PedestalSize", "PedestalLength", "BoltSpacing", "BoltSpacingLength", "WasherSize", "Dcone", "Pu"
                 };
 
                 foreach (var col in columns)

@@ -213,15 +213,18 @@ namespace WaterTankTool_WFA.Foundation_Properties
             var eq = new FoundationEquations.MultiColumnBasePlateEquations();
 
             // Fetch Anchor Bolt for Pedestal Size and Number of Pedestals
+            AppState.Load();
             var anchorBolt = _context.AnchorBoltEntity.FirstOrDefault();
-            int totalLegs = (anchorBolt != null && anchorBolt.Ns > 0) ? anchorBolt.Ns.Value : 4; // Default 4 legs
+            int totalLegs = AppState.NoOfColumns > 1 ? AppState.NoOfColumns : ((anchorBolt != null && anchorBolt.Ns > 0) ? anchorBolt.Ns.Value : 4);
 
             double p = 39.0;
             double l = 39.0;
             if (anchorBolt != null && anchorBolt.PedestalSize > 0)
             {
                 p = anchorBolt.PedestalSize.Value;
-                l = anchorBolt.PedestalSize.Value;
+                l = (anchorBolt.PedestalLength.HasValue && anchorBolt.PedestalLength.Value > 0)
+                    ? anchorBolt.PedestalLength.Value
+                    : anchorBolt.PedestalSize.Value;
             }
 
             double d_o = _entity.Ro > 0 ? _entity.Ro : 30.0;

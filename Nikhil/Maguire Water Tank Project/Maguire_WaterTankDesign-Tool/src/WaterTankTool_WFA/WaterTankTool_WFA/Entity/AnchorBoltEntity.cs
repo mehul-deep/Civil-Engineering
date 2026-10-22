@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -72,8 +72,10 @@ namespace WaterTankTool_WFA.Entity
         public string? DistributionMethod { get; set; }
 
         // Multi-Column Specific Fields
-        public double? PedestalSize { get; set; } // B x L (in) - assuming square so a single value
-        public double? BoltSpacing { get; set; } // b x l (in) - assuming square so a single value
+        public double? PedestalSize { get; set; } // B (in)
+        public double? PedestalLength { get; set; } // L (in)
+        public double? BoltSpacing { get; set; } // b (in)
+        public double? BoltSpacingLength { get; set; } // l (in)
         public double? WasherSize { get; set; } // square plate washer side length (in)
         public double? Dcone { get; set; } // Cone Diameter
         public double? Pu { get; set; } // Factored axial load

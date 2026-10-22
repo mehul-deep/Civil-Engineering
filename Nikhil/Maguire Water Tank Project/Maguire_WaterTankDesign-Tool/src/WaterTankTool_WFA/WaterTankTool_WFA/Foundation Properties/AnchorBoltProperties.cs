@@ -419,8 +419,8 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double interaction = eq.InteractionRatio(tensionPerBolt, tensionCapacity, shearPerBolt, shearCapacity);
             
             // Step 13
-            double pedestalSize = anchorBolt.PedestalSize ?? 39.0;
-            double boltSpacing = anchorBolt.BoltSpacing ?? 12.0;
+            double pedestalSize = anchorBolt.PedestalLength ?? anchorBolt.PedestalSize ?? 39.0;
+            double boltSpacing = anchorBolt.BoltSpacingLength ?? anchorBolt.BoltSpacing ?? 12.0;
             double edgeDistance = (anchorBolt.E.HasValue && anchorBolt.E.Value > 0) ? anchorBolt.E.Value : eq.EdgeDistance(pedestalSize, boltSpacing);
             double minEdgeDistance = eq.MinimumEdgeDistance(db);
 
