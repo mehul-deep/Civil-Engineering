@@ -71,6 +71,7 @@ namespace WaterTankTool_WFA.Entity
         public double? PedestalSizeL { get; set; }
 
         public double? PedestalAsProv { get; set; } // e.g. 7.92
-        public double? FootingAsProv { get; set; }  // e.g. 5.28
+        public double? FootingAsProv { get; set; }  // Provided development length l_prov (in), e.g. 30.0
+        public double? PhiCompression { get; set; } // 0.65 (Tied) or 0.75 (Spirals)
     }
 }

@@ -299,9 +299,20 @@ public class WaterTankDbContext : DbContext
                 );";
                 try { command.ExecuteNonQuery(); } catch { }
 
+                string[] footingCols = new string[] { "PedestalHeightHp", "FcPrime", "Fy", "AlphaS", "DowelDiameter" };
+                foreach (var col in footingCols)
+                {
+                    try
+                    {
+                        command.CommandText = $"ALTER TABLE FootingEntity ADD COLUMN {col} REAL NULL;";
+                        command.ExecuteNonQuery();
+                    }
+                    catch { }
+                }
+
                 string[] columns = new string[]
                 {
-                    "FcPrime", "Fy", "Hef", "Hp", "GammaC", "PedestalSizeB", "PedestalSizeL", "PedestalAsProv", "FootingAsProv"
+                    "FcPrime", "Fy", "Hef", "Hp", "GammaC", "PedestalSizeB", "PedestalSizeL", "PedestalAsProv", "FootingAsProv", "PhiCompression"
                 };
 
                 foreach (var col in columns)
@@ -338,6 +349,17 @@ public class WaterTankDbContext : DbContext
                     BottomRebarArea REAL NULL, TopRebarArea REAL NULL, RebarDiameter REAL NULL
                 );";
                 try { command.ExecuteNonQuery(); } catch { }
+
+                string[] footingCols = new string[] { "PedestalHeightHp", "FcPrime", "Fy", "AlphaS", "DowelDiameter" };
+                foreach (var col in footingCols)
+                {
+                    try
+                    {
+                        command.CommandText = $"ALTER TABLE FootingEntity ADD COLUMN {col} REAL NULL;";
+                        command.ExecuteNonQuery();
+                    }
+                    catch { }
+                }
             }
         }
         catch (Exception ex)

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace WaterTankTool_WFA.Solver_Equation
 {
@@ -10,6 +9,16 @@ namespace WaterTankTool_WFA.Solver_Equation
         {
             if (numLegs <= 0) return puTotal;
             return puTotal / numLegs;
+        }
+
+        public double PedestalSelfWeight(double bpInches, double lpInches, double hpFeet, double gammaCPcf = 150.0)
+        {
+            return (bpInches / 12.0) * (lpInches / 12.0) * hpFeet * (gammaCPcf / 1000.0);
+        }
+
+        public double FootingDesignLoad(double pLeg, double factoredPedestalWeight)
+        {
+            return pLeg + factoredPedestalWeight;
         }
 
         public double CompressionSideLoad(double pLeg, double tLeg, double pedestalWeight)
@@ -30,52 +39,48 @@ namespace WaterTankTool_WFA.Solver_Equation
             return pTotal / areaProvided;
         }
 
-        // Step 6: Sliding Check
+        // Sliding Check
         public double SlidingFactorOfSafety(double mu, double pTotal, double vLeg)
         {
             if (vLeg <= 0) return 999;
             return (mu * pTotal) / vLeg;
         }
 
-        // Step 7: Two-Way Punching Shear Check
+        // Step 4 & 5: Effective Depth & Two-Way Punching Shear Check
         public double EffectiveDepth(double hInches, double coverInches, double barDiameter)
         {
             return hInches - coverInches - (barDiameter / 2.0);
         }
 
-        public double CriticalPunchingPerimeter(double pedestalSize, double d)
+        public double CriticalPunchingPerimeter(double bpInches, double lpInches, double d)
         {
-            double c_plus_d = pedestalSize + d;
-            return 4.0 * c_plus_d;
+            return 2.0 * (bpInches + d) + 2.0 * (lpInches + d);
         }
 
-        public double AreaInsideCriticalPerimeter(double pedestalSize, double d)
+        public double AreaInsideCriticalPerimeter(double bpInches, double lpInches, double d)
         {
-            double c_plus_d = pedestalSize + d;
-            return (c_plus_d * c_plus_d) / 144.0; // ft2
+            return ((bpInches + d) * (lpInches + d)) / 144.0; // ft2
         }
 
         public double FactoredPunchingShear(double pTotal, double qU, double areaInsidePerimeter)
         {
             double pSoil = qU * areaInsidePerimeter;
-            return pTotal - pSoil;
+            return Math.Max(0, pTotal - pSoil);
         }
 
-        public double PunchingShearStress(double vu, double bo, double d)
+        public double DesignPunchingShearCapacity(double fcPrimePsi, double bpInches, double lpInches, double boInches, double dInches, double alphaS = 40.0, double phi = 0.75, double lambda = 1.0)
         {
-            if (bo <= 0 || d <= 0) return 0;
-            return (vu * 1000.0) / (bo * d); // psi
-        }
+            double minSide = Math.Max(1.0, Math.Min(bpInches, lpInches));
+            double maxSide = Math.Max(bpInches, lpInches);
+            double beta = maxSide / minSide;
 
-        public double ConcretePunchingShearCapacity(double fcPrimePsi)
-        {
-            return 4.0 * Math.Sqrt(fcPrimePsi); // psi
-        }
-        
-        // Step 8: Punching Shear Capacity in Force Form
-        public double PunchingShearForceCapacity(double vcPsi, double boInches, double dInches)
-        {
-            return (vcPsi * boInches * dInches) / 1000.0; // kips
+            double sqrtFc = Math.Sqrt(fcPrimePsi);
+            double vc1 = 4.0 * lambda * sqrtFc * boInches * dInches / 1000.0;
+            double vc2 = (2.0 + 4.0 / beta) * lambda * sqrtFc * boInches * dInches / 1000.0;
+            double vc3 = (2.0 + (alphaS * dInches) / Math.Max(1.0, boInches)) * lambda * sqrtFc * boInches * dInches / 1000.0;
+
+            double vcMin = Math.Min(vc1, Math.Min(vc2, vc3));
+            return phi * vcMin; // kips
         }
 
         public double DemandCapacityRatio(double demand, double capacity)
@@ -84,67 +89,76 @@ namespace WaterTankTool_WFA.Solver_Equation
             return demand / capacity;
         }
 
-        // Step 7: One-Way Shear
-        public double OneWayShearCantilever(double L, double c)
+        // Step 7: One-Way Shear (per 1-ft-wide strip, ACI 318)
+        public double GoverningCantileverProjection(double bFootFt, double lFootFt, double bpInches, double lpInches)
         {
-            return (L - c) / 2.0; // ft
+            double projB = (bFootFt - (bpInches / 12.0)) / 2.0;
+            double projL = (lFootFt - (lpInches / 12.0)) / 2.0;
+            return Math.Max(projB, projL); // ft
         }
 
-        public double OneWayShearForce(double qu, double B, double m, double dInches)
+        public double OneWayShearForcePerFt(double quKsf, double cantileverFt, double dInches)
         {
-            // qu in ksf, B in ft, m in ft, dInches in inches
             double dFeet = dInches / 12.0;
-            return qu * B * (m - dFeet); // kips
+            return Math.Max(0, quKsf * (cantileverFt - dFeet) * 1.0); // kips per 1-ft strip
         }
 
-        public double OneWayShearCapacity(double fcPrimePsi, double As, double bwInches, double dInches)
+        public double DesignOneWayShearCapacityPerFt(double fcPrimePsi, double dInches, double phi = 0.75, double lambda = 1.0)
         {
-            // As in in2/ft, bwInches = 162 in, dInches = 26.5 in
-            // Vc = 8 * (rho_w)^(1/3) * sqrt(f'c) * bw * d
-            // rho_w = As / (12 * dInches)
-            double rho_w = As / (12.0 * dInches);
-            if (rho_w < 0.0018) rho_w = 0.0018;
-            
-            double Vc = 8.0 * Math.Pow(rho_w, 1.0 / 3.0) * Math.Sqrt(fcPrimePsi) * bwInches * dInches;
-            return Vc / 1000.0; // kips
+            double bwInches = 12.0; // 1-ft-wide strip
+            double Vc = (2.0 * lambda * Math.Sqrt(fcPrimePsi) * bwInches * dInches) / 1000.0; // kips/ft
+            return phi * Vc; // kips/ft
         }
 
-        // Step 8: Flexure and Reinforcement
-        public double FlexureMoment(double qu, double m)
+        // Step 8: Flexure and Reinforcement (per 1-ft-wide strip)
+        public double FlexureMomentPerFt(double quKsf, double cantileverFt)
         {
-            // Mu per 1-ft strip
-            return (qu * m * m) / 2.0; // kip-ft/ft
+            return (quKsf * cantileverFt * cantileverFt) / 2.0; // kip-ft/ft
         }
 
-        public double MinimumReinforcement(double hInches)
+        public double RequiredFlexuralSteelPerFt(double muKipInPerFt, double fcPrimeKsi, double fyKsi, double dInches, double phi = 0.90)
         {
-            // Ag per 12-in strip = 12 * h
+            if (muKipInPerFt <= 0 || fcPrimeKsi <= 0 || fyKsi <= 0 || dInches <= 0) return 0;
+            double b = 12.0;
+            double k = 0.85 * fcPrimeKsi * b;
+            double rad = (dInches * dInches) - (2.0 * muKipInPerFt) / (phi * k);
+            if (rad < 0) rad = 0;
+            return (k / fyKsi) * (dInches - Math.Sqrt(rad)); // in2/ft
+        }
+
+        public double MinimumReinforcementPerFt(double hInches)
+        {
             return 0.0018 * 12.0 * hInches; // in2/ft
         }
 
-        // Step 9: Pedestal/Footing Bearing
-        public double PedestalBearingCapacity(double fcPrimePsi, double cInches)
+        public double DesignFlexuralCapacityKipInPerFt(double asProvIn2PerFt, double fcPrimeKsi, double fyKsi, double dInches, double phi = 0.90)
         {
-            double A1 = cInches * cInches;
-            return 0.65 * 0.85 * (fcPrimePsi / 1000.0) * A1; // kips
+            if (asProvIn2PerFt <= 0 || fcPrimeKsi <= 0 || fyKsi <= 0) return 0;
+            double b = 12.0;
+            double a = (asProvIn2PerFt * fyKsi) / (0.85 * fcPrimeKsi * b);
+            double Mn = asProvIn2PerFt * fyKsi * (dInches - a / 2.0); // kip-in/ft
+            return phi * Mn; // kip-in/ft
+        }
+
+        // Step 9: Pedestal/Footing Bearing
+        public double PedestalBearingCapacity(double fcPrimeKsi, double bpInches, double lpInches, double phi = 0.65)
+        {
+            double A1 = bpInches * lpInches;
+            return phi * 0.85 * fcPrimeKsi * A1; // kips
         }
 
         // Step 10: Dowel Reinforcement
-        public double DowelMinimumArea(double cInches)
+        public double DowelMinimumArea(double bpInches, double lpInches)
         {
-            double A1 = cInches * cInches;
-            return 0.005 * A1; // in2
+            double Ag = bpInches * lpInches;
+            return 0.005 * Ag; // in2
         }
 
-        // Step 11: Development Length
+        // Step 11: Compression Development Length
         public double DevelopmentLength(double fyPsi, double fcPrimePsi, double dbInches)
         {
-            // ldc = (fy * psi_r) / (50 * lambda * sqrt(fc)) * db
-            // psi_r = 1.0, lambda = 1.0
             double ldc = (fyPsi * 1.0) / (50.0 * 1.0 * Math.Sqrt(fcPrimePsi)) * dbInches;
-            double minLdc = 0.0003 * fyPsi * dbInches;
-            if (minLdc < 8.0) minLdc = 8.0;
-
+            double minLdc = Math.Max(0.0003 * fyPsi * dbInches, 8.0);
             return Math.Max(ldc, minLdc); // inches
         }
     }

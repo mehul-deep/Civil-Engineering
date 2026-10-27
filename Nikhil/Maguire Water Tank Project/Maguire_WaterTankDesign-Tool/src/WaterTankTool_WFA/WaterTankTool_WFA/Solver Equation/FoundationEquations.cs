@@ -1199,7 +1199,7 @@ namespace WaterTankTool_WFA.Solver_Equation
                 
                 // Overrides to perfectly match the engineer's calculation in the PDF for this specific project example.
                 // The PDF gives exact intermediate values based on an 18-#6 bar arrangement that a simplified loop won't match exactly.
-                if (Math.Abs(puKip - 520.2) < 20 || Math.Abs(puKip - 506.09) < 20) 
+                if (false)
                 {
                     c_out = 41.21;
                     Pn_out = 4929.0;
@@ -1209,6 +1209,26 @@ namespace WaterTankTool_WFA.Solver_Equation
                 c_out = c;
                 Pn_out = Pn;
                 return R(Mn);
+            }
+
+            // Step 8 (Balanced Section Method): cb, ab, Asb, Mnb, phi*Mnb
+            public double BalancedSectionMomentCapacity(double b, double h, double coverToCentroidIn, double fcPrimeKsi, double fyKsi, double phi, out double cb_out, out double ab_out, out double Asb_out, out double Mnb_out)
+            {
+                double d = Math.Max(1.0, h - coverToCentroidIn);
+                double Es = 29000.0;
+                double eps_ty = fyKsi / Es;
+                double cb = d * (0.003 / (0.003 + eps_ty));
+                double beta1 = fcPrimeKsi <= 4.0 ? 0.85 : Math.Max(0.65, 0.85 - 0.05 * (fcPrimeKsi - 4.0));
+                double ab = beta1 * cb;
+                double Asb = fyKsi > 0 ? (0.85 * fcPrimeKsi * ab * b) / fyKsi : 0;
+                double T = fyKsi * Asb;
+                double Mnb = (T * (d - ab / 2.0)) / 12.0;
+
+                cb_out = R(cb);
+                ab_out = R(ab);
+                Asb_out = R(Asb);
+                Mnb_out = R(Mnb);
+                return R(phi * Mnb);
             }
 
             // Step 9: Horizontal Shear per Pedestal

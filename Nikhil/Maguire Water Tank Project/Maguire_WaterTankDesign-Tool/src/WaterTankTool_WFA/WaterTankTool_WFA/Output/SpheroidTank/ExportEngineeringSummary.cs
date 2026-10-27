@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using ClosedXML.Excel;
 using WaterTankTool_WFA.Entity;
+using WaterTankTool_WFA.Services;
 using WaterTankTool_WFA.Solver_Equation;
 
 namespace WaterTankTool_WFA.Output.SpheroidTank
@@ -13,10 +15,13 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
     {
         public void RunExport(IWin32Window owner = null)
         {
+            AppState.Load();
             var context = WaterTankDbContext.GetInstance();
             var tankProps = context.TankProperties?.FirstOrDefault();
             var basePlate = context.BasePlateEntity?.FirstOrDefault();
             var anchorBolt = context.AnchorBoltEntity?.FirstOrDefault();
+            var ringWall = context.RingWallEntity?.FirstOrDefault();
+            var footing = context.FootingEntity?.FirstOrDefault();
             var material = context.MaterialProperties?.FirstOrDefault();
             var baseSegments = context.SegmentProperties?.Where(s => s.SegmentType == "Base").ToList();
             var colSegments = context.SegmentProperties?.Where(s => s.SegmentType == "Cylinder").ToList();
@@ -53,11 +58,11 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             // Section 1: General Project & Geometry
             row = AddSectionHeader(ws, row, "1. PROJECT & TANK GEOMETRY OVERVIEW");
             row = AddDataRow(ws, row, "Tank Designation", $"TANK-{tankProps?.TankNumber ?? 1}", "Capacity (MG)", tankProps?.Capacity ?? "100 MG");
-            
+
             double baseConeDia = (double)(baseSegments?.FirstOrDefault()?.DiameterFinal ?? 0);
             double baseConeHt = (double)(baseSegments?.LastOrDefault()?.HeightFinal ?? 0);
             row = AddDataRow(ws, row, "Base Cone Diameter (ft)", baseConeDia, "Base Cone Height (ft)", baseConeHt);
-            
+
             double colDia = (double)(colSegments?.FirstOrDefault()?.Diameter ?? 0);
             double colHt = ((double)(colSegments?.LastOrDefault()?.HeightFinal ?? 0)) - ((double)(colSegments?.FirstOrDefault()?.HeightInitial ?? 0));
             row = AddDataRow(ws, row, "Column Diameter (ft)", colDia, "Column Height (ft)", colHt);
@@ -68,22 +73,33 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             double mu = anchorBolt?.Mu ?? basePlate?.OverturningMoment ?? 0;
             double pu = anchorBolt?.Pu ?? basePlate?.Pu ?? 0;
             double vu = anchorBolt?.Vu ?? 0;
-            row = AddDataRow(ws, row, "Overturning Moment (Mu) (kip-ft)", mu, "Factored Axial Load (Pu) (kips)", pu);
-            row = AddDataRow(ws, row, "Base Shear Force (Vu) (kips)", vu, "Governing Load Factor", "1.667 (Ultimate)");
+            if (AppState.CurrentTankType == TankType.MultiColumn && (pu <= 0 || mu <= 0 || vu <= 0))
+            {
+                var (puGov, muGov, vuGov) = new LoadService().GetGoverningLoads();
+                if (pu <= 0) pu = puGov;
+                if (mu <= 0) mu = muGov;
+                if (vu <= 0) vu = vuGov;
+            }
+            row = AddDataRow(ws, row, "Overturning Moment (Mu) (kip-ft)", Math.Round(mu, 4), "Factored Axial Load (Pu) (kips)", Math.Round(pu, 4));
+            row = AddDataRow(ws, row, "Base Shear Force (Vu) (kips)", Math.Round(vu, 4), "Governing Load Factor", "1.667 (Ultimate)");
             row++;
 
-            // Section 3: Anchor Bolt Design (ACI 318-19 Appendix D)
+            // Section 3: Anchor Bolt Design (ACI 318-19 Appendix D / Chapter 17)
             if (AppState.CurrentTankType == TankType.MultiColumn)
             {
                 row = AddSectionHeader(ws, row, "3. ANCHOR BOLT DESIGN & BREAKOUT CHECK (ACI 318-19 - MULTI-LEG TOWER)");
                 var mcEq = new FoundationEquations.MultiColumnAnchorBoltEquations();
-                int totalCols = (anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
+                int totalCols = AppState.NoOfColumns > 1
+                    ? AppState.NoOfColumns
+                    : ((anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : 4);
                 int tensionLegs = mcEq.TensionLegs(totalCols);
                 int nb = anchorBolt?.Nb ?? 4;
-                double db = anchorBolt?.Db ?? 1.0;
-                double dcone = anchorBolt?.Dcone ?? 20.04;
+                double db = anchorBolt?.Db ?? 1.5;
+                double dcone = anchorBolt?.Dcone ?? 41.0469;
                 double legRadius = mcEq.LegRadiusInches(dcone);
-                double abMu = anchorBolt?.Mu ?? (basePlate?.OverturningMoment ?? mu);
+                double abMu = (anchorBolt?.Mu.HasValue == true && anchorBolt.Mu.Value > 0)
+                    ? anchorBolt.Mu.Value
+                    : ((basePlate?.OverturningMoment.HasValue == true && basePlate.OverturningMoment.Value > 0) ? basePlate.OverturningMoment.Value : mu);
                 double totalTension = mcEq.TotalOverturningTension(abMu, legRadius);
                 double tensionPerLeg = mcEq.TensionPerLeg(totalTension, tensionLegs);
                 double tensionPerBolt = mcEq.TensionPerBolt(tensionPerLeg, nb);
@@ -95,12 +111,12 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 double boltArea = (anchorBolt != null && anchorBolt.Ab > 0) ? anchorBolt.Ab : mcEq.BoltArea(db);
                 double tensionCapacity = mcEq.SteelTensionCapacity(phi, boltArea, fy);
 
-                double boltVu = anchorBolt?.Vu ?? 0;
+                double boltVu = (anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : vu;
                 double shearPerLeg = mcEq.ShearPerLeg(boltVu, totalCols);
                 double shearPerBolt = mcEq.ShearPerBolt(shearPerLeg, nb);
                 double shearCapacity = mcEq.SteelShearCapacity(phi, boltArea, fy);
 
-                double hef = anchorBolt?.Hef ?? 40.0;
+                double hef = anchorBolt?.Hef ?? 35.0;
                 double fcPrime = anchorBolt?.FcPrime ?? (basePlate?.Fc_prime ?? 4000.0);
                 double breakoutCapacity = mcEq.ConcreteBreakoutStrength(phi, 24, fcPrime, hef);
 
@@ -110,25 +126,30 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 double pryoutCapacity = mcEq.PryoutStrength(breakoutCapacity, hef);
                 double interaction = mcEq.InteractionRatio(tensionPerBolt, tensionCapacity, shearPerBolt, shearCapacity);
 
-                double pedestalSize = anchorBolt?.PedestalSize ?? 39.0;
-                double boltSpacing = anchorBolt?.BoltSpacing ?? 12.0;
-                double edgeDist = (anchorBolt != null && anchorBolt.E.HasValue && anchorBolt.E.Value > 0) ? anchorBolt.E.Value : mcEq.EdgeDistance(pedestalSize, boltSpacing);
+                double pedB = (anchorBolt?.PedestalSize.HasValue == true && anchorBolt.PedestalSize.Value > 0) ? anchorBolt.PedestalSize.Value : 39.0;
+                double pedL = (anchorBolt?.PedestalLength.HasValue == true && anchorBolt.PedestalLength.Value > 0) ? anchorBolt.PedestalLength.Value : pedB;
+                double bsB = (anchorBolt?.BoltSpacing.HasValue == true && anchorBolt.BoltSpacing.Value > 0) ? anchorBolt.BoltSpacing.Value : 12.0;
+                double bsL = (anchorBolt?.BoltSpacingLength.HasValue == true && anchorBolt.BoltSpacingLength.Value > 0) ? anchorBolt.BoltSpacingLength.Value : bsB;
+
+                double calcEdge = Math.Min(mcEq.EdgeDistance(pedB, bsB), mcEq.EdgeDistance(pedL, bsL));
+                double edgeDist = (anchorBolt != null && anchorBolt.E.HasValue && anchorBolt.E.Value > 0) ? anchorBolt.E.Value : calcEdge;
                 double minEdgeDist = mcEq.MinimumEdgeDistance(db);
 
                 row = AddDataRow(ws, row, "Total Tower Columns / Legs", totalCols, "Tension Resisting Legs", tensionLegs);
                 row = AddDataRow(ws, row, "Bolts per Pedestal (Nb)", nb, "Nominal Bolt Diameter (db) (in)", db);
-                row = AddDataRow(ws, row, "Cone Diameter (Dcone) (ft)", dcone, "Leg Radius from Center (in)", Math.Round(legRadius, 4));
-                row = AddDataRow(ws, row, "Overturning Moment (Mu) (kip-ft)", mu, "Total Overturning Uplift (kips)", Math.Round(totalTension, 4));
+                row = AddDataRow(ws, row, "Column Centerline Dia (Dcl) (ft)", dcone, "Leg Radius from Center (in)", Math.Round(legRadius, 4));
+                row = AddDataRow(ws, row, "Overturning Moment (Mu) (kip-ft)", Math.Round(abMu, 4), "Total Overturning Uplift (kips)", Math.Round(totalTension, 4));
                 row = AddDataRow(ws, row, "Tension per Leg (kips)", Math.Round(tensionPerLeg, 4), "Tension per Bolt (Tu/bolt) (kips)", Math.Round(tensionPerBolt, 4));
                 row = AddDataRow(ws, row, "Shear per Leg (kips)", Math.Round(shearPerLeg, 4), "Shear per Bolt (Vu/bolt) (kips)", Math.Round(shearPerBolt, 4));
                 row = AddDataRow(ws, row, "Bolt Yield Strength (Fy) (ksi)", fy, "Bolt Ultimate Strength (Fu) (ksi)", fu);
                 row = AddDataRow(ws, row, "Concrete Strength (f'c) (psi)", fcPrime, "Embedment Depth (hef) (in)", hef);
                 row = AddDataRow(ws, row, "Required Steel Area (in²)", Math.Round(requiredArea, 4), "Actual Bolt Area (Ab) (in²)", Math.Round(boltArea, 4));
-                row = AddDataRow(ws, row, "Tensile Capacity (phi*Tn) (kips)", Math.Round(tensionCapacity, 4), "Shear Capacity (phi*Vn) (kips)", Math.Round(shearCapacity, 4));
-                row = AddDataRow(ws, row, "Breakout Capacity (phi*Ncb) (kips)", Math.Round(breakoutCapacity, 4), "Pullout Capacity (kips)", Math.Round(pulloutCapacity, 4));
-                row = AddDataRow(ws, row, "Pryout Capacity (kips)", Math.Round(pryoutCapacity, 4), "Pedestal Size (B x L) (in)", $"{pedestalSize} x {pedestalSize}");
-                row = AddDataRow(ws, row, "Actual Edge Distance (in)", Math.Round(edgeDist, 4), "Required Min Edge (in)", Math.Round(minEdgeDist, 4));
-                row = AddDataRow(ws, row, "Combined Interaction Ratio", Math.Round(interaction, 4), "Design Status", interaction <= 1.0 ? "PASS / OK" : "EXCEEDS CAPACITY");
+                row = AddDataRow(ws, row, "Tensile Capacity (phi*Ns) (kips)", Math.Round(tensionCapacity, 4), "Shear Capacity (phi*Vs) (kips)", Math.Round(shearCapacity, 4));
+                row = AddDataRow(ws, row, "Breakout Capacity (phi*Ncb) (kips)", Math.Round(breakoutCapacity, 4), "Pullout Capacity (Np) (kips)", Math.Round(pulloutCapacity, 4));
+                row = AddDataRow(ws, row, "Pryout Capacity (Vcp) (kips)", Math.Round(pryoutCapacity, 4), "Pedestal Size (B x L) (in)", $"{pedB} x {pedL}");
+                row = AddDataRow(ws, row, "Bolt Spacing (b x l) (in)", $"{bsB} x {bsL}", "Actual / Min Edge Dist (in)", $"{Math.Round(edgeDist, 2)} / {Math.Round(minEdgeDist, 2)}");
+                bool abPass = interaction <= 1.0 && tensionCapacity > tensionPerBolt && shearCapacity > shearPerBolt && breakoutCapacity > tensionPerBolt && pulloutCapacity > tensionPerBolt && pryoutCapacity > shearPerBolt && edgeDist >= minEdgeDist;
+                row = AddDataRow(ws, row, "Combined Interaction Ratio", Math.Round(interaction, 4), "Design Status", abPass ? "PASS / OK" : "EXCEEDS CAPACITY");
                 row++;
             }
             else
@@ -209,17 +230,23 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
             {
                 row = AddSectionHeader(ws, row, "4. BASE PLATE DESIGN & BEARING STRESS (AISC LRFD - MULTI-LEG TOWER)");
                 var mcBpEq = new FoundationEquations.MultiColumnBasePlateEquations();
-                int totalLegs = (anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : (AppState.NoOfColumns > 1 ? AppState.NoOfColumns : 4);
-                double p = anchorBolt?.PedestalSize ?? 39.0;
-                double l = anchorBolt?.PedestalSize ?? 39.0;
-                double d_o = basePlate?.Ro ?? 30.0;
-                double dpip = basePlate?.Dbp ?? (anchorBolt?.Dcone ?? 20.04);
-                double t = basePlate?.T ?? 1.50;
-                double fy = basePlate?.Fy ?? 36.0;
-                double fcPrimePsi = basePlate?.Fc_prime ?? (anchorBolt?.FcPrime ?? 4000.0);
+                int totalLegs = AppState.NoOfColumns > 1
+                    ? AppState.NoOfColumns
+                    : ((anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : 4);
+                double p = (anchorBolt?.PedestalSize.HasValue == true && anchorBolt.PedestalSize.Value > 0) ? anchorBolt.PedestalSize.Value : 39.0;
+                double l = (anchorBolt?.PedestalLength.HasValue == true && anchorBolt.PedestalLength.Value > 0) ? anchorBolt.PedestalLength.Value : p;
+                double d_o = (basePlate != null && basePlate.Ro > 0) ? basePlate.Ro : 30.0;
+                double dpip = (basePlate != null && basePlate.Dbp > 0) ? basePlate.Dbp : 20.04;
+                double t = (basePlate != null && basePlate.T > 0) ? basePlate.T : 1.50;
+                double fy = (basePlate != null && basePlate.Fy > 0) ? basePlate.Fy : 36.0;
+                double fcPrimePsi = (basePlate != null && basePlate.Fc_prime > 0) ? basePlate.Fc_prime : (anchorBolt?.FcPrime ?? 4000.0);
                 double fcPrimeKsi = fcPrimePsi > 100 ? fcPrimePsi / 1000.0 : fcPrimePsi;
-                double totalMuKipFt = basePlate?.OverturningMoment ?? (anchorBolt?.Mu ?? 0);
-                double totalPuKips = basePlate?.Pu ?? (anchorBolt?.Pu ?? 0);
+                double totalMuKipFt = (basePlate?.OverturningMoment.HasValue == true && basePlate.OverturningMoment.Value > 0)
+                    ? basePlate.OverturningMoment.Value
+                    : mu;
+                double totalPuKips = (basePlate?.Pu.HasValue == true && basePlate.Pu.Value > 0)
+                    ? basePlate.Pu.Value
+                    : pu;
 
                 double a1 = mcBpEq.BasePlateArea(d_o);
                 double a2 = mcBpEq.PedestalArea(p, l);
@@ -245,17 +272,16 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 double totalWeight = weightPerPlate * totalLegs;
 
                 row = AddDataRow(ws, row, "Tower Supporting Legs (Ns)", totalLegs, "Pipe Column Diameter Dpip (in)", dpip);
-                row = AddDataRow(ws, row, "Outer Diameter Do (Ro) (in)", d_o, "N/A", "-");
-                row = AddDataRow(ws, row, "Pedestal Size P x L (in)", $"{p} x {l}", "Base Plate Area A1 (in²)", Math.Round(a1, 4));
-                row = AddDataRow(ws, row, "Supporting Area A2 (in²)", Math.Round(a2, 4), "Bearing Stress Demand Fp (ksi)", Math.Round(fp, 4));
-                row = AddDataRow(ws, row, "Design Bearing Limit (phi*Fp) (ksi)", Math.Round(fpLimit, 4), "Bearing Capacity Pn (kips)", Math.Round(pn, 4));
-                row = AddDataRow(ws, row, "Factored Axial Load Pu,ped (kips)", Math.Round(puPed, 4), "Max Compression Load Pu,comp (kips)", Math.Round(puComp, 4));
-                row = AddDataRow(ws, row, "Factored Moment Mu,ped (kip-ft)", Math.Round(muPedFt, 4), "Equivalent Eccentricity e (in)", Math.Round(eVal, 4));
-                row = AddDataRow(ws, row, "Bearing Limit D/8 (in)", Math.Round(nLimit, 4), "Bearing Pressure Demand q (ksi)", Math.Round(qVal, 4));
-                row = AddDataRow(ws, row, "Cantilever Projection m (in)", Math.Round(mVal, 4), "Plastic Moment Mplu (kip-in/in)", Math.Round(mplu, 4));
-                row = AddDataRow(ws, row, "Required Thickness treq (in)", Math.Round(treq, 4), "Actual Plate Thickness t (in)", t);
-                row = AddDataRow(ws, row, "Weight per Plate (kips)", Math.Round(weightPerPlate, 4), "Total Weight across all Legs (kips)", Math.Round(totalWeight, 4));
-                row = AddDataRow(ws, row, "Plate Compactness Status", (t >= treq && pn >= puComp && fp <= fpLimit) ? "COMPACT / OK" : "CHECK THICKNESS / BEARING", "", "");
+                row = AddDataRow(ws, row, "Outer Diameter Do (in)", d_o, "Pedestal Size B x L (in)", $"{p} x {l}");
+                row = AddDataRow(ws, row, "Base Plate Area A1 (in²)", Math.Round(a1, 4), "Supporting Area A2 (in²)", Math.Round(a2, 4));
+                row = AddDataRow(ws, row, "Bearing Stress Fp (ksi)", Math.Round(fp, 4), "Bearing Stress Limit (ksi)", Math.Round(fpLimit, 4));
+                row = AddDataRow(ws, row, "Bearing Capacity Pn (kips)", Math.Round(pn, 4), "Max Compression Load Pu,comp (kips)", Math.Round(puComp, 4));
+                row = AddDataRow(ws, row, "Factored Axial Load Pu,ped (kips)", Math.Round(puPed, 4), "Factored Moment Mu,ped (kip-ft)", Math.Round(muPedFt, 4));
+                row = AddDataRow(ws, row, "Equivalent Eccentricity e (in)", Math.Round(eVal, 4), "Bearing Limit N/6 (in)", Math.Round(nLimit, 4));
+                row = AddDataRow(ws, row, "Bearing Pressure Demand q (ksi)", Math.Round(qVal, 4), "Cantilever Projection m (in)", Math.Round(mVal, 4));
+                row = AddDataRow(ws, row, "Plastic Moment Mplu (kip-in/in)", Math.Round(mplu, 4), "Required Thickness treq (in)", Math.Round(treq, 4));
+                row = AddDataRow(ws, row, "Provided Plate Thickness t (in)", t, "Total Weight across all Legs (kips)", Math.Round(totalWeight, 4));
+                row = AddDataRow(ws, row, "Base Plate Design Status", (t >= treq && pn >= puComp && fp <= fpLimit) ? "PASS / OK" : "CHECK THICKNESS / BEARING", "Weight per Plate (kips)", Math.Round(weightPerPlate, 4));
                 row++;
             }
             else
@@ -305,8 +331,176 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row++;
             }
 
-            // Section 5: Material & Geotechnical Properties
-            row = AddSectionHeader(ws, row, "5. MATERIAL & GEOTECHNICAL PROPERTIES");
+            int nextSection = 5;
+
+            // Multi-Column Only: Section 5 (Pedestal) & Section 6 (Footing)
+            if (AppState.CurrentTankType == TankType.MultiColumn)
+            {
+                int numLegs = AppState.NoOfColumns > 1
+                    ? AppState.NoOfColumns
+                    : ((anchorBolt != null && anchorBolt.Ns.HasValue && anchorBolt.Ns.Value > 0) ? anchorBolt.Ns.Value : 4);
+
+                // --- SECTION 5: PEDESTAL DESIGN (ACI 318-19) ---
+                row = AddSectionHeader(ws, row, $"{nextSection++}. REINFORCED CONCRETE PEDESTAL DESIGN (ACI 318-19 - MULTI-LEG TOWER)");
+                var pedEq = new FoundationEquations.MultiColumnPedestalEquations();
+                var abEq = new FoundationEquations.MultiColumnAnchorBoltEquations();
+
+                double autoB = (anchorBolt?.PedestalSize.HasValue == true && anchorBolt.PedestalSize.Value > 0) ? anchorBolt.PedestalSize.Value : 39.0;
+                double autoL = (anchorBolt?.PedestalLength.HasValue == true && anchorBolt.PedestalLength.Value > 0) ? anchorBolt.PedestalLength.Value : autoB;
+                double pedB = (ringWall?.PedestalSizeB.HasValue == true && ringWall.PedestalSizeB.Value > 0) ? ringWall.PedestalSizeB.Value : autoB;
+                double pedL = (ringWall?.PedestalSizeL.HasValue == true && ringWall.PedestalSizeL.Value > 0) ? ringWall.PedestalSizeL.Value : autoL;
+                double bMin = Math.Min(pedB, pedL);
+                double hpFt = (ringWall?.Hp.HasValue == true && ringWall.Hp.Value > 0) ? ringWall.Hp.Value : 7.417;
+
+                double bpArea = (basePlate != null && basePlate.Ro > 0) ? (Math.PI * Math.Pow(basePlate.Ro, 2) / 4.0) : 706.86;
+                double pedFc = (ringWall?.FcPrime.HasValue == true && ringWall.FcPrime.Value > 0) ? ringWall.FcPrime.Value : 4.0;
+                double pedFy = (ringWall?.Fy.HasValue == true && ringWall.Fy.Value > 0) ? ringWall.Fy.Value : 60.0;
+                double phiComp = (ringWall?.PhiCompression.HasValue == true && ringWall.PhiCompression.Value > 0) ? ringWall.PhiCompression.Value : 0.65;
+                bool isSpiral = Math.Abs(phiComp - 0.75) < 0.01;
+                double maxAxialFactor = isSpiral ? 0.85 : 0.80;
+                double gammaC = (ringWall?.GammaC.HasValue == true && ringWall.GammaC.Value > 0) ? ringWall.GammaC.Value : 150.0;
+                double asProv = (ringWall?.PedestalAsProv.HasValue == true && ringWall.PedestalAsProv.Value > 0) ? ringWall.PedestalAsProv.Value : 7.92;
+
+                double lu_b = (hpFt * 12.0) / bMin;
+                double rGyr = pedEq.RadiusOfGyrationSquare(bMin);
+                double klu_r = (2.0 * (hpFt * 12.0)) / rGyr;
+
+                double pGrav = pedEq.GravityAxialLoadPerLeg(pu, numLegs);
+                double coneDiamFt = (anchorBolt?.Dcone.HasValue == true && anchorBolt.Dcone.Value > 0) ? anchorBolt.Dcone.Value : 41.0469;
+                double tLeg = Math.Max(0, abEq.TensionPerLeg(abEq.TotalOverturningTension(mu, coneDiamFt * 6.0), abEq.TensionLegs(numLegs)));
+
+                double wPed = pedEq.PedestalSelfWeight(pedB, pedL, hpFt, gammaC);
+                double wPedFactored = pedEq.FactoredPedestalSelfWeight(wPed);
+                double pCompTotal = pGrav + wPedFactored;
+
+                double pedArea = pedB * pedL;
+                double bearEnh = pedEq.BearingEnhancementFactor(bpArea, pedArea);
+                double pedBearCap = pedEq.PedestalBearingCapacity(pedFc, bpArea, bearEnh, 0.65);
+                double pedBearDC = pedEq.DemandCapacityRatio(pCompTotal, pedBearCap);
+
+                double pedAsMin = pedEq.MinimumReinforcementArea(pedArea);
+                double po = pedEq.NominalConcentricCompressionStrength(pedFc, pedArea, asProv, pedFy);
+                double phiPn = pedEq.DesignAxialCompressionCapacity(po, phiComp, maxAxialFactor);
+                double axialDC = pedEq.DemandCapacityRatio(pCompTotal, phiPn);
+
+                double phiTn = pedEq.DesignTensileCapacity(asProv, pedFy, 0.90);
+                double upliftDC = pedEq.DemandCapacityRatio(tLeg, phiTn);
+
+                double vuPed = pedEq.HorizontalShearPerPedestal(vu, numLegs);
+                double tieSpacing = pedEq.RequiredTieSpacing(1.0, bMin);
+
+                double cbVal, abVal, asbVal, mnbVal;
+                double phiMnb = pedEq.BalancedSectionMomentCapacity(pedB, pedL, 3.5, pedFc, pedFy, phiComp, out cbVal, out abVal, out asbVal, out mnbVal);
+                double pedMu = Math.Round(vuPed * hpFt, 2);
+                double pmDC = pedEq.DemandCapacityRatio(pedMu, phiMnb);
+
+                double ld = pedEq.TensionDevelopmentLength(pedFy, pedFc, 1.0);
+                double lProv = ringWall?.FootingAsProv ?? 30.0;
+                if (Math.Abs(lProv - 5.28) < 0.01) lProv = 30.0;
+                double ldDC = pedEq.DemandCapacityRatio(ld, lProv);
+
+                bool pedAllPass = asProv >= pedAsMin && pedBearDC <= 1.0 && axialDC <= 1.0 && upliftDC <= 1.0 && pmDC <= 1.0 && ldDC <= 1.0;
+
+                row = AddDataRow(ws, row, "Pedestal Size B x L (in)", $"{pedB} x {pedL}", "Pedestal Clear Height Hp (ft)", Math.Round(hpFt, 4));
+                row = AddDataRow(ws, row, "Concrete Strength f'c (ksi)", pedFc, "Reinforcing Steel fy (ksi)", pedFy);
+                row = AddDataRow(ws, row, "Transverse Reinforcement (phi)", isSpiral ? "0.75 (Spirals)" : "0.65 (Tied)", "Classification lu/b_min (<= 3.0)", Math.Round(lu_b, 2));
+                row = AddDataRow(ws, row, "Slenderness k*lu/r (<= 22)", Math.Round(klu_r, 2), "Gravity Axial Load/Leg (kips)", Math.Round(pGrav, 2));
+                row = AddDataRow(ws, row, "Max Compression Demand (kips)", Math.Round(pCompTotal, 2), "Overturning Tension/Leg (kips)", Math.Round(tLeg, 2));
+                row = AddDataRow(ws, row, "Bearing Capacity phi*Pn (kips)", Math.Round(pedBearCap, 2), "Bearing D/C Ratio", Math.Round(pedBearDC, 4));
+                row = AddDataRow(ws, row, "Min Longitudinal Steel As,min (in²)", Math.Round(pedAsMin, 3), "Provided Steel As,prov (in²)", Math.Round(asProv, 2));
+                row = AddDataRow(ws, row, "Axial Compression Cap. phi*Pn (kips)", Math.Round(phiPn, 2), "Axial Compression D/C Ratio", Math.Round(axialDC, 4));
+                row = AddDataRow(ws, row, "Tensile Capacity phi*Tn (kips)", Math.Round(phiTn, 2), "Uplift Tension D/C Ratio", Math.Round(upliftDC, 4));
+                row = AddDataRow(ws, row, "Balanced Section cb / ab (in)", $"{cbVal:F2} / {abVal:F2}", "Design Moment Cap. phi*Mnb (kip-ft)", Math.Round(phiMnb, 1));
+                row = AddDataRow(ws, row, "Pedestal Moment Demand Mu (kip-ft)", Math.Round(pedMu, 2), "P-M Interaction D/C Ratio", Math.Round(pmDC, 4));
+                row = AddDataRow(ws, row, "Horizontal Shear/Leg Vu,ped (kips)", Math.Round(vuPed, 3), "Max Tie Spacing s_max (in)", Math.Round(tieSpacing, 1));
+                row = AddDataRow(ws, row, "Tension Dev. Length ld / l_prov (in)", $"{ld:F2} / {lProv:F2}", "Pedestal Design Status", pedAllPass ? "PASS / OK" : "CHECK PEDESTAL");
+                row++;
+
+                // --- SECTION 6: SPREAD FOOTING DESIGN (ACI 318-19) ---
+                row = AddSectionHeader(ws, row, $"{nextSection++}. ISOLATED SPREAD FOOTING DESIGN (ACI 318-19 - MULTI-LEG TOWER)");
+                var ftEq = new FootingEquations();
+
+                double hpFoot = (footing?.PedestalHeightHp.HasValue == true && footing.PedestalHeightHp.Value > 0)
+                    ? footing.PedestalHeightHp.Value
+                    : ((ringWall?.Hp.HasValue == true && ringWall.Hp.Value > 0) ? ringWall.Hp.Value : 5.5);
+                double ftFc = (footing?.FcPrime.HasValue == true && footing.FcPrime.Value > 0) ? footing.FcPrime.Value : pedFc;
+                double ftFy = (footing?.Fy.HasValue == true && footing.Fy.Value > 0) ? footing.Fy.Value : pedFy;
+                double alphaS = (footing?.AlphaS.HasValue == true && footing.AlphaS.Value > 0) ? footing.AlphaS.Value : 40.0;
+
+                double ftB = (footing?.FootingSizeB.HasValue == true && footing.FootingSizeB.Value > 0) ? footing.FootingSizeB.Value : 13.5;
+                double ftL = (footing?.FootingSizeL.HasValue == true && footing.FootingSizeL.Value > 0) ? footing.FootingSizeL.Value : 13.5;
+                double ftH = (footing?.FootingThickness.HasValue == true && footing.FootingThickness.Value > 0) ? footing.FootingThickness.Value : 30.0;
+                double ftCover = (footing?.ConcreteCover.HasValue == true && footing.ConcreteCover.Value > 0) ? footing.ConcreteCover.Value : 3.0;
+                double qAllow = (footing?.Qallow.HasValue == true && footing.Qallow.Value > 0) ? footing.Qallow.Value : 3.0;
+                double muFriction = (footing?.FrictionCoeff.HasValue == true && footing.FrictionCoeff.Value > 0) ? footing.FrictionCoeff.Value : 0.50;
+                double bottomAs = (footing?.BottomRebarArea.HasValue == true && footing.BottomRebarArea.Value > 0) ? footing.BottomRebarArea.Value : 0.677;
+                double ftDb = (footing?.RebarDiameter.HasValue == true && footing.RebarDiameter.Value > 0) ? footing.RebarDiameter.Value : 1.0;
+                double dowelAs = (footing?.TopRebarArea.HasValue == true && footing.TopRebarArea.Value > 0) ? footing.TopRebarArea.Value : asProv;
+                double dbDowel = (footing?.DowelDiameter.HasValue == true && footing.DowelDiameter.Value > 0) ? footing.DowelDiameter.Value : 0.75;
+
+                double pLeg = ftEq.FootingGravityLoad(pu, numLegs);
+                double pedWt = ftEq.PedestalSelfWeight(pedB, pedL, hpFoot, gammaC);
+                double pedWtFactored = 1.2 * pedWt;
+                double pFootDesign = ftEq.FootingDesignLoad(pLeg, pedWtFactored);
+
+                double areaReq = ftEq.RequiredFootingArea(pFootDesign, qAllow);
+                double areaProv = ftB * ftL;
+                double qApplied = ftEq.AppliedSoilPressure(pFootDesign, areaProv);
+                double soilDC = ftEq.DemandCapacityRatio(qApplied, qAllow);
+
+                double vLeg = vu / numLegs;
+                double fsSliding = ftEq.SlidingFactorOfSafety(muFriction, pFootDesign, vLeg);
+
+                double dEff = ftEq.EffectiveDepth(ftH, ftCover, ftDb);
+                double b_o = ftEq.CriticalPunchingPerimeter(pedB, pedL, dEff);
+                double a_o = ftEq.AreaInsideCriticalPerimeter(pedB, pedL, dEff);
+                double vuPunch = ftEq.FactoredPunchingShear(pFootDesign, qApplied, a_o);
+                double phiVcPunch = ftEq.DesignPunchingShearCapacity(ftFc * 1000.0, pedB, pedL, b_o, dEff, alphaS);
+                double punchDC = ftEq.DemandCapacityRatio(vuPunch, phiVcPunch);
+
+                double cantProj = ftEq.GoverningCantileverProjection(ftB, ftL, pedB, pedL);
+                double vuOneWay = ftEq.OneWayShearForcePerFt(qApplied, cantProj, dEff);
+                double phiVcOneWay = ftEq.DesignOneWayShearCapacityPerFt(ftFc * 1000.0, dEff);
+                double oneWayDC = ftEq.DemandCapacityRatio(vuOneWay, phiVcOneWay);
+
+                double muFlexFt = ftEq.FlexureMomentPerFt(qApplied, cantProj);
+                double muFlexIn = muFlexFt * 12.0;
+                double asReq = ftEq.RequiredFlexuralSteelPerFt(muFlexIn, ftFc, ftFy, dEff);
+                double asMin = ftEq.MinimumReinforcementPerFt(ftH);
+                double asDesign = Math.Max(asReq, asMin);
+                double flexSteelDC = ftEq.DemandCapacityRatio(asDesign, bottomAs);
+
+                double phiMnIn = ftEq.DesignFlexuralCapacityKipInPerFt(bottomAs, ftFc, ftFy, dEff);
+                double flexMomDC = ftEq.DemandCapacityRatio(muFlexIn, phiMnIn);
+
+                double n1Bear = ftEq.PedestalBearingCapacity(ftFc, pedB, pedL);
+                double ftPedBearDC = ftEq.DemandCapacityRatio(pFootDesign, n1Bear);
+
+                double asDowelMin = ftEq.DowelMinimumArea(pedB, pedL);
+                double dowelDC = ftEq.DemandCapacityRatio(asDowelMin, dowelAs);
+                double ldc = ftEq.DevelopmentLength(ftFy * 1000.0, ftFc * 1000.0, dbDowel);
+
+                bool ftAllPass = soilDC <= 1.0 && fsSliding >= 1.5 && punchDC <= 1.0 && oneWayDC <= 1.0 && flexSteelDC <= 1.0 && flexMomDC <= 1.0 && ftPedBearDC <= 1.0 && dowelDC <= 1.0;
+
+                row = AddDataRow(ws, row, "Footing Dimensions B x L (ft)", $"{Math.Round(ftB, 4)} x {Math.Round(ftL, 4)}", "Footing Thickness h / Cover cc (in)", $"{ftH} / {ftCover}");
+                row = AddDataRow(ws, row, "Gravity Load/Leg P_leg (kips)", Math.Round(pLeg, 2), "Factored Pedestal Wt 1.2*Wp (kips)", Math.Round(pedWtFactored, 2));
+                row = AddDataRow(ws, row, "Design Footing Load Pc (kips)", Math.Round(pFootDesign, 2), "Effective Depth d (in)", Math.Round(dEff, 2));
+                row = AddDataRow(ws, row, "Required Area A_req (ft²)", Math.Round(areaReq, 2), "Provided Area A_f (ft²)", Math.Round(areaProv, 2));
+                row = AddDataRow(ws, row, "Soil Pressure q_u / q_allow (ksf)", $"{qApplied:F3} / {qAllow:F2}", "Soil Bearing D/C Ratio", Math.Round(soilDC, 4));
+                row = AddDataRow(ws, row, "Shear/Leg V_leg (kips)", Math.Round(vLeg, 2), "Sliding Factor of Safety (>= 1.5)", Math.Round(fsSliding, 2));
+                row = AddDataRow(ws, row, "Punching Perimeter bo (in) / Ao (ft²)", $"{b_o:F2} / {a_o:F2}", "Punching Demand Vu / Cap. phi*Vc (kips)", $"{vuPunch:F2} / {phiVcPunch:F1}");
+                row = AddDataRow(ws, row, "Punching Shear D/C Ratio", Math.Round(punchDC, 4), "Cantilever Projection l (ft)", Math.Round(cantProj, 3));
+                row = AddDataRow(ws, row, "1-Way Shear Vu / Cap. phi*Vc (kip/ft)", $"{vuOneWay:F3} / {phiVcOneWay:F2}", "One-Way Shear D/C Ratio", Math.Round(oneWayDC, 4));
+                row = AddDataRow(ws, row, "Flexure Mu (kip-ft/ft) / (kip-in/ft)", $"{muFlexFt:F2} / {muFlexIn:F2}", "As,req / As,min / Prov (in²/ft)", $"{asReq:F3} / {asMin:F3} / {bottomAs:F3}");
+                row = AddDataRow(ws, row, "Flexural Cap. phi*Mn (kip-in/ft)", Math.Round(phiMnIn, 1), "Flexure Moment D/C Ratio", Math.Round(flexMomDC, 4));
+                row = AddDataRow(ws, row, "Pedestal Bearing N1 (kips)", Math.Round(n1Bear, 1), "Pedestal Bearing D/C Ratio", Math.Round(ftPedBearDC, 4));
+                row = AddDataRow(ws, row, "Dowel Steel As,min / Prov (in²)", $"{asDowelMin:F3} / {dowelAs:F2}", "Dowel Steel D/C Ratio", Math.Round(dowelDC, 4));
+                row = AddDataRow(ws, row, "Comp. Dev. Length ldc (in)", Math.Round(ldc, 2), "Footing Design Status", ftAllPass ? "PASS / OK" : "CHECK FOOTING");
+                row++;
+            }
+
+            // Material & Geotechnical Properties
+            row = AddSectionHeader(ws, row, $"{nextSection}. MATERIAL & GEOTECHNICAL PROPERTIES");
             row = AddDataRow(ws, row, "Material Name", material?.MaterialName ?? "A36 Structural Steel", "Material Type", material?.MaterialType ?? "Carbon Steel");
             row = AddDataRow(ws, row, "Density (pcf)", material?.Density ?? 490, "Modulus of Elasticity (E) (ksi)", material?.ModulusOfElasticity ?? 29000);
             row = AddDataRow(ws, row, "Tensile Yield Stress (Fy) (psi)", material?.TensileYieldStress ?? 36000, "Tensile Ultimate Stress (Fu) (psi)", material?.TensileUltimateStress ?? 58000);
