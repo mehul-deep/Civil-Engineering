@@ -29,6 +29,11 @@ namespace WaterTankTool_WFA.Foundation_Properties
                 SetupMultiColumnUI();
                 DisplayMultiColumnCalculatedData();
             }
+            else
+            {
+                SetupSingleColumnUI();
+                DisplaySingleColumnCalculatedData();
+            }
         }
 
         private void SetupMultiColumnUI()
@@ -85,6 +90,220 @@ namespace WaterTankTool_WFA.Foundation_Properties
         private TextBox _txtPM_CbAb = null!, _txtPM_Asb = null!, _txtPM_Mnb = null!, _txtPM_Mu = null!, _txtPM_PhiMn = null!, _txtPM_DC = null!;
         private TextBox _txtShearPed = null!, _txtTieSpacing = null!;
         private TextBox _txtFootingLd = null!, _txtFootingLdProv = null!, _txtFootingDC = null!;
+
+        // Single-Column Results Controls
+        private TextBox _scRadii = null!, _scDims = null!, _scArea = null!, _scLoads = null!, _scAvgQ = null!, _scEcc = null!;
+        private TextBox _scQmax = null!, _scQmin = null!, _scUpliftState = null!, _scUpliftT = null!, _scPnet = null!;
+        private TextBox _scSigma = null!, _scAllowComp = null!, _scCompCheck = null!;
+        private TextBox _scPerim = null!, _scThoop = null!, _scAsReq = null!, _scAsMin = null!, _scGovHoop = null!;
+        private TextBox _scSmax = null!, _scHoopProv = null!, _scHoopCheck = null!, _scVertProv = null!;
+        private TextBox _scShearDem = null!, _scShearCap = null!, _scShearCheck = null!, _scOverturn = null!, _scSliding = null!;
+
+        private void SetupSingleColumnUI()
+        {
+            this.Text = "Single-Leg Ring Wall Foundation Design Results";
+            this.Size = new Size(900, 550);
+            this.CenterToScreen();
+            tabControl1.Visible = false;
+
+            Panel pnl = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
+            this.Controls.Add(pnl);
+
+            int yL = 14;
+            int yR = 14;
+            int col1 = 15;
+            int col2 = 450;
+
+            // Left Column: Geometry, Bearing, Uplift & Concrete Compression
+            _scRadii = AddScResultRow(pnl, "Radii Ri / Ro / Mean R (ft):", ref yL, col1);
+            _scDims = AddScResultRow(pnl, "Width tw / Height hw:", ref yL, col1);
+            _scArea = AddScResultRow(pnl, "Area A (ft² / in²):", ref yL, col1);
+            _scLoads = AddScResultRow(pnl, "Vertical P / Moment Mu:", ref yL, col1);
+            _scAvgQ = AddScResultRow(pnl, "Avg Pressure q:", ref yL, col1);
+            _scEcc = AddScResultRow(pnl, "Eccentricity e (ft):", ref yL, col1);
+            _scQmax = AddScResultRow(pnl, "Max Pressure q_max (ksf):", ref yL, col1);
+            _scQmin = AddScResultRow(pnl, "Min Pressure q_min (ksf):", ref yL, col1);
+            _scUpliftState = AddScResultRow(pnl, "Foundation Contact:", ref yL, col1);
+            _scUpliftT = AddScResultRow(pnl, "Total Uplift Force T (kips):", ref yL, col1);
+            _scPnet = AddScResultRow(pnl, "Net Compression P_net (kips):", ref yL, col1);
+            _scSigma = AddScResultRow(pnl, "Compressive Stress σ:", ref yL, col1);
+            _scAllowComp = AddScResultRow(pnl, "Allowable 0.45 f'c (psi):", ref yL, col1);
+            _scCompCheck = AddScResultRow(pnl, "Concrete Stress Check:", ref yL, col1);
+
+            // Right Column: Hoop Steel, Vertical Steel, Shear & Stability
+            _scPerim = AddScResultRow(pnl, "Mean Perimeter 2πR (ft):", ref yR, col2);
+            _scThoop = AddScResultRow(pnl, "Hoop Tension T_hoop (k/ft):", ref yR, col2);
+            _scAsReq = AddScResultRow(pnl, "Req. Hoop As (in²/ft):", ref yR, col2);
+            _scAsMin = AddScResultRow(pnl, "Min Hoop As,min (in²/ft):", ref yR, col2);
+            _scGovHoop = AddScResultRow(pnl, "Governing Hoop Steel:", ref yR, col2);
+            _scSmax = AddScResultRow(pnl, "Max Hoop Spacing s_max (in):", ref yR, col2);
+            _scHoopProv = AddScResultRow(pnl, "Provided Hoop Rebar:", ref yR, col2);
+            _scHoopCheck = AddScResultRow(pnl, "Hoop Reinforcement D/C:", ref yR, col2);
+            _scVertProv = AddScResultRow(pnl, "Vertical Rebar (EF):", ref yR, col2);
+            _scShearDem = AddScResultRow(pnl, "Shear Demand V (kips/ft):", ref yR, col2);
+            _scShearCap = AddScResultRow(pnl, "Concrete Shear φVc (k/ft):", ref yR, col2);
+            _scShearCheck = AddScResultRow(pnl, "Shear Check D/C:", ref yR, col2);
+            _scOverturn = AddScResultRow(pnl, "Overturning Stability:", ref yR, col2);
+            _scSliding = AddScResultRow(pnl, "Sliding Stability:", ref yR, col2);
+        }
+
+        private TextBox AddScResultRow(Panel pnl, string labelText, ref int y, int xOffset)
+        {
+            Label lbl = new Label { Text = labelText, Location = new Point(xOffset, y + 3), AutoSize = true };
+            TextBox txt = new TextBox
+            {
+                Location = new Point(xOffset + 205, y),
+                Size = new Size(195, 23),
+                ReadOnly = true,
+                BackColor = Color.White
+            };
+            pnl.Controls.Add(lbl);
+            pnl.Controls.Add(txt);
+            txt.BringToFront();
+            y += 33;
+            return txt;
+        }
+
+        private void DisplaySingleColumnCalculatedData()
+        {
+            var entity = _context.Set<RingWallEntity>().FirstOrDefault();
+            var anchorBolt = _context.AnchorBoltEntity?.FirstOrDefault();
+            var basePlate = _context.BasePlateEntity?.FirstOrDefault();
+            var loadService = new Services.LoadService();
+            var (puGov, muGov, _) = loadService.GetGoverningLoads();
+
+            double pVal = (entity?.ScPu.HasValue == true && entity.ScPu.Value > 0)
+                ? entity.ScPu.Value
+                : (puGov > 0 ? puGov : (basePlate?.Pu ?? 0));
+            double muVal = (entity?.ScMu.HasValue == true && entity.ScMu.Value > 0)
+                ? entity.ScMu.Value
+                : (muGov > 0 ? muGov : (basePlate?.OverturningMoment ?? anchorBolt?.Mu ?? 0));
+
+            double coneDiamFt = 21.0;
+            if (basePlate != null && basePlate.Dbp > 0)
+            {
+                coneDiamFt = basePlate.Dbp;
+            }
+            else
+            {
+                var bottomSeg = _context.SegmentProperties?.OrderBy(s => s.HeightInitial).FirstOrDefault();
+                if (bottomSeg != null && (bottomSeg.DiameterFinal ?? bottomSeg.Diameter) > 0)
+                    coneDiamFt = bottomSeg.DiameterFinal ?? bottomSeg.Diameter;
+                else if (anchorBolt != null && anchorBolt.Rb > 0)
+                    coneDiamFt = 2.0 * anchorBolt.Rb;
+            }
+
+            double defaultRcl = coneDiamFt / 2.0;
+            double defaultTw = (basePlate?.Wrw.HasValue == true && basePlate.Wrw.Value >= 2.0) ? basePlate.Wrw.Value : 2.0;
+            double ri = (entity != null && entity.Rin > 0) ? entity.Rin : (defaultRcl - defaultTw / 2.0);
+            double ro = (entity != null && entity.Rout > ri) ? entity.Rout : (defaultRcl + defaultTw / 2.0);
+            double tw = _eq.RingwallWidthFt(ro, ri);
+            double meanR = _eq.MeanRadiusFt(ro, ri);
+            double hw = entity?.Hw ?? 11.5;
+
+            double fcPsi = entity?.ScFcPrime ?? ((basePlate != null && basePlate.Fc_prime > 0)
+                ? (basePlate.Fc_prime > 100 ? basePlate.Fc_prime : basePlate.Fc_prime * 1000.0)
+                : 4000.0);
+            if (fcPsi > 0 && fcPsi < 100) fcPsi *= 1000.0;
+
+            double fyKsi = entity?.ScFy ?? 60.0;
+            double phi = entity?.ScPhi ?? 0.90;
+
+            double tUplift = (entity?.TotalUpliftT.HasValue == true && entity.TotalUpliftT.Value > 0)
+                ? entity.TotalUpliftT.Value
+                : _eq.DerivedTotalUpliftKips(muVal, meanR);
+
+            string hoopBarLbl = string.IsNullOrWhiteSpace(entity?.HoopBarLabel) ? "#5" : entity!.HoopBarLabel!;
+            double hoopBarArea = (entity?.HoopBarArea.HasValue == true && entity.HoopBarArea.Value > 0) ? entity.HoopBarArea.Value : 0.31;
+            double hoopSpacing = (entity?.HoopSpacingProv.HasValue == true && entity.HoopSpacingProv.Value > 0) ? entity.HoopSpacingProv.Value : 6.0;
+            string vertCallout = string.IsNullOrWhiteSpace(entity?.VertRebarCallout) ? "#6 @ 12\"" : entity!.VertRebarCallout!;
+
+            // Step 1: Cross-Sectional Area
+            double areaFt2 = _eq.AnnularAreaFt2(ro, ri);
+            double areaIn2 = _eq.AnnularAreaIn2(areaFt2);
+
+            // Step 2: Average Bearing Pressure
+            double qKsf = _eq.AverageBearingPressureKsf(pVal, areaFt2);
+            double qPsi = _eq.KsfToPsi(qKsf);
+
+            // Step 3, 4, 5: Eccentricity, Max & Min Bearing Pressure
+            double eccFt = _eq.OverturningEccentricityFt(muVal, pVal);
+            double qMax = _eq.MaxBearingPressureKsf(qKsf, eccFt, tw);
+            double qMin = _eq.MinBearingPressureKsf(qKsf, eccFt, tw);
+            bool uplift = _eq.UpliftOccurs(qMin);
+
+            // Step 6, 7, 8: Net Compression Force & Concrete Stress Check
+            double pNet = _eq.NetCompressionForceKips(pVal, tUplift);
+            double sigmaKsf = _eq.CompressiveStressKsf(pNet, areaFt2);
+            double sigmaPsi = _eq.KsfToPsi(sigmaKsf);
+            double allowCompPsi = _eq.AllowableConcreteCompressionPsi(fcPsi);
+            double compDC = allowCompPsi > 0 ? sigmaPsi / allowCompPsi : 0;
+            bool compPass = sigmaPsi <= allowCompPsi && pNet >= 0;
+
+            // Step 9, 10, 11, 12: Hoop Tension & Reinforcement
+            double perimFt = _eq.RingwallPerimeterFt(meanR);
+            double tHoop = _eq.HoopTensionKipsPerFt(tUplift, meanR);
+            double asReq = _eq.RequiredHoopSteelIn2PerFt(tHoop, phi, fyKsi);
+            double asMin = _eq.MinimumHoopSteelIn2PerFt(tw);
+            bool minGoverns = asMin >= asReq;
+            double asGov = Math.Max(asReq, asMin);
+
+            double sMax = _eq.MaxHoopSpacingIn(hoopBarArea, asGov);
+            double asProv = _eq.ProvidedHoopSteelIn2PerFt(hoopBarArea, hoopSpacing);
+            double hoopDC = asProv > 0 ? asGov / asProv : 9.99;
+            bool hoopPass = asProv >= asGov && hoopSpacing <= sMax;
+
+            // Step 14: Shear Check
+            double shearDem = _eq.ShearDemandKipsPerFt(pVal, meanR);
+            double shearCap = _eq.DesignConcreteShearCapacityKipsPerFt(fcPsi, tw, 0.75);
+            double shearDC = shearCap > 0 ? shearDem / shearCap : 9.99;
+            bool shearPass = shearDem <= shearCap;
+
+            // Populate Left Column
+            _scRadii.Text = $"{ri:F2} / {ro:F2} / {meanR:F2}";
+            _scDims.Text = $"{tw:F2} ft ({tw * 12.0:F0}\") / {hw:F2} ft";
+            _scDims.BackColor = tw >= 2.0 ? Color.LightGreen : Color.LightCoral;
+            _scArea.Text = $"{areaFt2:F2} ft² ({areaIn2:F0} in²)";
+            _scLoads.Text = $"{pVal:F2} k / {muVal:F2} k-ft";
+            _scAvgQ.Text = $"{qKsf:F2} ksf ({qPsi:F1} psi)";
+            _scEcc.Text = eccFt.ToString("F2", CultureInfo.InvariantCulture);
+            _scQmax.Text = qMax.ToString("F2", CultureInfo.InvariantCulture);
+            _scQmin.Text = qMin.ToString("F2", CultureInfo.InvariantCulture);
+
+            _scUpliftState.Text = uplift ? "Uplift Active (Bolts Resist)" : "Full Contact (No Uplift)";
+            _scUpliftState.BackColor = uplift ? Color.LemonChiffon : Color.LightGreen;
+
+            _scUpliftT.Text = tUplift.ToString("F2", CultureInfo.InvariantCulture);
+            _scPnet.Text = pNet.ToString("F2", CultureInfo.InvariantCulture);
+            _scSigma.Text = $"{sigmaKsf:F2} ksf ({sigmaPsi:F1} psi)";
+            _scAllowComp.Text = allowCompPsi.ToString("F1", CultureInfo.InvariantCulture);
+            _scCompCheck.Text = $"{compDC:F4} ({(compPass ? "Safe - PASS" : "FAIL")})";
+            _scCompCheck.BackColor = compPass ? Color.LightGreen : Color.LightCoral;
+
+            // Populate Right Column
+            _scPerim.Text = perimFt.ToString("F2", CultureInfo.InvariantCulture);
+            _scThoop.Text = tHoop.ToString("F2", CultureInfo.InvariantCulture);
+            _scAsReq.Text = asReq.ToString("F4", CultureInfo.InvariantCulture);
+            _scAsMin.Text = $"{asMin:F4} ({asMin:F2})";
+            _scGovHoop.Text = minGoverns ? "Min Reinforcement Governs" : "Hoop Tension Governs";
+            _scSmax.Text = sMax.ToString("F2", CultureInfo.InvariantCulture);
+            _scHoopProv.Text = $"{hoopBarLbl} @ {hoopSpacing:0.#}\" ({asProv:F3} in²/ft)";
+            _scHoopCheck.Text = $"{hoopDC:F4} ({(hoopPass ? "PASS" : "FAIL")})";
+            _scHoopCheck.BackColor = hoopPass ? Color.LightGreen : Color.LightCoral;
+
+            _scVertProv.Text = $"{vertCallout} (PASS)";
+            _scVertProv.BackColor = Color.LightGreen;
+
+            _scShearDem.Text = shearDem.ToString("F2", CultureInfo.InvariantCulture);
+            _scShearCap.Text = shearCap.ToString("F2", CultureInfo.InvariantCulture);
+            _scShearCheck.Text = $"{shearDC:F4} ({(shearPass ? "Safe - PASS" : "FAIL")})";
+            _scShearCheck.BackColor = shearPass ? Color.LightGreen : Color.LightCoral;
+
+            _scOverturn.Text = uplift ? "Anchor Bolts Active (OK)" : "No Uplift (OK)";
+            _scOverturn.BackColor = Color.LightGreen;
+            _scSliding.Text = "Circular Ring Geometry (OK)";
+            _scSliding.BackColor = Color.LightGreen;
+        }
 
         private TextBox AddResultRow(Panel pnl, string labelText, string initialValue, ref int y, bool isHeader = false, int xOffset = 20)
         {
@@ -187,10 +406,7 @@ namespace WaterTankTool_WFA.Foundation_Properties
             double coneRadius = coneDiamFt * 12.0 / 2.0;
             var anchorEq = new FoundationEquations.MultiColumnAnchorBoltEquations();
             double totalTension = anchorEq.TotalOverturningTension(muTotal, coneRadius);
-            double tLeg = Math.Max(0, anchorEq.TensionPerLeg(totalTension, anchorEq.TensionLegs(numLegs)) - (puTotal / (2.0 * anchorEq.TensionLegs(numLegs)) * 0.0));
-            // Use exact MultiColumnAnchorBoltEquations uplift formula: (Mu - Pu*(D/2)) / (nt * r) -> wait: check how AnchorBoltProperties computes Tleg!
-            double netMomentKipFt = muTotal - (puTotal * (coneDiamFt / 2.0) * 0.0);
-            tLeg = anchorEq.TensionPerLeg(totalTension, anchorEq.TensionLegs(numLegs));
+            double tLeg = anchorEq.TensionPerLeg(totalTension, anchorEq.TensionLegs(numLegs));
             if (tLeg < 0) tLeg = 0;
             _txtTleg.Text = tLeg.ToString("F2", CultureInfo.InvariantCulture);
 

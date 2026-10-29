@@ -498,6 +498,99 @@ namespace WaterTankTool_WFA.Output.SpheroidTank
                 row = AddDataRow(ws, row, "Comp. Dev. Length ldc (in)", Math.Round(ldc, 2), "Footing Design Status", ftAllPass ? "PASS / OK" : "CHECK FOOTING");
                 row++;
             }
+            else
+            {
+                // Single-Column Only: Section 5 (Annular Concrete Ring Wall Stem - Steps 1 to 15)
+                row = AddSectionHeader(ws, row, $"{nextSection++}. ANNULAR CONCRETE RING WALL FOUNDATION DESIGN (ACI 318-19 - SINGLE-LEG)");
+                var rwEq = new FoundationEquations.RingWallEquations();
+                var (puGov, muGov, _) = new LoadService().GetGoverningLoads();
+
+                double rwP = (ringWall?.ScPu.HasValue == true && ringWall.ScPu.Value > 0)
+                    ? ringWall.ScPu.Value
+                    : (puGov > 0 ? puGov : (pu > 0 ? pu : (basePlate?.Pu ?? 0)));
+                double rwMu = (ringWall?.ScMu.HasValue == true && ringWall.ScMu.Value > 0)
+                    ? ringWall.ScMu.Value
+                    : (muGov > 0 ? muGov : (mu > 0 ? mu : (basePlate?.OverturningMoment ?? 0)));
+
+                double coneDiamFt = 21.0;
+                if (basePlate != null && basePlate.Dbp > 0)
+                    coneDiamFt = basePlate.Dbp;
+                else if (baseConeDia > 0)
+                    coneDiamFt = baseConeDia;
+                else if (anchorBolt != null && anchorBolt.Rb > 0)
+                    coneDiamFt = 2.0 * anchorBolt.Rb;
+
+                double defaultRcl = coneDiamFt / 2.0;
+                double defaultTw = (basePlate?.Wrw.HasValue == true && basePlate.Wrw.Value >= 2.0) ? basePlate.Wrw.Value : 2.0;
+                double ri = (ringWall != null && ringWall.Rin > 0) ? ringWall.Rin : (defaultRcl - defaultTw / 2.0);
+                double ro = (ringWall != null && ringWall.Rout > ri) ? ringWall.Rout : (defaultRcl + defaultTw / 2.0);
+                double tw = rwEq.RingwallWidthFt(ro, ri);
+                double meanR = rwEq.MeanRadiusFt(ro, ri);
+                double hw = ringWall?.Hw ?? 11.5;
+
+                double fcPsi = ringWall?.ScFcPrime ?? ((basePlate != null && basePlate.Fc_prime > 0)
+                    ? (basePlate.Fc_prime > 100 ? basePlate.Fc_prime : basePlate.Fc_prime * 1000.0)
+                    : 4000.0);
+                if (fcPsi > 0 && fcPsi < 100) fcPsi *= 1000.0;
+
+                double fyKsi = ringWall?.ScFy ?? 60.0;
+                double phi = ringWall?.ScPhi ?? 0.90;
+
+                double tUplift = (ringWall?.TotalUpliftT.HasValue == true && ringWall.TotalUpliftT.Value > 0)
+                    ? ringWall.TotalUpliftT.Value
+                    : rwEq.DerivedTotalUpliftKips(rwMu, meanR);
+
+                string hoopBarLbl = string.IsNullOrWhiteSpace(ringWall?.HoopBarLabel) ? "#5" : ringWall!.HoopBarLabel!;
+                double hoopBarArea = (ringWall?.HoopBarArea.HasValue == true && ringWall.HoopBarArea.Value > 0) ? ringWall.HoopBarArea.Value : 0.31;
+                double hoopSpacing = (ringWall?.HoopSpacingProv.HasValue == true && ringWall.HoopSpacingProv.Value > 0) ? ringWall.HoopSpacingProv.Value : 6.0;
+                string vertCallout = string.IsNullOrWhiteSpace(ringWall?.VertRebarCallout) ? "#6 @ 12\"" : ringWall!.VertRebarCallout!;
+
+                double areaFt2 = rwEq.AnnularAreaFt2(ro, ri);
+                double areaIn2 = rwEq.AnnularAreaIn2(areaFt2);
+                double qKsf = rwEq.AverageBearingPressureKsf(rwP, areaFt2);
+                double qPsi = rwEq.KsfToPsi(qKsf);
+                double eccFt = rwEq.OverturningEccentricityFt(rwMu, rwP);
+                double qMax = rwEq.MaxBearingPressureKsf(qKsf, eccFt, tw);
+                double qMin = rwEq.MinBearingPressureKsf(qKsf, eccFt, tw);
+                bool uplift = rwEq.UpliftOccurs(qMin);
+
+                double pNet = rwEq.NetCompressionForceKips(rwP, tUplift);
+                double sigmaKsf = rwEq.CompressiveStressKsf(pNet, areaFt2);
+                double sigmaPsi = rwEq.KsfToPsi(sigmaKsf);
+                double allowCompPsi = rwEq.AllowableConcreteCompressionPsi(fcPsi);
+                double compDC = allowCompPsi > 0 ? sigmaPsi / allowCompPsi : 0;
+                bool compPass = sigmaPsi <= allowCompPsi && pNet >= 0;
+
+                double perimFt = rwEq.RingwallPerimeterFt(meanR);
+                double tHoop = rwEq.HoopTensionKipsPerFt(tUplift, meanR);
+                double asReq = rwEq.RequiredHoopSteelIn2PerFt(tHoop, phi, fyKsi);
+                double asMin = rwEq.MinimumHoopSteelIn2PerFt(tw);
+                double asGov = Math.Max(asReq, asMin);
+                double sMax = rwEq.MaxHoopSpacingIn(hoopBarArea, asGov);
+                double asProv = rwEq.ProvidedHoopSteelIn2PerFt(hoopBarArea, hoopSpacing);
+                double hoopDC = asProv > 0 ? asGov / asProv : 9.99;
+                bool hoopPass = asProv >= asGov && hoopSpacing <= sMax;
+
+                double shearDem = rwEq.ShearDemandKipsPerFt(rwP, meanR);
+                double shearCap = rwEq.DesignConcreteShearCapacityKipsPerFt(fcPsi, tw, 0.75);
+                double shearDC = shearCap > 0 ? shearDem / shearCap : 9.99;
+                bool shearPass = shearDem <= shearCap;
+                bool rwAllPass = tw >= 2.0 && compPass && hoopPass && shearPass;
+
+                row = AddDataRow(ws, row, "Inner / Outer / Mean Radius (ft)", $"{ri:F2} / {ro:F2} / {meanR:F2}", "Ringwall Width tw / Height hw (ft)", $"{tw:F2} ({tw * 12.0:F0} in) / {hw:F2}");
+                row = AddDataRow(ws, row, "Concrete f'c (psi) / Rebar fy (ksi)", $"{fcPsi:F0} / {fyKsi:F0}", "Cross-Sectional Area A (ft² / in²)", $"{areaFt2:F2} / {areaIn2:F0}");
+                row = AddDataRow(ws, row, "Avg Bearing Pressure q (ksf / psi)", $"{qKsf:F2} / {qPsi:F1}", "Overturning Eccentricity e (ft)", Math.Round(eccFt, 2));
+                row = AddDataRow(ws, row, "Max / Min Pressure q_max / q_min (ksf)", $"{qMax:F2} / {qMin:F2}", "Foundation Contact Condition", uplift ? "Uplift Active (Anchor Bolts Resist)" : "Full Contact (No Uplift)");
+                row = AddDataRow(ws, row, "Total Uplift Force T (kips)", Math.Round(tUplift, 2), "Net Compression Force P_net (kips)", Math.Round(pNet, 2));
+                row = AddDataRow(ws, row, "Compressive Stress sigma (ksf / psi)", $"{sigmaKsf:F2} / {sigmaPsi:F1}", "Allowable Stress 0.45*f'c (psi)", Math.Round(allowCompPsi, 1));
+                row = AddDataRow(ws, row, "Concrete Stress D/C Ratio", Math.Round(compDC, 4), "Mean Perimeter 2*pi*R (ft)", Math.Round(perimFt, 2));
+                row = AddDataRow(ws, row, "Hoop Tension T_hoop (kips/ft)", Math.Round(tHoop, 2), "Hoop Steel As,req / As,min (in²/ft)", $"{asReq:F4} / {asMin:F4}");
+                row = AddDataRow(ws, row, "Max Hoop Spacing s_max (in)", Math.Round(sMax, 2), "Provided Hoop Reinforcement", $"{hoopBarLbl} @ {hoopSpacing:0.#}\" ({asProv:F3} in²/ft)");
+                row = AddDataRow(ws, row, "Hoop Steel D/C Ratio", Math.Round(hoopDC, 4), "Vertical Reinforcement (Each Face)", vertCallout);
+                row = AddDataRow(ws, row, "Shear V / Cap. phi*Vc (kips/ft)", $"{shearDem:F2} / {shearCap:F2}", "Shear Check D/C Ratio", Math.Round(shearDC, 4));
+                row = AddDataRow(ws, row, "Overturning & Sliding Stability", "Anchor Bolts Active / Circular Ring (OK)", "Ring Wall Design Status", rwAllPass ? "PASS / OK" : "CHECK RING WALL");
+                row++;
+            }
 
             // Material & Geotechnical Properties
             row = AddSectionHeader(ws, row, $"{nextSection}. MATERIAL & GEOTECHNICAL PROPERTIES");

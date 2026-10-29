@@ -165,9 +165,30 @@ namespace WaterTankTool_WFA.Services
                     }
                     else
                     {
-                        // Single-Leg retains its original correct logic
-                        double comXweight = double.Parse(tankProperties.TotalWeight) * (double.Parse(tankProperties.Centroid) + segments[0].HeightInitial);
-                        seismicM = 0.6 * (comXweight / Pu) * seismicLoad.V;
+                        // Single-Leg matches Load_Combinations.GetBaseMoment (tank + cylinder + base cone)
+                        var topTankSeg = segments.OrderByDescending(x => x.HeightInitial).FirstOrDefault(x => x.SegmentType == "Tanks")
+                                         ?? segments.OrderByDescending(x => x.HeightInitial).First();
+                        double comXweight = double.Parse(tankProperties.TotalWeight) * (double.Parse(tankProperties.Centroid) + topTankSeg.HeightInitial);
+
+                        foreach (var item in segments.Where(x => x.SegmentType == "Cylinder"))
+                        {
+                            double weightC = cylinderEquations.weightOfPedestal(item.HeightInitial, item.HeightFinal, item.Diameter, item.Thickness);
+                            double comC = cylinderEquations.Centroid(item.HeightInitial, item.HeightFinal);
+                            comXweight += weightC * comC;
+                        }
+
+                        foreach (var item in segments.Where(x => x.SegmentType == "Base"))
+                        {
+                            double weightB = conicalEquations.weight(item.HeightInitial, item.HeightFinal, (double)item.DiameterInitial, (double)item.DiameterFinal, item.Thickness);
+                            double comB = conicalEquations.Centroid(item.HeightInitial, item.HeightFinal, (double)item.DiameterInitial, (double)item.DiameterFinal);
+                            comXweight += weightB * comB;
+                        }
+
+                        double res = double.Parse(tankProperties.TotalWeight) + (deadLoad?.Miscellaneous_Load ?? 0);
+                        if (res > 0)
+                        {
+                            seismicM = 0.6 * (comXweight / res) * seismicLoad.V;
+                        }
                     }
                 }
 
@@ -178,8 +199,8 @@ namespace WaterTankTool_WFA.Services
                 }
                 else
                 {
-                    Mu = Math.Max(windM, seismicM);
-                    Vu = Math.Max(windV, seismicV);
+                    Mu = Math.Max(0.6 * windM, seismicM);
+                    Vu = windV;
                 }
 
                 // Apply Multiplier

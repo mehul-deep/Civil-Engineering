@@ -445,6 +445,127 @@ namespace WaterTankTool_WFA.Solver_Equation
             // 3.1 Geometry Calculation
             // ==============================
 
+            // ==========================================================
+            // Single-Leg Annular Concrete Ring Wall Stem (Steps 1 - 15)
+            // ==========================================================
+
+            // Step 1: Ringwall Cross-Sectional Area A = pi * (Ro^2 - Ri^2)
+            public double AnnularAreaFt2(double outerRadiusFt, double innerRadiusFt)
+            {
+                if (outerRadiusFt <= innerRadiusFt) return 0;
+                return R(Math.PI * (Math.Pow(outerRadiusFt, 2) - Math.Pow(innerRadiusFt, 2)));
+            }
+
+            public double AnnularAreaIn2(double areaFt2) => R(areaFt2 * 144.0);
+
+            // Step 2: Average Bearing Pressure q = P / A
+            public double AverageBearingPressureKsf(double verticalLoadKips, double areaFt2)
+            {
+                if (areaFt2 <= 0) return 0;
+                return R(verticalLoadKips / areaFt2);
+            }
+
+            public double KsfToPsi(double ksf) => R((ksf * 1000.0) / 144.0);
+
+            // Step 3: Eccentricity Due to Overturning e = Mu / P
+            public double OverturningEccentricityFt(double momentKipFt, double verticalLoadKips)
+            {
+                if (verticalLoadKips <= 0) return 0;
+                return R(momentKipFt / verticalLoadKips);
+            }
+
+            // Step 4 & 5: Ringwall Width B = Ro - Ri, qmax & qmin
+            public double RingwallWidthFt(double outerRadiusFt, double innerRadiusFt) => R(Math.Max(0, outerRadiusFt - innerRadiusFt));
+
+            public double MaxBearingPressureKsf(double avgPressureKsf, double eccentricityFt, double widthFt)
+            {
+                if (widthFt <= 0) return 0;
+                return R(avgPressureKsf * (1.0 + ((6.0 * eccentricityFt) / widthFt)));
+            }
+
+            public double MinBearingPressureKsf(double avgPressureKsf, double eccentricityFt, double widthFt)
+            {
+                if (widthFt <= 0) return 0;
+                return R(avgPressureKsf * (1.0 - ((6.0 * eccentricityFt) / widthFt)));
+            }
+
+            public bool UpliftOccurs(double minBearingPressureKsf) => minBearingPressureKsf < 0;
+
+            public double DerivedTotalUpliftKips(double momentKipFt, double meanRadiusFt)
+            {
+                double diameterFt = 2.0 * meanRadiusFt;
+                if (diameterFt <= 0) return 0;
+                return R(momentKipFt / (0.67 * diameterFt));
+            }
+
+            // Step 6: Net Compression Force Pnet = P - T
+            public double NetCompressionForceKips(double verticalLoadKips, double upliftForceKips) => R(verticalLoadKips - upliftForceKips);
+
+            // Step 7: Compressive Stress in Ringwall sigma = Pnet / A
+            public double CompressiveStressKsf(double netCompressionKips, double areaFt2)
+            {
+                if (areaFt2 <= 0) return 0;
+                return R(netCompressionKips / areaFt2);
+            }
+
+            // Step 8: Concrete Stress Check <= 0.45 * f'c
+            public double AllowableConcreteCompressionPsi(double fcPrimePsi) => R(0.45 * fcPrimePsi);
+
+            // Step 9: Hoop Tension in Ringwall Thoop = T / (2 * pi * R)
+            public double MeanRadiusFt(double outerRadiusFt, double innerRadiusFt) => R((outerRadiusFt + innerRadiusFt) / 2.0);
+
+            public double RingwallPerimeterFt(double meanRadiusFt) => R(2.0 * Math.PI * meanRadiusFt);
+
+            public double HoopTensionKipsPerFt(double upliftForceKips, double meanRadiusFt)
+            {
+                double perimeter = 2.0 * Math.PI * meanRadiusFt;
+                if (perimeter <= 0) return 0;
+                return R(upliftForceKips / perimeter);
+            }
+
+            // Step 10: Required Hoop Reinforcement As = Thoop(1000) / (phi * fy)
+            public double RequiredHoopSteelIn2PerFt(double hoopTensionKipsPerFt, double phi, double fyKsi)
+            {
+                double denom = phi * (fyKsi * 1000.0);
+                if (denom <= 0) return 0;
+                return R((hoopTensionKipsPerFt * 1000.0) / denom);
+            }
+
+            // Step 11: ACI Minimum Hoop Reinforcement As,min = 0.0018 * b * h (h = 12 in per ft strip)
+            public double MinimumHoopSteelIn2PerFt(double ringwallWidthFt)
+            {
+                double bIn = ringwallWidthFt * 12.0;
+                return R(0.0018 * bIn * 12.0);
+            }
+
+            // Step 12: Hoop Reinforcement Selection & Spacing Check
+            public double MaxHoopSpacingIn(double hoopBarAreaIn2, double governingAsIn2PerFt)
+            {
+                if (governingAsIn2PerFt <= 0) return 0;
+                return R((hoopBarAreaIn2 * 12.0) / governingAsIn2PerFt);
+            }
+
+            public double ProvidedHoopSteelIn2PerFt(double hoopBarAreaIn2, double providedSpacingIn)
+            {
+                if (providedSpacingIn <= 0) return 0;
+                return R((hoopBarAreaIn2 * 12.0) / providedSpacingIn);
+            }
+
+            // Step 14: Shear Check V = P / (2 * pi * R) vs Concrete Shear Capacity phi*Vc
+            public double ShearDemandKipsPerFt(double verticalLoadKips, double meanRadiusFt)
+            {
+                double perimeter = 2.0 * Math.PI * meanRadiusFt;
+                if (perimeter <= 0) return 0;
+                return R(verticalLoadKips / perimeter);
+            }
+
+            public double DesignConcreteShearCapacityKipsPerFt(double fcPrimePsi, double ringwallWidthFt, double phiShear = 0.75)
+            {
+                double bIn = ringwallWidthFt * 12.0;
+                double vnLbs = 2.0 * Math.Sqrt(Math.Max(0, fcPrimePsi)) * bIn * 12.0;
+                return R((phiShear * vnLbs) / 1000.0);
+            }
+
             // 1) Rin = Rcl - B/2
             public double InnerRadiusOfFooting(double radiusToFoundationCenterline, double footingBaseWidth)
             {

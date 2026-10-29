@@ -1,0 +1,117 @@
+================================================================================
+SESSION LOG - NOTES 17: SINGLE-LEG (SINGLECOLUMN) ANCHOR BOLT VERIFICATION
+(100K, 250K, 500K), GOVERNING LOADS FIX, & COMPLETE DISCREPANCY REPORT
+Date: 2026-10-29
+================================================================================
+
+### 1. STRICT SCOPE & STANDING RULES
+- **MULTI-LEG (`TankType.MultiColumn`) IS 100% VERIFIED AND FROZEN**:
+  All 4 Multi-Column modules (Anchor Bolt, Base Plate, Pedestal, Footing) and the Multi-Column `.xlsx` Engineering Summary export were 100% verified across 100K, 400K, and 500K (see `Notes16_Session_Summary_MultiLeg_AnchorBolt_Verification.txt`).
+  **NEVER modify any `TankType.MultiColumn` code, equations, entities, UI, or Excel export logic.**
+- **ALWAYS ASK BEFORE EDITING CODE**:
+  Explain any proposed code changes clearly and obtain explicit user approval before modifying project source files.
+
+---
+
+### 2. SINGLE-LEG CODE UPDATE COMPLETED (`LoadService.cs`)
+- **Unified Governing Loads (`Mu` and `Vu`) for Single-Leg (`TankType.SingleColumn`)**:
+  - Previously, Single-Leg in `LoadService.cs` used raw unfactored `windM * 1.667` (missing the `0.6` ASD wind factor from `D + 0.6W`) and omitted cylinder + base cone weights from `seismicM`.
+  - With explicit user approval, updated ONLY the two Single-Leg (`else`) blocks in `LoadService.cs` to match Multi-Leg and `Load_Combinations` Row 5 (`D + 0.6(W or E)`):
+    * `Mu = Math.Max(0.6 * windM, seismicM) * 1.667` (where `seismicM` includes `0.6` factor and tank bowl + cylinder + base cone).
+    * `Vu = windV * 1.667`.
+  - Verified zero Multi-Leg lines touched (`git diff -w`) and clean build (`0 Error(s)`).
+
+---
+
+### 3. MASTER TABLE 1: GOVERNING LOADS (`Mu` & `Vu`) ACROSS 100K, 250K, AND 500K
+
+| Tank Capacity | Parameter | Software Output (Live DB) | Engineer's PDF Value | Why They Match or Differ |
+| :--- | :--- | :---: | :---: | :--- |
+| **100K**<br>(`anchorbolt100ksingleleg.pdf`) | **$M_u$ (kip-ft)** | **`2903.6953`**<br>*(pre-fix: `4839.4922`)* | `4847.67` *(Pg. 1–2)* | **100K PDF omitted the `0.6` wind factor!** `4847.67` was raw $M_{\text{wind}} \times 1.667$ (matching our pre-fix `4839.4922`). With `0.6 × 1.667`, true LRFD $M_u = 2903.6953\text{ kip-ft}$ (matches `Loads.csv` Row 5 `1741.87 × 1.667`). |
+| | **$V_u$ (kips)** | **`53.4318`** | `20.683` *(Pg. 9)*<br>`57.22` *(Pg. 1 Multi-Leg table)* | **100K PDF Pg. 9 used unfactored wind shear** without the `30 psf × Cf` minimum wind pressure floor in `Equations.cs` (`32.0527 × 1.667 = 53.4318 kips`). |
+| **250K**<br>(`anchorbolt250ksingleleg.pdf`) | **$M_u$ (kip-ft)** | **`5241.4886`** | **`5640.2`** *(Pg. 1)* / `5640.178` *(Pg. 2)* | **Same `0.6 × 1.667` method!** Both use $0.6 \times M_{\text{wind}} \times 1.667$ (our live $M_{\text{wind}} = 5240.44\text{ kip-ft}$ vs. PDF's `5639.05 kip-ft` from slightly different manual geometry/height input). |
+| | **$V_u$ (kips)** | **`82.0907`** | **`86.4`** *(Pg. 1)*<br>`44.5` *(Pg. 9 body)* | **Matches Pg. 1 factored `86.4 kips`!** (`49.2446 × 1.667 = 82.0907 kips`). PDF Pg. 9 body accidentally plugged in unfactored `44.5 kips` instead of Pg. 1's `86.4 kips`. |
+| **500K**<br>(`anchorbolt500ksingleleg.pdf`) | **$M_u$ (kip-ft)** | **`4155.8311`** | `4976.0383` *(Pg. 1 & 3)* | **PDF Pg. 3 has an arithmetic/factor mismatch**: wrote `Mw = 6117.08` and `0.6(6117.08) = 4976.0383` (actually `0.6 × 6117.08 = 3670.25`). Live 500K DB gives `4155.8311 kip-ft`. |
+| | **$V_u$ (kips)** | **`92.2914`** | **`77.0326`** *(Pg. 1 & 9)* | **Both use factored LRFD wind shear!** Difference comes only from live 500K tank geometry/wind profile vs. PDF's predefined load table. |
+
+---
+
+### 4. MASTER TABLE 2: ALL 22 SINGLE-LEG ANCHOR BOLT OUTPUTS (100K, 250K, 500K)
+
+| Output Field | **100K Single-Leg**<br>Software vs. `anchorbolt100ksingleleg.pdf` | **250K Single-Leg**<br>Software (`result250k...PNG`) vs. `anchorbolt250ksingleleg.pdf` | **500K Single-Leg**<br>Software (`result500k...PNG`) vs. `anchorbolt500ksingleleg.pdf` |
+| :--- | :---: | :---: | :---: |
+| **Bolts ($N_b$) / Dia ($d_b$) / Hole ($d_h$)** | **`20`** / **`1.5 in`** / **`1.625 in`** (Exact) | **`36`** / **`1.5 in`** / **`1.625 in`** (Exact) | **`16`** / **`1.5 in`** / **`1.625 in`** (Exact) |
+| **Bolt Circle Radius ($r_b$)** | **`10.75 ft`** (`129 in`) vs **`10.75 ft`** | **`12.50 ft`** (`150 in`) vs **`12.50 ft`** | **`15.25 ft`** (`183 in`) vs **`15.25 ft`** |
+| **Bolt Tensile Area ($A_b$, $\text{in}^2$)** | **`1.7671`** vs **`1.767`** | **`1.7671`** vs **`1.767`** | **`1.7671`** vs **`1.767`** |
+| **Bolt Hole Area ($A_h$, $\text{in}^2$)** | **`2.0739`** vs **`2.074`** | **`2.0739`** vs **`2.074`** | **`2.0739`** vs **`2.074`** |
+| **Angular Spacing ($\Delta\theta_b$)** | **`18.0000°`** vs **`18°`** | **`10.0000°`** vs **`10°`** | **`22.5000°`** vs **`22.5°`** |
+| **Arc Spacing ($S_{\text{arc}}$, $\text{in}$)** | **`40.53`** vs **`40.53`** | **`26.18`** vs **`26.18`** *(Pg. 12; Pg. 7 body typo)* | **`71.86`** vs **`71.86`** |
+| **Chord Spacing ($S_{\text{chord}}$, $\text{in}$)** | **`40.36`** vs **`40.35`** *(rounding)* | **`26.15`** vs **`26.15`** *(Pg. 12; Pg. 7 left `40.35`)* | **`71.40`** vs **`71.42`** *(rounded $\sin$)* |
+| **Bolts per Segment ($n_{bs}$)** | **`5.0000`** vs **`5`** ($n_s=4$) | **`9.0000`** vs **`9`** ($n_s=4$) | **`4.0000`** vs **`4`** ($n_s=4$) |
+| **Clear Edge Distance ($e_{\text{clear}}$, $\text{in}$)** | **`2.1875` (`PASS`)** vs **`2.19` (`SAFE`)** | **`2.1875` (`PASS`)** vs Pg. 1 `e=3.0` *(Pg. 8 typed `e=54`)* | **`2.1875` (`PASS`)** vs **`2.19`** |
+| **Base Plate Thickness ($t_{bp}$, $\text{in}$)** | **`1.0000`** vs **`1.0`** | **`1.0000`** vs **`1.0`** | **`1.0000`** vs **`1.0`** |
+| **Governing Moment ($M_u$, $\text{kip-ft}$)** | **`2903.6953`** *(pre-fix: `4839.4922`)* vs `4847.67`* | **`5241.4886`** vs `5640.2`* | **`4155.8311`** vs `4976.0383`* |
+| **Concrete Strength ($f'_c$, $\text{psi}$)** | **`4000.0000`** vs **`4000`** | **`4000.0000`** vs **`4000`** | **`4000.0000`** vs **`4000`** (`4 ksi`) |
+| **Embedment Depth ($h_{ef}$, $\text{in}$)** | **`96.0000`** vs **`96`** *(Pg. 11 & 13)* | **`25.0000`** vs **`25.0`** | **`35.0000`** vs **`35`** *(Pg. 1; Pg. 11 left `96`)* |
+| **Distribution Method** | **`Circular Group`** | **`Circular Group`** | **`Circular Group`** |
+| **Total Uplift $T_u$ ($\text{kips}$)** | **`201.5755`** *(pre-fix: `335.9592`)* vs `344.54`* | **`312.9247`** vs `336.73` *(at 5640.2)* | **`203.3683`** vs `311.01`* *(Pg. 4 lever arm/math typo)* |
+| **Tension per Bolt $T_{\text{bolt}}$ ($\text{kips}$)** | **`20.1576`** *(pre-fix: `33.5959`)* vs `34.45`* | **`17.3847`** vs `18.71` *(at 336.73)* | **`25.4210`** vs `38.86` *(Pg. 4)* / `34.45`* *(Pg. 10)* |
+| **Shear per Bolt $V_{\text{bolt}}$ ($\text{kips}$)** | **`2.6716`** vs `1.034`* *(unfactored Vu)* | **`2.2803`** vs `1.24`* *(unfactored Vu)* | **`5.7682`** vs `4.82` *(Pg. 9)* / `1.034`* *(Pg. 10)* |
+| **Tensile Capacity $\phi P_{nt}$ ($\text{kips}$)** | **`76.8710`** vs **`76.87`** | **`76.8710`** vs **`76.87`** | **`76.8710`** vs **`76.87`** |
+| **Shear Capacity $\phi V_n$ ($\text{kips}$)** | **`46.1226`** vs **`46.11`** *(rounded $A_b$)* | **`46.1226`** vs **`46.12`** | **`46.1226`** vs **`46.12`** *(Pg. 12)* / `46.11` *(Pg. 10)* |
+| **Combined Interaction Ratio** | **`0.3201` (`PASS`)** *(pre-fix: `0.4949`)* vs `0.470` (`SAFE`) | **`0.2756` (`PASS`)** vs **`0.270` (`SAFE`)** | **`0.4558` (`PASS`)** vs **`0.470` (`SAFE`)*** |
+| **Min Embedment Check ($h_{ef} \ge 8d_b$)** | **`PASS`** vs **`PASS`** | **`PASS`** vs **`PASS`** | **`PASS`** vs **`PASS`** |
+| **Breakout Capacity $\phi N_{cb}$ ($\text{kips}$)** | **`1070.60`** vs **`1070`** | **`142.30`** vs **`142.30`** | **`235.72`** *(at $h_{ef}=35$)* vs `1070`* *(Pg. 11 left $h_{ef}=96$)* |
+| **Breakout Utilization** | **`0.0188` (`PASS`)** *(pre-fix: `0.0314`)* vs **`0.032`** | **`0.1222` (`PASS`)** vs **`0.131`** | **`0.1078` (`PASS`)** vs `0.032`* *(from 100K)* |
+| **Bolt 1 Coordinates** | **`0.00°`, `(10.75, 0.00)`, `Right`** (Exact) | **`0.00°`, `(12.50, 0.00)`, `Right`** (Exact) | **`0.00°`, `(15.25, 0.00)`, `Right`** (Exact) |
+
+---
+
+### 5. COMPLETE SUMMARY OF PDF DISCREPANCIES & TYPOS ACROSS ALL 3 PDFS
+
+#### A. 100K PDF (`anchorbolt100ksingleleg.pdf`)
+1. **Page 1 Top Table Pasted Multi-Leg Data**: Listed `Nb = 4`, `Dcl = 41'-0.5625"`, `39 x 39 in` pedestal, `e = 13.5 in`, and `Mu = 5673.437 kip-ft` from 100K Multi-Leg instead of Single-Leg (`Nb = 20`, `rb = 10.75 ft`).
+2. **Missing `0.6` Wind Factor on `Mu` (`4847.67` vs. `2903.6953 kip-ft`)**: Page 2 used raw $M_{\text{wind}} \times 1.667 = 4847.67\text{ kip-ft}$ without the `0.6` ASD factor (which 250K PDF later corrected).
+3. **Bolt Circle Lever Arm (`D = 21.0 ft` vs. `21.5 ft`)**: Page 2 used ringwall centerline diameter `21.0 ft` (`0.67 × 21 = 14.07 ft`), whereas Pages 3–13 specify actual bolt circle diameter `2 × 10.75 = 21.5 ft` (`0.67 × 21.5 = 14.405 ft`).
+4. **Unfactored Wind Shear (`20.683 kips` vs. `53.4318 kips`)**: Page 9 used unfactored wind shear without the `30 psf × Cf` minimum wind pressure floor.
+
+#### B. 250K PDF (`anchorbolt250ksingleleg.pdf`)
+1. **Page 7 Arc & Chord Body Typos**: Page 7 body swapped/mismatched Arc Spacing and left 100K's `40.35 in` for Chord Spacing; **Page 12 Summary Table** corrected both to `26.18 in` and `26.15 in`, matching our software exactly.
+2. **Page 8 & Page 12 Edge Distance Typo (`e = 54 in`)**: Page 1 specifies `e = 3.0 in` ($\rightarrow e_{\text{clear}} = 2.1875\text{ in}$), while Page 8 & Page 12 accidentally typed `e = 54 in` ($\rightarrow 53.19\text{ in}$).
+3. **Page 9 Unfactored Shear Substitution**: Page 1 lists factored `Vu = 86.4 kips` (matching our live `82.0907 kips`), but Page 9 plugged in unfactored `Vu = 44.5 kips` ($\rightarrow V_{\text{bolt}} = 1.24\text{ kips}$).
+
+#### C. 500K PDF (`anchorbolt500ksingleleg.pdf`)
+1. **Page 3 Moment Arithmetic Mismatch**: Wrote `0.6(6117.08) = Mu = 4976.0383 ft-kip`, whereas `0.6 × 6117.08 = 3670.25` (and `× 1.667 = 6118.30`).
+2. **Pages 3–4 Uplift Lever Arm & Division Error**: Page 1's diagram shows the standard `0.67 D` lever arm (`20.435 ft`), but Page 3 wrote `T_total = Mu / rb` and Page 4 wrote `4976.0383 / 15.25 = 311.01 kips` (even `4976.0383 / 15.25` is `326.30`, while `4976.0383 / 16.0 = 311.00`). Our software consistently applies the standard `0.67 D` lever arm (`20.435 ft`).
+3. **Pages 10–11 Copy-Paste from 100K PDF**: Page 1 specifies `Hef = 35 in` and Pages 4 & 9 computed 500K bolt forces, but Pages 10–11 left 100K's numbers pasted in (`T_bolt = 34.45 kips`, `V_bolt = 1.034 kips`, `Utilization = 0.470`, `hef = 96 in`, `phi*Nb = 1070 kips`, `Breakout Utilization = 0.032`). With Page 1's `hef = 35 in`, our software computes the true 500K breakout capacity (`235.72 kips`) and utilization (`0.1078`).
+
+---
+
+### 6. PENDING PROJECT NOTES & NEXT STEPS
+- **Next Up — Phase 2**: Single-Leg Base Plate verification (`100K`, `250K`, `500K`).
+- **Pending Later — Phase 3**: Revisit and update Single-Leg Ring Wall (`RingWallFoundation.cs` / `RingWallProperties.cs`) once the user provides the updated Ring Wall PDF (replacing outdated `ringwall100ksingleleg.pdf`).
+
+---
+
+### 7. COPY-PASTE RESUME PROMPT (IF DISCONNECTED)
+--------------------------------------------------------------------------------
+We are working on the Maguire Water Tank Design Tool (`C:\Users\Mehul.Deep\Desktop\top temp\Nikhil-1\Nikhil\Maguire Water Tank Project\Maguire_WaterTankDesign-Tool\src\WaterTankTool_WFA\WaterTankTool_WFA.sln`).
+
+Please read these two session summary files first for full context and verification tables:
+1. `C:\Users\Mehul.Deep\Desktop\top temp\Nikhil-1\Nikhil\Maguire Water Tank Project\Maguire_WaterTankDesign-Tool\src\Notes16_Session_Summary_MultiLeg_AnchorBolt_Verification.txt`
+2. `C:\Users\Mehul.Deep\Desktop\top temp\Nikhil-1\Nikhil\Maguire Water Tank Project\Maguire_WaterTankDesign-Tool\src\Notes17_SingleLeg_Progress_And_Pending_Notes.txt`
+
+Strict rules to follow at all times:
+1. DO NOT touch any Multi-Leg (`TankType.MultiColumn`) code, equations, entities, UI, or Excel export logic — all 4 Multi-Leg modules (Anchor Bolt, Base Plate, Pedestal, Footing) and `.xlsx` export are 100% verified (100K, 400K, 500K) and frozen.
+2. Always explain any proposed code changes clearly and ask for my explicit permission before editing any project source files.
+
+Completed & Verified So Far for Single-Leg (`TankType.SingleColumn`):
+- Unified Single-Leg governing loads (`Mu = Math.Max(0.6 * windM, seismicM) * 1.667` and `Vu = windV * 1.667`) in `LoadService.cs` (`0 Error(s)`).
+- Completed 100% verification of **Single-Leg Anchor Bolt** across fresh **100K**, **250K**, and **500K** projects (`anchorbolt100ksingleleg.pdf`, `anchorbolt250ksingleleg.pdf`, `anchorbolt500ksingleleg.pdf` vs. `newresultanchorbolt100ksingleleg.PNG`, `result250kanchorboltsingleleg.PNG`, `result500kanchorboltsingleleg.PNG`), with full comparison & PDF discrepancy tables logged in `Notes17`.
+- Initial Single-Leg `.xlsx` Engineering Summary export (`ExportEngineeringSummary.cs`) is in place.
+
+Active Pending Notes & Next Steps:
+1. **Next Step**: Verify **Single-Leg Base Plate** across **100K**, **250K**, and **500K** fresh projects against the reference Base Plate PDFs.
+2. **Pending Future Update — Single-Leg Ring Wall**: Earlier we implemented v1 of the Single-Leg Ring Wall module against `ringwall100ksingleleg.pdf`, which turned out to be an outdated Ring Wall specification. Keep the current Single-Leg Ring Wall code intact for now; we will revisit and update Single-Leg Ring Wall later once I provide the updated Ring Wall PDF.
+--------------------------------------------------------------------------------
+================================================================================

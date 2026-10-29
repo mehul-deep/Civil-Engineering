@@ -312,14 +312,16 @@ public class WaterTankDbContext : DbContext
 
                 string[] columns = new string[]
                 {
-                    "FcPrime", "Fy", "Hef", "Hp", "GammaC", "PedestalSizeB", "PedestalSizeL", "PedestalAsProv", "FootingAsProv", "PhiCompression"
+                    "FcPrime", "Fy", "Hef", "Hp", "GammaC", "PedestalSizeB", "PedestalSizeL", "PedestalAsProv", "FootingAsProv", "PhiCompression",
+                    "ScPu", "ScMu", "Hw", "TotalUpliftT", "ScFcPrime", "ScFy", "ScPhi", "ScGammaC", "ScGammaS", "HoopBarArea", "HoopSpacingProv", "HoopBarLabel", "VertRebarCallout"
                 };
 
                 foreach (var col in columns)
                 {
                     try
                     {
-                        command.CommandText = $"ALTER TABLE RingWallEntity ADD COLUMN {col} REAL NULL;";
+                        string sqlType = (col == "HoopBarLabel" || col == "VertRebarCallout") ? "TEXT" : "REAL";
+                        command.CommandText = $"ALTER TABLE RingWallEntity ADD COLUMN {col} {sqlType} NULL;";
                         command.ExecuteNonQuery();
                     }
                     catch { /* Column probably already exists */ }
