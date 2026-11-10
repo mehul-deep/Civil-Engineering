@@ -1,7 +1,7 @@
 ================================================================================
-SESSION LOG - NOTES 17: SINGLE-LEG (SINGLECOLUMN) ANCHOR BOLT VERIFICATION
-(100K, 250K, 500K), GOVERNING LOADS FIX, & COMPLETE DISCREPANCY REPORT
-Date: 2026-10-29
+SESSION LOG - NOTES 17: SINGLE-LEG (SINGLECOLUMN) ANCHOR BOLT & BASE PLATE
+VERIFICATION (100K, 250K, 500K), GOVERNING LOADS FIX, & DISCREPANCY REPORT
+Last Updated: 2026-11-05
 ================================================================================
 
 ### 1. STRICT SCOPE & STANDING RULES
@@ -87,13 +87,41 @@ Date: 2026-10-29
 
 ---
 
-### 6. PENDING PROJECT NOTES & NEXT STEPS
-- **Next Up — Phase 2**: Single-Leg Base Plate verification (`100K`, `250K`, `500K`).
-- **Pending Later — Phase 3**: Revisit and update Single-Leg Ring Wall (`RingWallFoundation.cs` / `RingWallProperties.cs`) once the user provides the updated Ring Wall PDF (replacing outdated `ringwall100ksingleleg.pdf`).
+### 6. MASTER TABLE 3: SINGLE-LEG BASE PLATE VERIFICATION (100K, 250K, 500K)
+All 24 output fields in `BasePlateProperties.cs` / `FoundationEquations.BasePlateEquations` are **100% verified** across fresh 100K, 250K, and 500K projects (`resultbaseplate100ksingleleg.PNG`, `resultbaseplate250ksingleleg.PNG`, `resultbaseplate500ksingleleg.PNG`):
+
+| Output Field | **100K Single-Leg**<br>Software vs. `Baseplatesingleleg100k.pdf` | **250K Single-Leg**<br>Software vs. `Baseplatesingleleg250k.pdf` | **500K Single-Leg**<br>Software vs. `Baseplatesingleleg500k.pdf` |
+| :--- | :---: | :---: | :---: |
+| **Inputs: $D_{\text{cone}}$ / $w_{rw}$ / $t_p$** | `21 ft` / `2 ft` / `3.0 in` | `25 ft` / `2 ft` / `3.0 in` | `30 ft` / `2 ft` / `3.0 in` |
+| **Radii: $R_o$ / $R_i$ / $r_b$ ($\text{ft}$)** | `11.0` / `10.0` / `10.75` | `13.0` / `12.0` / `12.50` | `15.5` / `14.5` / `15.25` |
+| **Bolts ($N_b$) / Holes/Seg ($N_h$)** | `20` / `5` ($d_h = 1.625"$) | `36` / `9` ($d_h = 1.625"$) | `16` / `4` ($d_h = 1.625"$) |
+| **Live $P_u$ ($\text{kips}$) / $M_u$ ($\text{kip-ft}$)** | `~1650.57` / `2903.6953` | `~3895.18` / `5241.4886` | `~7607.61` / `4155.8311` |
+| **Gross Area / Net Area ($\text{ft}^2$)** | **`16.4934`** / **`16.4214`** | **`19.6349`** / **`19.5053`** | **`23.5619`** / **`23.5043`** |
+| **Volume ($\text{ft}^3$) / Wt/Seg / Total Wt** | **`4.1233`** / **`2.0204`** / **`8.0818 kips`** | **`4.9087`** / **`2.4053`** / **`9.6211 kips`** | **`5.8905`** / **`2.8863`** / **`11.5454 kips`** |
+| **Outer / Inner Arc ($\text{ft}$) / Width** | **`17.2788`** / **`15.7080`** / **`1.0000`** | **`20.4204`** / **`18.8496`** / **`1.0000`** | **`24.3474`** / **`22.7766`** / **`1.0000`** |
+| **Centroid Radius $\bar{r}$ ($\text{ft}$)** | **`9.4605`** vs **`9.46`** | **`11.2600`** vs `9.46`* *(left 100K)* | **`13.5098`** vs `9.46`* *(left 100K)* |
+| **Centroid Angle / $(X, Y)$ ($\text{ft}$)** | **`45°`** / **`(6.6896, 6.6896)`** vs **`(6.69, 6.69)`** | **`45°`** / **`(7.9620, 7.9620)`** vs `(6.69, 6.69)`* | **`45°`** / **`(9.5528, 9.5528)`** vs `(6.69, 6.69)`* |
+| **Max Bearing Stress $F_p$ ($\text{ksi}$)** | **`4.3275`** vs **`4.33`** | **`4.3275`** vs **`4.33`** | **`4.3275`** vs **`4.33`** |
+| **Equivalent Eccentricity $e$ ($\text{in}$)** | **`21.1105`** vs **`21.11`** | **`16.1476`** vs `0.62`* *(double-div typo)* | **`6.5553`** vs `35.26`* *(100K draft)* |
+| **$M_{\text{strip}}$ & $M_{\text{plu}}$ ($\text{kip-in/in}$)** | **`44.0131`** vs **`44.0083`** | **`66.7367`** vs `73.48` *(Pg. 6)* / `3.081`* | **`44.0947`** vs `73.48`* *(100K draft)* |
+| **Critical $m$ / Limit $N/6$ ($\text{in}$)** | **`6.0000`** / **`2.0000`** vs **`6` / `2`** | **`6.0000`** / **`2.0000`** vs **`6` / `2`** | **`6.0000`** / **`2.0000`** vs **`6` / `2`** |
+| **Req Thickness $t_{\text{req}}$ ($\text{in}$)** | **`2.3310` (`PASS`)** vs **`2.33`** | **`2.8704` (`PASS`)** vs `0.6`* *(from `3.081`)* | **`2.3332` (`PASS`)** vs `3.01`* *(100K draft)* |
+| **Compactness Ratio $B / t_p$** | **`4.0000` (`PASS`)** vs **`4`** | **`4.0000` (`PASS`)** vs **`4`** | **`4.0000` (`PASS`)** vs **`4`** |
+| **Bolt 1 Coordinates** | **`0.00°`, `(10.75, 0.00)`, `Right`** | **`0.00°`, `(12.50, 0.00)`, `Right`** | **`0.00°`, `(15.25, 0.00)`, `Right`** |
+
+#### Summary of Single-Leg Base Plate PDF Discrepancies:
+1. **100K PDF (`Baseplatesingleleg100k.pdf`)**: Virtually 100% clean match across all 10 pages (`Pu = 1650.2553` vs live `1650.57`, `Mu = 2903.3789` vs live `2903.6953`). Only minor leftover text on Pg. 2 (`Mu = 4847.67 kip-ft` printed above `2903.3789 × 12 = 34840.55 kip-in`) and Pg. 1 drawing callout `2'-0" (PLATE THICKNESS)` (actual `tp = 3.0 in` adopted on Pg. 7–8).
+2. **250K PDF (`Baseplatesingleleg250k.pdf`)**: Updated `Dcone = 25 ft`, **but** left 100K's `Nb = 20`, `P = 1650.2553`, `Mu = 2903.3789`, `Ro = 11 ft`, `Ri = 10 ft`, $\bar{r} = 9.46\text{ ft}$, and $(6.69, 6.69)$; also on Pg. 2 divided by `12` twice (`34840.55 / 78.5 = 36.97 kip-in/ft` $\rightarrow$ `3.081 kip-in/in` $\rightarrow t_{\text{req}} = 0.6\text{ in}$), while leaving `Mplu = 73.48 kip-in/in` on Pg. 6 and `12 / 1.5 = 4` on Pg. 7.
+3. **500K PDF (`Baseplatesingleleg500k.pdf`)**: Exported the **early 100K draft** (`Dcone = 21 ft`, `Nb = 20`, `P = 1650.2553`, pre-`0.6` `Mu = 4847.67 kip-ft` $\rightarrow M_{\text{strip}} = 73.48\text{ kip-in/in}$, $e = 35.26\text{ in}$, $t_{\text{req}} = 3.01\text{ in}$, $R_o = 11\text{ ft}$, $R_i = 10\text{ ft}$) without substituting 500K's geometry (`Dcone = 30 ft`, `Nb = 16`, `rb = 15.25 ft`) or 500K's loads (`Pu ≈ 7607.6 kips`, `Mu = 4155.83 kip-ft`).
 
 ---
 
-### 7. COPY-PASTE RESUME PROMPT (IF DISCONNECTED)
+### 7. PENDING PROJECT NOTES & NEXT STEPS
+- **Next Up**: Single-Leg Footing verification (if applicable) and/or **Phase 3 — Revisit & Update Single-Leg Ring Wall** (`RingWallFoundation.cs` / `RingWallProperties.cs`) once the user provides the updated Ring Wall PDF (replacing outdated `ringwall100ksingleleg.pdf`).
+
+---
+
+### 8. COPY-PASTE RESUME PROMPT (IF DISCONNECTED)
 --------------------------------------------------------------------------------
 We are working on the Maguire Water Tank Design Tool (`C:\Users\Mehul.Deep\Desktop\top temp\Nikhil-1\Nikhil\Maguire Water Tank Project\Maguire_WaterTankDesign-Tool\src\WaterTankTool_WFA\WaterTankTool_WFA.sln`).
 
@@ -107,11 +135,16 @@ Strict rules to follow at all times:
 
 Completed & Verified So Far for Single-Leg (`TankType.SingleColumn`):
 - Unified Single-Leg governing loads (`Mu = Math.Max(0.6 * windM, seismicM) * 1.667` and `Vu = windV * 1.667`) in `LoadService.cs` (`0 Error(s)`).
-- Completed 100% verification of **Single-Leg Anchor Bolt** across fresh **100K**, **250K**, and **500K** projects (`anchorbolt100ksingleleg.pdf`, `anchorbolt250ksingleleg.pdf`, `anchorbolt500ksingleleg.pdf` vs. `newresultanchorbolt100ksingleleg.PNG`, `result250kanchorboltsingleleg.PNG`, `result500kanchorboltsingleleg.PNG`), with full comparison & PDF discrepancy tables logged in `Notes17`.
-- Initial Single-Leg `.xlsx` Engineering Summary export (`ExportEngineeringSummary.cs`) is in place.
+- Completed 100% verification of **Single-Leg Anchor Bolt** across fresh **100K**, **250K**, and **500K** projects.
+- Completed 100% verification of **Single-Leg Base Plate** across fresh **100K**, **250K**, and **500K** projects (`resultbaseplate100ksingleleg.PNG`, `resultbaseplate250ksingleleg.PNG`, `resultbaseplate500ksingleleg.PNG`), with full comparison & PDF discrepancy tables logged in `Notes17`.
+- Initial Single-Leg `.xlsx` Engineering Summary export (`ExportEngineeringSummary.cs`) is in place and updated for the final 14-step Single-Leg Ring Wall specification.
+- Phase 3 — Final Single-Leg Ring Wall Module (`Ringwallsinglelegdesign.pdf`, 14 pages / 14 steps):
+  * Implemented all 14 steps in `RingWallEntity.cs`, `WaterTankDbContext.cs`, `FoundationEquations.cs`, `RingWallFoundation.cs`, `RingWallProperties.cs`, and `ExportEngineeringSummary.cs`.
+  * Includes Geotechnical Report Inputs heading (`qa`, `gamma_s`, `Ka`) in `RingWallFoundation.cs` (with right-side diagram removed per user request).
+  * Includes both `k = 1.0` and `k = 2.0` slenderness/axial capacity checks, bisection neutral-axis solver (`SolveCombinedAxialFlexuralStrength`), and live dynamic 9-row ACI P-M Interaction Table (`EvaluateStripPMAtNeutralAxis`).
+  * Polished `RingWallProperties.cs` (6-decimal reinforcement ratios, widened 3-column layout, step number prefixes removed) and verified against `resultringwallsingleleg.PNG` and `Ringwallsinglelegdesign.pdf` (`0 Error(s)`).
 
 Active Pending Notes & Next Steps:
-1. **Next Step**: Verify **Single-Leg Base Plate** across **100K**, **250K**, and **500K** fresh projects against the reference Base Plate PDFs.
-2. **Pending Future Update — Single-Leg Ring Wall**: Earlier we implemented v1 of the Single-Leg Ring Wall module against `ringwall100ksingleleg.pdf`, which turned out to be an outdated Ring Wall specification. Keep the current Single-Leg Ring Wall code intact for now; we will revisit and update Single-Leg Ring Wall later once I provide the updated Ring Wall PDF.
+1. Proceed with testing Single-Leg Ring Wall across 100K, 250K, and 500K projects (or move to Single-Leg Footing per user direction).
 --------------------------------------------------------------------------------
 ================================================================================

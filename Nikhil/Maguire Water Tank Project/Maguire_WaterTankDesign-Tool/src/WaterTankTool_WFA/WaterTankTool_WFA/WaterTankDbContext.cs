@@ -44,8 +44,15 @@ public class WaterTankDbContext : DbContext
     public WaterTankDbContext() : base() { }
     public WaterTankDbContext(string connectionString)
     {
-        _defaultConnectionString = connectionString;
-        SyncProjectAppState(connectionString);
+        if (!string.IsNullOrWhiteSpace(connectionString))
+        {
+            if (_defaultConnectionString != connectionString)
+            {
+                _instance = null;
+            }
+            _defaultConnectionString = connectionString;
+            SyncProjectAppState(connectionString);
+        }
     }
 
     private static void SyncProjectAppState(string connectionString)
@@ -313,14 +320,18 @@ public class WaterTankDbContext : DbContext
                 string[] columns = new string[]
                 {
                     "FcPrime", "Fy", "Hef", "Hp", "GammaC", "PedestalSizeB", "PedestalSizeL", "PedestalAsProv", "FootingAsProv", "PhiCompression",
-                    "ScPu", "ScMu", "Hw", "TotalUpliftT", "ScFcPrime", "ScFy", "ScPhi", "ScGammaC", "ScGammaS", "HoopBarArea", "HoopSpacingProv", "HoopBarLabel", "VertRebarCallout"
+                    "ScPu", "ScMu", "ScVu", "ScDcl", "Hw", "ScBf", "ScHf", "TotalUpliftT", "ScFcPrime", "ScFy", "ScPhi", "ScGammaC", "ScGammaS",
+                    "ScQa", "ScGammaSoil", "ScKa", "VertBarLabel", "VertBarArea", "VertBarCountPerFace",
+                    "HoopBarArea", "HoopSpacingProv", "HoopBarLabel", "HoopBarCountPerFace", "VertRebarCallout", "SlendernessK"
                 };
 
                 foreach (var col in columns)
                 {
                     try
                     {
-                        string sqlType = (col == "HoopBarLabel" || col == "VertRebarCallout") ? "TEXT" : "REAL";
+                        string sqlType = (col == "HoopBarLabel" || col == "VertRebarCallout" || col == "VertBarLabel")
+                            ? "TEXT"
+                            : ((col == "VertBarCountPerFace" || col == "HoopBarCountPerFace") ? "INTEGER" : "REAL");
                         command.CommandText = $"ALTER TABLE RingWallEntity ADD COLUMN {col} {sqlType} NULL;";
                         command.ExecuteNonQuery();
                     }

@@ -19,22 +19,24 @@ namespace WaterTankTool_WFA.Foundation_Design
         private TextBox? txtNumLegs, txtPu, txtMu, txtVu;
         private GroupBox? groupBoxLoads;
 
-        // Single-Column controls
+        // Single-Column controls (Updated to Ringwallsinglelegdesign.pdf Steps 1 - 14)
         private GroupBox? grpScLoads;
-        private TextBox txtScP = null!, txtScMu = null!, txtScT = null!, txtScBp = null!, txtScTp = null!, txtScBpFy = null!, txtScNs = null!, txtScNb = null!, txtScDb = null!, txtScRb = null!;
-        private TextBox txtScRi = null!, txtScRo = null!, txtScTw = null!, txtScHw = null!, txtScFc = null!, txtScFy = null!, txtScPhi = null!, txtScGammaC = null!, txtScGammaS = null!, txtScHoopSpacing = null!, txtScVertRebar = null!;
-        private ComboBox cmbScHoopBar = null!;
-        private bool _scSuppressAutoUplift = false;
-        private bool _scUserEditedUplift = false;
-        private double _scCurrentMu = 0;
+        private TextBox txtScP = null!, txtScMu = null!, txtScVu = null!, txtScDcone = null!, txtScBpInfo = null!, txtScAbInfo = null!, txtScBfHf = null!, txtScQa = null!, txtScGammaSoil = null!, txtScKa = null!;
+        private TextBox txtScDcl = null!, txtScTw = null!, txtScDerivedRadii = null!, txtScHw = null!, txtScFc = null!, txtScFy = null!, txtScGammaC = null!, txtScCover = null!;
+        private ComboBox cmbScSlenderK = null!;
+        private Button btnScVertBar = null!, btnScHoopBar = null!;
+        private int _selectedVertBarIdx = 1; // Default #4
+        private int _selectedHoopBarIdx = 1; // Default #4
+        private TextBox txtScVertCount = null!, txtScHoopCount = null!;
 
-        private static readonly (string Label, double Area)[] HoopBarOptions = new[]
+        private static readonly (string Label, string DiameterDesc, double Area, string TypicalUse)[] RebarOptions = new[]
         {
-            ("#4", 0.20),
-            ("#5", 0.31),
-            ("#6", 0.44),
-            ("#7", 0.60),
-            ("#8", 0.79)
+            ("#3", "3/8\" (0.375 in)", 0.11, "Light ties / temperature steel"),
+            ("#4", "4/8\" (0.500 in)", 0.20, "Standard wall vertical & hoop bars (Default / PDF)"),
+            ("#5", "5/8\" (0.625 in)", 0.31, "Medium wall / footing reinforcement"),
+            ("#6", "6/8\" (0.750 in)", 0.44, "Heavy wall / pedestal vertical bars"),
+            ("#7", "7/8\" (0.875 in)", 0.60, "Heavy foundation reinforcement"),
+            ("#8", "8/8\" (1.000 in)", 0.79, "Large foundation / mat reinforcement")
         };
 
         public RingWallFoundation()
@@ -176,8 +178,8 @@ namespace WaterTankTool_WFA.Foundation_Design
 
         private void SetupSingleColumnUI()
         {
-            this.Text = "Single-Leg Ring Wall Foundation";
-            this.Size = new Size(1175, 505);
+            this.Text = "Single-Leg Ring Wall Foundation (ACI 318-19 / PIP STE03020)";
+            this.Size = new Size(755, 515);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
 
@@ -192,150 +194,138 @@ namespace WaterTankTool_WFA.Foundation_Design
             label9.Visible = textBox9.Visible = false;
             label10.Visible = textBox10.Visible = false;
 
-            // --- Left Group: Inherited Loads, Bolts & Base Plate ---
+            // --- Left Group: Inherited Loads, Predefined Geometry & Geotechnical Report Inputs ---
             grpScLoads = new GroupBox
             {
-                Text = "Inherited Loads, Bolts & Base Plate",
+                Text = "Predefined Tank Loads & Foundation Inputs",
                 Location = new Point(12, 12),
-                Size = new Size(332, 398)
+                Size = new Size(340, 410)
             };
             this.Controls.Add(grpScLoads);
 
             int yL = 24;
-            int gap = 31;
-            txtScP = AddScField(grpScLoads, "Vertical Load P (kips):", yL + gap * 0, false, 185, 130);
-            txtScMu = AddScField(grpScLoads, "Overturning Moment Mu (k-ft):", yL + gap * 1, false, 185, 130);
-            txtScT = AddScField(grpScLoads, "Total Uplift Force T (kips):", yL + gap * 2, false, 185, 130);
-            txtScMu.TextChanged += (s, e) =>
-            {
-                if (double.TryParse(txtScMu.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double muParsed))
-                {
-                    _scCurrentMu = muParsed;
-                    UpdateSingleColumnDerivedGeometry(s, e);
-                }
-            };
-            txtScT.TextChanged += (s, e) =>
-            {
-                if (!_scSuppressAutoUplift) _scUserEditedUplift = true;
-            };
+            int gap = 29;
+            txtScP = AddScField(grpScLoads, "Factored Axial Load Pu (kip):", yL + gap * 0, false, 192, 134);
+            txtScMu = AddScField(grpScLoads, "Factored Moment Mu (kip-ft):", yL + gap * 1, false, 192, 134);
+            txtScVu = AddScField(grpScLoads, "Factored Shear Vu (kip):", yL + gap * 2, false, 192, 134);
+            txtScDcone = AddScField(grpScLoads, "Tank Cone Diameter Dcone (ft):", yL + gap * 3, true, 192, 134);
+            txtScBpInfo = AddScField(grpScLoads, "Base Plate Width / Thk (in):", yL + gap * 4, true, 192, 134);
+            txtScAbInfo = AddScField(grpScLoads, "Anchor Bolts (Nb / db / hef):", yL + gap * 5, true, 192, 134);
+            txtScBfHf = AddScField(grpScLoads, "Prelim. Footing Bf / hf (ft):", yL + gap * 6, false, 192, 134);
 
-            txtScBp = AddScField(grpScLoads, "Base Plate Width bp (in):", yL + gap * 3, true, 185, 130);
-            txtScTp = AddScField(grpScLoads, "Base Plate Thickness tp (in):", yL + gap * 4, true, 185, 130);
-            txtScBpFy = AddScField(grpScLoads, "Base Plate Steel Fy (ksi):", yL + gap * 5, true, 185, 130);
-            txtScNs = AddScField(grpScLoads, "Base Plate Segments ns:", yL + gap * 6, true, 185, 130);
-            txtScNb = AddScField(grpScLoads, "Number of Anchor Bolts Nb:", yL + gap * 7, true, 185, 130);
-            txtScDb = AddScField(grpScLoads, "Anchor Bolt Diameter db (in):", yL + gap * 8, true, 185, 130);
-            txtScRb = AddScField(grpScLoads, "Bolt Circle Radius rb (ft):", yL + gap * 9, true, 185, 130);
-
-            Label lblAiscNote = new Label
+            // Heading: Geotechnical Report Inputs
+            int yGeoHeader = yL + gap * 7 + 6;
+            Label lblGeotechHeader = new Label
             {
-                Text = "Note: Per AISC, minimum ringwall width is tw = 2.0 ft (24 in).\nRingwall footing is designed separately.",
-                Location = new Point(12, yL + gap * 10 + 4),
-                Size = new Size(308, 36),
+                Text = "Geotechnical Report Inputs",
+                Location = new Point(12, yGeoHeader),
+                AutoSize = true,
+                Font = new Font(this.Font, FontStyle.Bold)
+            };
+            grpScLoads.Controls.Add(lblGeotechHeader);
+
+            int yGeo = yGeoHeader + 24;
+            txtScQa = AddScField(grpScLoads, "Allow. Soil Bearing qa (ksf):", yGeo + gap * 0, false, 192, 134);
+            txtScGammaSoil = AddScField(grpScLoads, "Soil Unit Weight γs (pcf):", yGeo + gap * 1, false, 192, 134);
+            txtScKa = AddScField(grpScLoads, "Active Earth Coeff. Ka:", yGeo + gap * 2, false, 192, 134);
+
+            Label lblPipNote = new Label
+            {
+                Text = "Note: Per PIP STE03020, minimum ringwall thickness tw ≥ 1.0 ft\n(2.0 ft standard). Retained soil height Hs = Hw.",
+                Location = new Point(12, yGeo + gap * 3 + 4),
+                Size = new Size(316, 34),
                 ForeColor = Color.DimGray,
                 Font = new Font("Segoe UI", 8F, FontStyle.Italic)
             };
-            grpScLoads.Controls.Add(lblAiscNote);
+            grpScLoads.Controls.Add(lblPipNote);
 
-            // --- Right Group: Ringwall Geometry, Material & Reinforcement ---
-            groupBox2.Text = "Ringwall Geometry, Material & Reinforcement";
-            groupBox2.Location = new Point(354, 12);
-            groupBox2.Size = new Size(352, 398);
+            // --- Right Group: Ring-Wall Geometry, Material & Reinforcement ---
+            groupBox2.Text = "Ring-Wall Geometry, Material & Reinforcement";
+            groupBox2.Location = new Point(362, 12);
+            groupBox2.Size = new Size(364, 410);
 
             int yR = 24;
-            txtScRi = AddScField(groupBox2, "Ringwall Inner Radius Ri (ft):", yR + gap * 0, false, 195, 140);
-            txtScRo = AddScField(groupBox2, "Ringwall Outer Radius Ro (ft):", yR + gap * 1, false, 195, 140);
-            txtScTw = AddScField(groupBox2, "Ringwall Thickness tw (ft):", yR + gap * 2, true, 195, 140);
-            txtScHw = AddScField(groupBox2, "Ringwall Height hw (ft):", yR + gap * 3, false, 195, 140);
-            txtScFc = AddScField(groupBox2, "Concrete Strength f'c (psi):", yR + gap * 4, false, 195, 140);
-            txtScFy = AddScField(groupBox2, "Steel Yield Strength fy (ksi):", yR + gap * 5, false, 195, 140);
-            txtScPhi = AddScField(groupBox2, "Strength Reduction Factor φ:", yR + gap * 6, false, 195, 140);
-            txtScGammaC = AddScField(groupBox2, "Concrete Unit Weight γc (pcf):", yR + gap * 7, false, 195, 140);
-            txtScGammaS = AddScField(groupBox2, "Steel Unit Weight γs (pcf):", yR + gap * 8, false, 195, 140);
+            int gapR = 31;
+            txtScDcl = AddScField(groupBox2, "Centerline Diameter D_CL (ft):", yR + gapR * 0, false, 200, 150);
+            txtScTw = AddScField(groupBox2, "Ring-Wall Thickness tw (ft):", yR + gapR * 1, false, 200, 150);
+            txtScDerivedRadii = AddScField(groupBox2, "Derived Do / Di / Ro / Ri (ft):", yR + gapR * 2, true, 200, 150);
+            txtScHw = AddScField(groupBox2, "Ring-Wall Height Hw (ft):", yR + gapR * 3, false, 200, 150);
+            txtScFc = AddScField(groupBox2, "Concrete Strength f'c (ksi):", yR + gapR * 4, false, 200, 150);
+            txtScFy = AddScField(groupBox2, "Reinforcing Steel Fy (ksi):", yR + gapR * 5, false, 200, 150);
+            txtScGammaC = AddScField(groupBox2, "Concrete Unit Wt γc (pcf):", yR + gapR * 6, false, 200, 150);
+            txtScCover = AddScField(groupBox2, "Concrete Clear Cover cc (in):", yR + gapR * 7, false, 200, 150);
 
-            // Hoop Rebar Size + Spacing (e.g. #5 @ 6 in)
-            Label lblHoop = new Label { Text = "Hoop Rebar & Spacing (in):", Location = new Point(12, yR + gap * 9 + 3), AutoSize = true };
-            cmbScHoopBar = new ComboBox
+            // Vertical Reinforcement (Count per face + Bar size selector button, e.g., 66 #4 bars EF)
+            Label lblVert = new Label { Text = "Vertical Bars (Each Face):", Location = new Point(12, yR + gapR * 8 + 3), AutoSize = true };
+            txtScVertCount = new TextBox
             {
-                Location = new Point(195, yR + gap * 9),
-                Size = new Size(86, 23),
+                Location = new Point(200, yR + gapR * 8),
+                Size = new Size(42, 23),
+                Text = "66"
+            };
+            Label lblVertX = new Label { Text = "bars", Location = new Point(244, yR + gapR * 8 + 3), AutoSize = true };
+            btnScVertBar = new Button
+            {
+                Location = new Point(274, yR + gapR * 8 - 1),
+                Size = new Size(76, 25),
+                Text = "#4 (Select)",
+                BackColor = Color.FromArgb(235, 243, 254),
+                FlatStyle = FlatStyle.Standard,
+                Cursor = Cursors.Hand
+            };
+            btnScVertBar.Click += (s, e) => OpenRebarSelectionDialog(true);
+            groupBox2.Controls.Add(lblVert);
+            groupBox2.Controls.Add(txtScVertCount);
+            groupBox2.Controls.Add(lblVertX);
+            groupBox2.Controls.Add(btnScVertBar);
+
+            // Horizontal Hoop Reinforcement (Count per face + Bar size selector button, e.g., 8 #4 bars EF)
+            Label lblHoop = new Label { Text = "Horizontal Hoop Bars (EF):", Location = new Point(12, yR + gapR * 9 + 3), AutoSize = true };
+            txtScHoopCount = new TextBox
+            {
+                Location = new Point(200, yR + gapR * 9),
+                Size = new Size(42, 23),
+                Text = "8"
+            };
+            Label lblHoopX = new Label { Text = "bars", Location = new Point(244, yR + gapR * 9 + 3), AutoSize = true };
+            btnScHoopBar = new Button
+            {
+                Location = new Point(274, yR + gapR * 9 - 1),
+                Size = new Size(76, 25),
+                Text = "#4 (Select)",
+                BackColor = Color.FromArgb(235, 243, 254),
+                FlatStyle = FlatStyle.Standard,
+                Cursor = Cursors.Hand
+            };
+            btnScHoopBar.Click += (s, e) => OpenRebarSelectionDialog(false);
+            groupBox2.Controls.Add(lblHoop);
+            groupBox2.Controls.Add(txtScHoopCount);
+            groupBox2.Controls.Add(lblHoopX);
+            groupBox2.Controls.Add(btnScHoopBar);
+
+            // Slenderness Effective Length Factor k
+            Label lblSlenderK = new Label { Text = "Slenderness Factor k:", Location = new Point(12, yR + gapR * 10 + 3), AutoSize = true };
+            cmbScSlenderK = new ComboBox
+            {
+                Location = new Point(200, yR + gapR * 10),
+                Size = new Size(150, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            foreach (var opt in HoopBarOptions)
+            cmbScSlenderK.Items.AddRange(new object[]
             {
-                cmbScHoopBar.Items.Add($"{opt.Label} ({opt.Area:F2})");
-            }
-            cmbScHoopBar.SelectedIndex = 1; // Default #5 (0.31)
-            Label lblAt = new Label { Text = "@", Location = new Point(283, yR + gap * 9 + 3), AutoSize = true };
-            txtScHoopSpacing = new TextBox
-            {
-                Location = new Point(297, yR + gap * 9),
-                Size = new Size(38, 23),
-                Text = "6"
-            };
-            groupBox2.Controls.Add(lblHoop);
-            groupBox2.Controls.Add(cmbScHoopBar);
-            groupBox2.Controls.Add(lblAt);
-            groupBox2.Controls.Add(txtScHoopSpacing);
+                "Both k=1.0 & k=2.0",
+                "k = 1.0 (Braced)",
+                "k = 2.0 (Cantilever)"
+            });
+            cmbScSlenderK.SelectedIndex = 0;
+            groupBox2.Controls.Add(lblSlenderK);
+            groupBox2.Controls.Add(cmbScSlenderK);
 
-            txtScVertRebar = AddScField(groupBox2, "Vertical Rebar (each face):", yR + gap * 10, false, 195, 140);
+            txtScDcl.TextChanged += UpdateSingleColumnDerivedGeometry;
+            txtScTw.TextChanged += UpdateSingleColumnDerivedGeometry;
 
-            txtScRi.TextChanged += UpdateSingleColumnDerivedGeometry;
-            txtScRo.TextChanged += UpdateSingleColumnDerivedGeometry;
-
-            // --- Far Right Group: Ringwall Section Cut Diagram ---
-            GroupBox grpScDiagram = new GroupBox
-            {
-                Text = "Ringwall Section Detail",
-                Location = new Point(716, 12),
-                Size = new Size(430, 398)
-            };
-            PictureBox picScDiagram = new PictureBox
-            {
-                Location = new Point(8, 20),
-                Size = new Size(414, 368),
-                SizeMode = PictureBoxSizeMode.Zoom,
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-
-            string? imgPath = null;
-            string directPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "ringwallimage100k.PNG");
-            if (System.IO.File.Exists(directPath))
-            {
-                imgPath = directPath;
-            }
-            else
-            {
-                string? dir = AppDomain.CurrentDomain.BaseDirectory;
-                while (!string.IsNullOrEmpty(dir))
-                {
-                    string candidate1 = System.IO.Path.Combine(dir, "Images", "ringwallimage100k.PNG");
-                    if (System.IO.File.Exists(candidate1)) { imgPath = candidate1; break; }
-                    string candidate2 = System.IO.Path.Combine(dir, "ringwallimage100k.PNG");
-                    if (System.IO.File.Exists(candidate2)) { imgPath = candidate2; break; }
-                    string candidate3 = System.IO.Path.Combine(dir, "src", "ringwallimage100k.PNG");
-                    if (System.IO.File.Exists(candidate3)) { imgPath = candidate3; break; }
-                    dir = System.IO.Directory.GetParent(dir)?.FullName;
-                }
-            }
-
-            if (imgPath != null)
-            {
-                try
-                {
-                    byte[] bytes = System.IO.File.ReadAllBytes(imgPath);
-                    var ms = new System.IO.MemoryStream(bytes);
-                    picScDiagram.Image = Image.FromStream(ms);
-                }
-                catch { }
-            }
-
-            grpScDiagram.Controls.Add(picScDiagram);
-            this.Controls.Add(grpScDiagram);
-
-            button1.Location = new Point(495, 424);
-            button2.Location = new Point(585, 424);
+            button1.Location = new Point(280, 434);
+            button2.Location = new Point(380, 434);
             this.CenterToScreen();
         }
 
@@ -343,27 +333,21 @@ namespace WaterTankTool_WFA.Foundation_Design
         {
             if (AppState.CurrentTankType == TankType.MultiColumn) return;
 
-            if (double.TryParse(txtScRi.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double ri) &&
-                double.TryParse(txtScRo.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double ro))
+            if (double.TryParse(txtScDcl.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double dcl) &&
+                double.TryParse(txtScTw.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double tw) &&
+                dcl > tw && tw > 0)
             {
-                double tw = ro - ri;
-                txtScTw.Text = $"{tw:F2} ({tw * 12.0:F1} in)";
-                txtScTw.BackColor = tw >= 2.0 ? Color.LightGreen : Color.LightCoral;
-
-                if (!_scUserEditedUplift && ro > ri && _scCurrentMu > 0)
-                {
-                    double meanR = (ro + ri) / 2.0;
-                    var eq = new FoundationEquations.RingWallEquations();
-                    double derivedT = eq.DerivedTotalUpliftKips(_scCurrentMu, meanR);
-                    _scSuppressAutoUplift = true;
-                    txtScT.Text = derivedT.ToString("F2", CultureInfo.InvariantCulture);
-                    _scSuppressAutoUplift = false;
-                }
+                double doFt = dcl + tw;
+                double diFt = dcl - tw;
+                double roFt = doFt / 2.0;
+                double riFt = diFt / 2.0;
+                txtScDerivedRadii.Text = $"Do={doFt:0.##}, Di={diFt:0.##} (Ro={roFt:0.##}, Ri={riFt:0.##})";
+                txtScDerivedRadii.BackColor = tw >= 1.0 ? Color.LightGreen : Color.LightCoral;
             }
             else
             {
-                txtScTw.Text = "";
-                txtScTw.BackColor = Color.FromArgb(240, 240, 240);
+                txtScDerivedRadii.Text = "";
+                txtScDerivedRadii.BackColor = Color.FromArgb(240, 240, 240);
             }
         }
 
@@ -485,25 +469,28 @@ namespace WaterTankTool_WFA.Foundation_Design
             var anchorBolt = _context.AnchorBoltEntity?.FirstOrDefault();
             var basePlate = _context.BasePlateEntity?.FirstOrDefault();
             var loadService = new Services.LoadService();
-            var (puGov, muGov, _) = loadService.GetGoverningLoads();
-            var eq = new FoundationEquations.RingWallEquations();
+            var (puGov, muGov, vuGov) = loadService.GetGoverningLoads();
 
             _existingEntity = _context.Set<RingWallEntity>().FirstOrDefault();
 
-            // Governing vertical load P & overturning moment Mu (live LoadService first, matching BasePlate/AnchorBolt)
+            // Governing Pu, Mu, Vu (live LoadService first, matching BasePlate/AnchorBolt)
             double pVal = puGov > 0
                 ? puGov
                 : ((_existingEntity?.ScPu.HasValue == true && _existingEntity.ScPu.Value > 0)
                     ? _existingEntity.ScPu.Value
-                    : (basePlate?.Pu ?? 0));
+                    : (basePlate?.Pu ?? 1653.556));
             double muVal = muGov > 0
                 ? muGov
                 : ((_existingEntity?.ScMu.HasValue == true && _existingEntity.ScMu.Value > 0)
                     ? _existingEntity.ScMu.Value
-                    : (basePlate?.OverturningMoment ?? anchorBolt?.Mu ?? 0));
-            _scCurrentMu = muVal;
+                    : (basePlate?.OverturningMoment ?? anchorBolt?.Mu ?? 2903.3789));
+            double vuVal = vuGov > 0
+                ? vuGov
+                : ((_existingEntity?.ScVu.HasValue == true && _existingEntity.ScVu.Value > 0)
+                    ? _existingEntity.ScVu.Value
+                    : ((anchorBolt != null && anchorBolt.Vu > 0) ? anchorBolt.Vu : 53.43));
 
-            // Base Cone Diameter -> Default Centerline Radius R = Dcone / 2
+            // Tank Cone Diameter Dcone
             double coneDiamFt = 21.0;
             if (basePlate != null && basePlate.Dbp > 0)
             {
@@ -515,94 +502,94 @@ namespace WaterTankTool_WFA.Foundation_Design
                 if (bottomSeg != null && (bottomSeg.DiameterFinal ?? bottomSeg.Diameter) > 0)
                     coneDiamFt = bottomSeg.DiameterFinal ?? bottomSeg.Diameter;
                 else if (anchorBolt != null && anchorBolt.Rb > 0)
-                    coneDiamFt = 2.0 * anchorBolt.Rb;
+                    coneDiamFt = Math.Round(2.0 * anchorBolt.Rb - 0.5, 2);
             }
 
-            double defaultRcl = coneDiamFt / 2.0;
-            double defaultTw = (basePlate?.Wrw.HasValue == true && basePlate.Wrw.Value >= 2.0) ? basePlate.Wrw.Value : 2.0;
-            double defaultRi = defaultRcl - (defaultTw / 2.0);
-            double defaultRo = defaultRcl + (defaultTw / 2.0);
-
-            // Inherited Base Plate & Anchor Bolt display values
             double bpWidthIn = (basePlate != null && basePlate.Ro > basePlate.Ri) ? (basePlate.Ro - basePlate.Ri) * 12.0 : 12.0;
-            double bpThkIn = (basePlate != null && basePlate.T > 0) ? basePlate.T : ((anchorBolt != null && anchorBolt.Tbp > 0) ? anchorBolt.Tbp : 1.0);
-            double bpFy = (basePlate != null && basePlate.Fy > 0) ? basePlate.Fy : 36.0;
-            int nsVal = (basePlate != null && basePlate.N > 0) ? basePlate.N : (anchorBolt?.Ns ?? 4);
+            double bpThkIn = (basePlate != null && basePlate.T > 0) ? basePlate.T : ((anchorBolt != null && anchorBolt.Tbp > 0) ? anchorBolt.Tbp : 3.0);
             int nbVal = (anchorBolt != null && anchorBolt.Nb > 0) ? anchorBolt.Nb : (basePlate?.Nb ?? 20);
             double dbVal = (anchorBolt != null && anchorBolt.Db > 0) ? anchorBolt.Db : 1.5;
-            double rbVal = (anchorBolt != null && anchorBolt.Rb > 0) ? anchorBolt.Rb : (basePlate?.Rb ?? 10.75);
+            double hefVal = (anchorBolt?.Hef.HasValue == true && anchorBolt.Hef.Value > 0) ? anchorBolt.Hef.Value : 96.0;
 
-            double inheritedFcPsi = 4000.0;
-            if (basePlate != null && basePlate.Fc_prime > 0)
-                inheritedFcPsi = basePlate.Fc_prime > 100 ? basePlate.Fc_prime : basePlate.Fc_prime * 1000.0;
-            else if (anchorBolt?.FcPrime.HasValue == true && anchorBolt.FcPrime.Value > 0)
-                inheritedFcPsi = anchorBolt.FcPrime.Value > 100 ? anchorBolt.FcPrime.Value : anchorBolt.FcPrime.Value * 1000.0;
-
-            _scSuppressAutoUplift = true;
             txtScP.Text = pVal.ToString("F4", CultureInfo.InvariantCulture);
-            txtScMu.Text = muVal.ToString("F2", CultureInfo.InvariantCulture);
-            _scSuppressAutoUplift = false;
-            txtScBp.Text = bpWidthIn.ToString("F2", CultureInfo.InvariantCulture);
-            txtScTp.Text = bpThkIn.ToString("F2", CultureInfo.InvariantCulture);
-            txtScBpFy.Text = bpFy.ToString("F0", CultureInfo.InvariantCulture);
-            txtScNs.Text = nsVal.ToString(CultureInfo.InvariantCulture);
-            txtScNb.Text = nbVal.ToString(CultureInfo.InvariantCulture);
-            txtScDb.Text = dbVal.ToString("F2", CultureInfo.InvariantCulture);
-            txtScRb.Text = rbVal.ToString("F2", CultureInfo.InvariantCulture);
+            txtScMu.Text = muVal.ToString("F4", CultureInfo.InvariantCulture);
+            txtScVu.Text = vuVal.ToString("F4", CultureInfo.InvariantCulture);
+            txtScDcone.Text = coneDiamFt.ToString("F2", CultureInfo.InvariantCulture);
+            txtScBpInfo.Text = $"{bpWidthIn:0.#}\" W x {bpThkIn:0.##}\" Thk";
+            txtScAbInfo.Text = $"({nbVal}) {dbVal:0.##}\" Ø, hef={hefVal:0.#}\"";
 
-            if (_existingEntity == null || (_existingEntity.Rin <= 0 && _existingEntity.Rout <= 0))
+            // Check if entity is brand-new or from legacy v1 (where ScQa was null)
+            bool isUpdatedSchema = _existingEntity != null && _existingEntity.ScQa.HasValue;
+            if (!isUpdatedSchema)
             {
-                _scUserEditedUplift = false;
-                txtScRi.Text = defaultRi.ToString("0.####", CultureInfo.InvariantCulture);
-                txtScRo.Text = defaultRo.ToString("0.####", CultureInfo.InvariantCulture);
-                txtScHw.Text = "11.5";
-                txtScFc.Text = inheritedFcPsi.ToString("F0", CultureInfo.InvariantCulture);
-                txtScFy.Text = "60";
-                txtScPhi.Text = "0.90";
-                txtScGammaC.Text = "150";
-                txtScGammaS.Text = "490";
-                cmbScHoopBar.SelectedIndex = 1; // #5 (0.31)
-                txtScHoopSpacing.Text = "6";
-                txtScVertRebar.Text = "#6 @ 12\"";
+                double defaultTw = 2.0;
+                int defaultVertBars = (int)Math.Round(Math.PI * coneDiamFt); // 66 for D_CL=21 ft
 
-                double derivedT = eq.DerivedTotalUpliftKips(muVal, (defaultRi + defaultRo) / 2.0);
-                _scSuppressAutoUplift = true;
-                txtScT.Text = derivedT.ToString("F2", CultureInfo.InvariantCulture);
-                _scSuppressAutoUplift = false;
+                txtScBfHf.Text = "6.5 / 3.0";
+                txtScQa.Text = "4.0";
+                txtScGammaSoil.Text = "125";
+                txtScKa.Text = "0.30";
+
+                txtScDcl.Text = coneDiamFt.ToString("0.####", CultureInfo.InvariantCulture);
+                txtScTw.Text = defaultTw.ToString("0.##", CultureInfo.InvariantCulture);
+                txtScHw.Text = "9.0";
+                txtScFc.Text = "4.0";
+                txtScFy.Text = "60";
+                txtScGammaC.Text = "150";
+                txtScCover.Text = "2.0";
+
+                txtScVertCount.Text = defaultVertBars.ToString(CultureInfo.InvariantCulture);
+                _selectedVertBarIdx = 1; // #4
+                txtScHoopCount.Text = "8";
+                _selectedHoopBarIdx = 1; // #4
+                UpdateRebarButtonLabels();
+                cmbScSlenderK.SelectedIndex = 0; // Both k=1.0 & k=2.0
+
                 UpdateSingleColumnDerivedGeometry(null, EventArgs.Empty);
                 return;
             }
 
-            double ri = _existingEntity.Rin > 0 ? _existingEntity.Rin : defaultRi;
-            double ro = _existingEntity.Rout > ri ? _existingEntity.Rout : defaultRo;
-            double meanR = (ri + ro) / 2.0;
-            double autoT = eq.DerivedTotalUpliftKips(muVal, meanR);
-            double savedT = (_existingEntity.TotalUpliftT.HasValue && _existingEntity.TotalUpliftT.Value > 0)
-                ? _existingEntity.TotalUpliftT.Value
-                : autoT;
+            double dcl = (_existingEntity!.ScDcl.HasValue && _existingEntity.ScDcl.Value > 0)
+                ? _existingEntity.ScDcl.Value
+                : (_existingEntity.Rcl > 0 ? 2.0 * _existingEntity.Rcl : coneDiamFt);
+            double tw = _existingEntity.Trw > 0 ? _existingEntity.Trw : 2.0;
+            double hw = (_existingEntity.Hw.HasValue && _existingEntity.Hw.Value > 0) ? _existingEntity.Hw.Value : 9.0;
 
-            _scUserEditedUplift = Math.Abs(savedT - autoT) > 0.05;
-            _scSuppressAutoUplift = true;
-            txtScT.Text = savedT.ToString("F2", CultureInfo.InvariantCulture);
-            _scSuppressAutoUplift = false;
+            double fcKsi = _existingEntity.ScFcPrime ?? 4.0;
+            if (fcKsi > 100) fcKsi /= 1000.0;
 
-            txtScRi.Text = ri.ToString("0.####", CultureInfo.InvariantCulture);
-            txtScRo.Text = ro.ToString("0.####", CultureInfo.InvariantCulture);
-            txtScHw.Text = (_existingEntity.Hw ?? 11.5).ToString("0.####", CultureInfo.InvariantCulture);
+            double bf = _existingEntity.ScBf ?? 6.5;
+            double hf = _existingEntity.ScHf ?? 3.0;
+            txtScBfHf.Text = $"{bf:0.##} / {hf:0.##}";
+            txtScQa.Text = (_existingEntity.ScQa ?? 4.0).ToString("0.##", CultureInfo.InvariantCulture);
+            txtScGammaSoil.Text = (_existingEntity.ScGammaSoil ?? 125.0).ToString("0.#", CultureInfo.InvariantCulture);
+            txtScKa.Text = (_existingEntity.ScKa ?? 0.30).ToString("0.##", CultureInfo.InvariantCulture);
 
-            double fcSaved = _existingEntity.ScFcPrime ?? inheritedFcPsi;
-            if (fcSaved > 0 && fcSaved < 100) fcSaved *= 1000.0;
-            txtScFc.Text = fcSaved.ToString("F0", CultureInfo.InvariantCulture);
+            txtScDcl.Text = dcl.ToString("0.####", CultureInfo.InvariantCulture);
+            txtScTw.Text = tw.ToString("0.##", CultureInfo.InvariantCulture);
+            txtScHw.Text = hw.ToString("0.##", CultureInfo.InvariantCulture);
+            txtScFc.Text = fcKsi.ToString("0.##", CultureInfo.InvariantCulture);
             txtScFy.Text = (_existingEntity.ScFy ?? 60.0).ToString("0.##", CultureInfo.InvariantCulture);
-            txtScPhi.Text = (_existingEntity.ScPhi ?? 0.90).ToString("F2", CultureInfo.InvariantCulture);
-            txtScGammaC.Text = (_existingEntity.ScGammaC ?? 150.0).ToString("F0", CultureInfo.InvariantCulture);
-            txtScGammaS.Text = (_existingEntity.ScGammaS ?? 490.0).ToString("F0", CultureInfo.InvariantCulture);
+            txtScGammaC.Text = (_existingEntity.ScGammaC ?? 150.0).ToString("0.#", CultureInfo.InvariantCulture);
+            txtScCover.Text = (_existingEntity.Cc > 0 ? _existingEntity.Cc : 2.0).ToString("0.##", CultureInfo.InvariantCulture);
 
-            string savedBar = _existingEntity.HoopBarLabel ?? "#5";
-            int barIdx = Array.FindIndex(HoopBarOptions, b => b.Label == savedBar);
-            cmbScHoopBar.SelectedIndex = barIdx >= 0 ? barIdx : 1;
-            txtScHoopSpacing.Text = (_existingEntity.HoopSpacingProv ?? 6.0).ToString("0.##", CultureInfo.InvariantCulture);
-            txtScVertRebar.Text = string.IsNullOrWhiteSpace(_existingEntity.VertRebarCallout) ? "#6 @ 12\"" : _existingEntity.VertRebarCallout;
+            int vertCount = _existingEntity.VertBarCountPerFace ?? (int)Math.Round(Math.PI * dcl);
+            txtScVertCount.Text = vertCount.ToString(CultureInfo.InvariantCulture);
+            string savedVertBar = _existingEntity.VertBarLabel ?? "#4";
+            int vIdx = Array.FindIndex(RebarOptions, b => b.Label == savedVertBar);
+            _selectedVertBarIdx = vIdx >= 0 ? vIdx : 1;
+
+            int hoopCount = _existingEntity.HoopBarCountPerFace ?? 8;
+            txtScHoopCount.Text = hoopCount.ToString(CultureInfo.InvariantCulture);
+            string savedHoopBar = _existingEntity.HoopBarLabel ?? "#4";
+            int hIdx = Array.FindIndex(RebarOptions, b => b.Label == savedHoopBar);
+            _selectedHoopBarIdx = hIdx >= 0 ? hIdx : 1;
+            UpdateRebarButtonLabels();
+
+            double savedK = _existingEntity.SlendernessK ?? 0.0;
+            if (Math.Abs(savedK - 1.0) < 0.05) cmbScSlenderK.SelectedIndex = 1;
+            else if (Math.Abs(savedK - 2.0) < 0.05) cmbScSlenderK.SelectedIndex = 2;
+            else cmbScSlenderK.SelectedIndex = 0;
 
             UpdateSingleColumnDerivedGeometry(null, EventArgs.Empty);
         }
@@ -630,59 +617,259 @@ namespace WaterTankTool_WFA.Foundation_Design
             }
             else
             {
-                double.TryParse(txtScRi.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double ri);
-                double.TryParse(txtScRo.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double ro);
-                if (ro <= ri || ri <= 0)
+                double.TryParse(txtScDcl.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double dcl);
+                double.TryParse(txtScTw.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double tw);
+                if (dcl <= tw || tw < 1.0)
                 {
-                    MessageBox.Show("Ringwall Outer Radius (Ro) must be greater than Inner Radius (Ri).", "Invalid Geometry", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Ring-wall Centerline Diameter (D_CL) must be greater than thickness (tw), and minimum tw ≥ 1.0 ft per PIP STE03020.", "Invalid Geometry", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     this.DialogResult = DialogResult.None;
                     return;
                 }
 
-                double tw = ro - ri;
-                double meanR = (ro + ri) / 2.0;
+                double doFt = dcl + tw;
+                double diFt = dcl - tw;
+                double ro = doFt / 2.0;
+                double ri = diFt / 2.0;
+                double rcl = dcl / 2.0;
                 var eq = new FoundationEquations.RingWallEquations();
 
                 double.TryParse(txtScP.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double scPu);
                 double.TryParse(txtScMu.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double scMu);
+                double.TryParse(txtScVu.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double scVu);
                 double.TryParse(txtScHw.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double hw);
-                double.TryParse(txtScT.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double tUplift);
-                double.TryParse(txtScFc.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double fcPsi);
+                double.TryParse(txtScFc.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double fcInput);
                 double.TryParse(txtScFy.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double fyKsi);
-                double.TryParse(txtScPhi.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double phiVal);
                 double.TryParse(txtScGammaC.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double gammaC);
-                double.TryParse(txtScGammaS.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double gammaS);
-                double.TryParse(txtScHoopSpacing.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double sProv);
+                double.TryParse(txtScCover.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double coverIn);
+                double.TryParse(txtScQa.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double qaKsf);
+                double.TryParse(txtScGammaSoil.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double gammaSoil);
+                double.TryParse(txtScKa.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double ka);
 
-                int barIdx = cmbScHoopBar.SelectedIndex >= 0 ? cmbScHoopBar.SelectedIndex : 1;
-                var barOpt = HoopBarOptions[barIdx];
+                double bf = 6.5, hf = 3.0;
+                var bfhfParts = txtScBfHf.Text.Split(new[] { '/', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (bfhfParts.Length >= 1) double.TryParse(bfhfParts[0].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out bf);
+                if (bfhfParts.Length >= 2) double.TryParse(bfhfParts[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out hf);
 
+                int.TryParse(txtScVertCount.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out int vertCount);
+                if (vertCount <= 0) vertCount = (int)Math.Round(Math.PI * dcl);
+                int vIdx = (_selectedVertBarIdx >= 0 && _selectedVertBarIdx < RebarOptions.Length) ? _selectedVertBarIdx : 1;
+                var vOpt = RebarOptions[vIdx];
+
+                int.TryParse(txtScHoopCount.Text.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out int hoopCount);
+                if (hoopCount <= 0) hoopCount = 8;
+                int hIdx = (_selectedHoopBarIdx >= 0 && _selectedHoopBarIdx < RebarOptions.Length) ? _selectedHoopBarIdx : 1;
+                var hOpt = RebarOptions[hIdx];
+
+                double fcPsi = fcInput > 100 ? fcInput : (fcInput > 0 ? fcInput * 1000.0 : 4000.0);
+                double hwFinal = hw > 0 ? hw : 9.0;
+                double shIn = eq.HorizontalTributarySpacingIn(hwFinal, hoopCount);
+
+                _existingEntity.ScDcl = dcl;
                 _existingEntity.Rin = ri;
                 _existingEntity.Rout = ro;
                 _existingEntity.Trw = tw;
-                _existingEntity.B = tw;
-                _existingEntity.Rcl = meanR;
-                _existingEntity.Rrw = meanR;
-                _existingEntity.A = eq.AnnularAreaFt2(ro, ri);
+                _existingEntity.B = bf > 0 ? bf : 6.5;
+                _existingEntity.Tedge = hf > 0 ? hf : 3.0;
+                _existingEntity.Rcl = rcl;
+                _existingEntity.Rrw = rcl;
+                _existingEntity.Cc = coverIn > 0 ? coverIn : 2.0;
+                _existingEntity.A = eq.RingWallCrossSectionalAreaFt2(doFt, diFt);
 
                 _existingEntity.ScPu = scPu;
                 _existingEntity.ScMu = scMu;
-                _existingEntity.Hw = hw > 0 ? hw : 11.5;
-                _existingEntity.TotalUpliftT = tUplift;
-                _existingEntity.ScFcPrime = fcPsi > 0 ? fcPsi : 4000.0;
+                _existingEntity.ScVu = scVu;
+                _existingEntity.Hw = hwFinal;
+                _existingEntity.ScBf = bf > 0 ? bf : 6.5;
+                _existingEntity.ScHf = hf > 0 ? hf : 3.0;
+                _existingEntity.ScFcPrime = fcPsi;
                 _existingEntity.ScFy = fyKsi > 0 ? fyKsi : 60.0;
-                _existingEntity.ScPhi = phiVal > 0 ? phiVal : 0.90;
                 _existingEntity.ScGammaC = gammaC > 0 ? gammaC : 150.0;
-                _existingEntity.ScGammaS = gammaS > 0 ? gammaS : 490.0;
-                _existingEntity.HoopBarLabel = barOpt.Label;
-                _existingEntity.HoopBarArea = barOpt.Area;
-                _existingEntity.HoopSpacingProv = sProv > 0 ? sProv : 6.0;
-                _existingEntity.VertRebarCallout = string.IsNullOrWhiteSpace(txtScVertRebar.Text) ? "#6 @ 12\"" : txtScVertRebar.Text.Trim();
+                _existingEntity.ScQa = qaKsf > 0 ? qaKsf : 4.0;
+                _existingEntity.ScGammaSoil = gammaSoil > 0 ? gammaSoil : 125.0;
+                _existingEntity.ScKa = ka > 0 ? ka : 0.30;
+
+                _existingEntity.VertBarLabel = vOpt.Label;
+                _existingEntity.VertBarArea = vOpt.Area;
+                _existingEntity.VertBarCountPerFace = vertCount;
+                _existingEntity.VertRebarCallout = $"{vertCount} {vOpt.Label} EF";
+
+                _existingEntity.HoopBarLabel = hOpt.Label;
+                _existingEntity.HoopBarArea = hOpt.Area;
+                _existingEntity.HoopBarCountPerFace = hoopCount;
+                _existingEntity.HoopSpacingProv = shIn;
+
+                _existingEntity.SlendernessK = cmbScSlenderK.SelectedIndex == 1 ? 1.0 : (cmbScSlenderK.SelectedIndex == 2 ? 2.0 : 0.0);
             }
             _context.SaveChanges();
             if (AppState.CurrentTankType != TankType.MultiColumn)
             {
                 MessageBox.Show("Ring wall foundation data saved successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void UpdateRebarButtonLabels()
+        {
+            if (btnScVertBar != null && _selectedVertBarIdx >= 0 && _selectedVertBarIdx < RebarOptions.Length)
+            {
+                btnScVertBar.Text = $"{RebarOptions[_selectedVertBarIdx].Label} (Select)";
+            }
+            if (btnScHoopBar != null && _selectedHoopBarIdx >= 0 && _selectedHoopBarIdx < RebarOptions.Length)
+            {
+                btnScHoopBar.Text = $"{RebarOptions[_selectedHoopBarIdx].Label} (Select)";
+            }
+        }
+
+        private void OpenRebarSelectionDialog(bool isVertical)
+        {
+            int currentIdx = isVertical ? _selectedVertBarIdx : _selectedHoopBarIdx;
+            string roleTitle = isVertical ? "Vertical Bars (Each Face)" : "Horizontal Hoop Bars (Each Face)";
+
+            using (Form dlg = new Form())
+            {
+                dlg.Text = $"Select Reinforcing Bar Size — {roleTitle}";
+                dlg.Size = new Size(680, 390);
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.BackColor = Color.White;
+                dlg.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+
+                Label lblHeader = new Label
+                {
+                    Text = $"ACI 318 / ASTM A615 Standard Reinforcing Bar Table — {roleTitle}",
+                    Location = new Point(14, 12),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(25, 55, 109)
+                };
+                dlg.Controls.Add(lblHeader);
+
+                Label lblSub = new Label
+                {
+                    Text = "Bar numbers represent bar diameter in eighths of an inch (1/8 in). Select a row and click 'Select Bar' (or double-click):",
+                    Location = new Point(14, 34),
+                    AutoSize = true,
+                    ForeColor = Color.DimGray
+                };
+                dlg.Controls.Add(lblSub);
+
+                DataGridView dgv = new DataGridView
+                {
+                    Location = new Point(14, 58),
+                    Size = new Size(636, 178),
+                    ReadOnly = true,
+                    AllowUserToAddRows = false,
+                    AllowUserToDeleteRows = false,
+                    AllowUserToResizeRows = false,
+                    RowHeadersVisible = false,
+                    SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                    MultiSelect = false,
+                    BackgroundColor = Color.White,
+                    BorderStyle = BorderStyle.FixedSingle,
+                    AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                    ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
+                    ColumnHeadersHeight = 28,
+                    RowTemplate = { Height = 24 },
+                    Font = new Font("Segoe UI", 9F, FontStyle.Regular)
+                };
+                dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 8.75F, FontStyle.Bold);
+                dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(236, 240, 245);
+                dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(204, 228, 247);
+                dgv.DefaultCellStyle.SelectionForeColor = Color.Black;
+                dgv.EnableHeadersVisualStyles = false;
+
+                dgv.Columns.Add("BarSize", "Dropdown Selection");
+                dgv.Columns.Add("BarDiam", "Bar Diameter (in)");
+                dgv.Columns.Add("BarArea", "Cross-Sectional Area Ab (in²)");
+                dgv.Columns.Add("TypicalUse", "Typical Use");
+
+                dgv.Columns[0].FillWeight = 18;
+                dgv.Columns[1].FillWeight = 22;
+                dgv.Columns[2].FillWeight = 25;
+                dgv.Columns[3].FillWeight = 35;
+
+                for (int i = 0; i < RebarOptions.Length; i++)
+                {
+                    var opt = RebarOptions[i];
+                    string labelDisplay = i == 1 ? $"{opt.Label} (Default)" : opt.Label;
+                    dgv.Rows.Add(labelDisplay, opt.DiameterDesc, $"{opt.Area:0.00} in²", opt.TypicalUse);
+                }
+
+                if (currentIdx >= 0 && currentIdx < dgv.Rows.Count)
+                {
+                    dgv.ClearSelection();
+                    dgv.Rows[currentIdx].Selected = true;
+                    dgv.CurrentCell = dgv.Rows[currentIdx].Cells[0];
+                }
+
+                dlg.Controls.Add(dgv);
+
+                Label lblGuide = new Label
+                {
+                    Text = isVertical
+                        ? "Selection Guide (Vertical Bars): Typically spaced at 12 in. o.c. around the ring-wall circumference (Nv ≈ π × D_CL = 66 bars for D_CL = 21 ft).\nACI 318-19 requires minimum vertical steel As,min = 0.0012 × b × tw. #4 bars (0.20 in² EF = 0.40 in²/ft) is standard."
+                        : "Selection Guide (Horizontal Hoop Bars): Distributed over wall height Hw. ACI 318-19 / PIP STE03020 requires minimum horizontal steel\nAsh,min = 0.00225 × b × tw. If the results window shows 'NG - INCREASE', increase bar count or select #5 / #6.",
+                    Location = new Point(14, 244),
+                    Size = new Size(636, 52),
+                    BorderStyle = BorderStyle.FixedSingle,
+                    BackColor = Color.FromArgb(248, 250, 252),
+                    Padding = new Padding(8, 6, 8, 6),
+                    Font = new Font("Segoe UI", 8.25F, FontStyle.Regular)
+                };
+                dlg.Controls.Add(lblGuide);
+
+                Button btnSelect = new Button
+                {
+                    Text = "Select Bar",
+                    Location = new Point(460, 306),
+                    Size = new Size(90, 30),
+                    BackColor = Color.FromArgb(25, 118, 210),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat
+                };
+                btnSelect.Click += (s, e) =>
+                {
+                    if (dgv.SelectedRows.Count > 0)
+                    {
+                        int chosen = dgv.SelectedRows[0].Index;
+                        if (isVertical) _selectedVertBarIdx = chosen;
+                        else _selectedHoopBarIdx = chosen;
+                        UpdateRebarButtonLabels();
+                    }
+                    dlg.DialogResult = DialogResult.OK;
+                    dlg.Close();
+                };
+
+                Button btnCancel = new Button
+                {
+                    Text = "Cancel",
+                    Location = new Point(560, 306),
+                    Size = new Size(90, 30)
+                };
+                btnCancel.Click += (s, e) =>
+                {
+                    dlg.DialogResult = DialogResult.Cancel;
+                    dlg.Close();
+                };
+
+                dgv.CellDoubleClick += (s, e) =>
+                {
+                    if (e.RowIndex >= 0 && e.RowIndex < RebarOptions.Length)
+                    {
+                        if (isVertical) _selectedVertBarIdx = e.RowIndex;
+                        else _selectedHoopBarIdx = e.RowIndex;
+                        UpdateRebarButtonLabels();
+                        dlg.DialogResult = DialogResult.OK;
+                        dlg.Close();
+                    }
+                };
+
+                dlg.Controls.Add(btnSelect);
+                dlg.Controls.Add(btnCancel);
+                dlg.AcceptButton = btnSelect;
+                dlg.CancelButton = btnCancel;
+                dlg.ShowDialog(this);
             }
         }
     }

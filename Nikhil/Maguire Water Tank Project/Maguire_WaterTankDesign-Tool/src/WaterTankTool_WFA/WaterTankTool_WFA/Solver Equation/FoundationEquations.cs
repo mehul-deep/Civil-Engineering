@@ -566,6 +566,365 @@ namespace WaterTankTool_WFA.Solver_Equation
                 return R((phiShear * vnLbs) / 1000.0);
             }
 
+            // =========================================================================
+            // Updated Single-Leg Ring Wall Design (Steps 2 - 14, Ringwallsinglelegdesign.pdf)
+            // =========================================================================
+
+            // Step 2: Geometry of Ring Wall (PIP STE03020)
+            public double OuterDiameterFt(double dclFt, double twFt) => R(dclFt + twFt);
+            public double InnerDiameterFt(double dclFt, double twFt) => R(Math.Max(0, dclFt - twFt));
+            public double OuterRadiusFromDiamFt(double doFt) => R(doFt / 2.0);
+            public double InnerRadiusFromDiamFt(double diFt) => R(diFt / 2.0);
+            public double CenterlineRadiusFromDiamFt(double dclFt) => R(dclFt / 2.0);
+
+            public double RingWallCrossSectionalAreaFt2(double doFt, double diFt)
+            {
+                if (doFt <= diFt) return 0;
+                return R((Math.PI / 4.0) * (Math.Pow(doFt, 2) - Math.Pow(diFt, 2)));
+            }
+
+            public double RingWallVolumeFt3(double awFt2, double hwFt) => R(Math.Round(awFt2, 2) * hwFt);
+
+            public double RingWallWeightKips(double vwFt3, double gammaCPcf) => R((vwFt3 * gammaCPcf) / 1000.0);
+
+            public double MinimumInsideEdgeDistanceIn(double tankDiamFt)
+            {
+                if (tankDiamFt <= 80.0) return 4.0;
+                if (tankDiamFt < 150.0) return 5.0;
+                return 6.0;
+            }
+
+            // Step 3: Circumferential Vertical Load Distribution
+            public double CenterlineCircumferenceFt(double rclFt) => R(2.0 * Math.PI * rclFt);
+
+            public double AverageAxialLineReactionKipPerFt(double puKips, double rclFt)
+            {
+                if (rclFt <= 0) return 0;
+                return R(puKips / (2.0 * Math.PI * rclFt));
+            }
+
+            public double MomentInducedLineReactionKipPerFt(double muKipFt, double rclFt)
+            {
+                if (rclFt <= 0) return 0;
+                return R(muKipFt / (Math.PI * Math.Pow(rclFt, 2)));
+            }
+
+            public double UnfactoredSelfWeightPerFt(double twFt, double hwFt, double gammaCPcf)
+            {
+                return R(twFt * hwFt * (gammaCPcf / 1000.0));
+            }
+
+            public double FactoredSelfWeightPerFt(double wswKipPerFt, double deadLoadFactor = 1.2)
+            {
+                return R(deadLoadFactor * wswKipPerFt);
+            }
+
+            public double MaxVerticalLineLoadNoSwKipPerFt(double w0KipPerFt, double wMKipPerFt)
+            {
+                return R(Math.Round(w0KipPerFt, 2) + Math.Round(wMKipPerFt, 2));
+            }
+
+            public double MinVerticalLineLoadNoSwKipPerFt(double w0KipPerFt, double wMKipPerFt)
+            {
+                return R(Math.Round(w0KipPerFt, 2) - Math.Round(wMKipPerFt, 2));
+            }
+
+            public double MaxVerticalLineLoadWithSwKipPerFt(double w0KipPerFt, double wswUKipPerFt, double wMKipPerFt)
+            {
+                return R(Math.Round(w0KipPerFt, 2) + Math.Round(wswUKipPerFt, 2) + Math.Round(wMKipPerFt, 2));
+            }
+
+            public double MinVerticalLineLoadWithSwKipPerFt(double w0KipPerFt, double wswUKipPerFt, double wMKipPerFt)
+            {
+                return R(Math.Round(w0KipPerFt, 2) + Math.Round(wswUKipPerFt, 2) - Math.Round(wMKipPerFt, 2));
+            }
+
+            // Step 4: Ring-Wall Axial Compression Check (1-ft Strip)
+            public double GrossAreaPerFootStripIn2(double twFt) => R((twFt * 12.0) * 12.0);
+
+            public double AxialCompressiveStressPsi(double lineLoadKipPerFt, double agIn2)
+            {
+                if (agIn2 <= 0) return 0;
+                return R((lineLoadKipPerFt * 1000.0) / agIn2);
+            }
+
+            // Step 5: Vertical Reinforcement Check (ACI 318-19 Table 11.6.1)
+            public double VerticalBarSpacingIn(double dclFt, int numBarsPerFace)
+            {
+                if (numBarsPerFace <= 0) return 0;
+                return R((Math.PI * dclFt * 12.0) / numBarsPerFace);
+            }
+
+            public double VerticalSteelAreaPerFtStripIn2(double barAreaIn2, double svIn)
+            {
+                if (svIn <= 0) return 0;
+                return R(2.0 * barAreaIn2 * (12.0 / Math.Round(svIn, 1)));
+            }
+
+            public double VerticalReinforcementRatio(double asvIn2, double agIn2)
+            {
+                if (agIn2 <= 0) return 0;
+                return R(asvIn2 / agIn2);
+            }
+
+            public double MinimumVerticalSteelAreaIn2(double agIn2, double rhoMin = 0.0012)
+            {
+                return R(rhoMin * agIn2);
+            }
+
+            // Step 6: Horizontal Hoop Reinforcement Check (ACI 318-19 Table 11.6.1)
+            public double HorizontalTributarySpacingIn(double hwFt, int numBarsPerFace)
+            {
+                if (numBarsPerFace <= 0) return 0;
+                return R((hwFt * 12.0) / numBarsPerFace);
+            }
+
+            public double HorizontalReinforcementRatio(double hoopBarAreaIn2, double twFt, double shIn)
+            {
+                double denom = (twFt * 12.0) * shIn;
+                if (denom <= 0) return 0;
+                return R((2.0 * hoopBarAreaIn2) / denom);
+            }
+
+            public double MinimumHorizontalSteelInTributaryStripIn2(double twFt, double shIn, double rhoMin = 0.0020)
+            {
+                return R(rhoMin * (twFt * 12.0) * shIn);
+            }
+
+            public double RequiredMaxHorizontalSpacingIn(double hoopBarAreaIn2, double twFt, double rhoMin = 0.0020)
+            {
+                double denom = rhoMin * (twFt * 12.0);
+                if (denom <= 0) return 0;
+                return R((2.0 * hoopBarAreaIn2) / denom);
+            }
+
+            // Step 7: Lateral Soil Pressure Acting on Ringwall
+            public double ActiveEarthPressureSlopePsfPerFt(double ka, double gammaSoilPcf) => R(ka * gammaSoilPcf);
+
+            public double MaxActiveEarthPressurePsf(double ka, double gammaSoilPcf, double hsFt) => R(ka * gammaSoilPcf * hsFt);
+
+            public double UnfactoredLateralSoilForceKipPerFt(double ka, double gammaSoilPcf, double hsFt)
+            {
+                return R((0.5 * ka * gammaSoilPcf * Math.Pow(hsFt, 2)) / 1000.0);
+            }
+
+            public double SoilResultantHeightFt(double hsFt) => R(hsFt / 3.0);
+
+            public double UnfactoredSoilCantileverMomentKipFtPerFt(double faKipPerFt, double hsFt)
+            {
+                return R(faKipPerFt * (hsFt / 3.0));
+            }
+
+            public double FactoredLateralSoilForceKipPerFt(double faKipPerFt, double factor = 1.6)
+            {
+                return R(factor * faKipPerFt);
+            }
+
+            public double FactoredSoilCantileverMomentKipFtPerFt(double maKipFtPerFt, double factor = 1.6)
+            {
+                return R(factor * maKipFtPerFt);
+            }
+
+            // Step 8: Load Eccentricity Check (Middle-Third Rule)
+            public double MiddleThirdEccentricityLimitIn(double twFt) => R((twFt * 12.0) / 6.0);
+
+            public double AppliedLoadEccentricityFt(double mauKipFt, double puMaxKip)
+            {
+                if (puMaxKip <= 0) return 0;
+                return R(mauKipFt / puMaxKip);
+            }
+
+            public double AppliedLoadEccentricityIn(double mauKipFt, double puMaxKip)
+            {
+                if (puMaxKip <= 0) return 0;
+                return R((mauKipFt / puMaxKip) * 12.0);
+            }
+
+            // Step 9: Ringwall Slenderness Check
+            public double GeometricHeightToThicknessRatio(double hwFt, double twFt)
+            {
+                if (twFt <= 0) return 0;
+                return R((hwFt * 12.0) / (twFt * 12.0));
+            }
+
+            public double WeakAxisRadiusOfGyrationIn(double twFt)
+            {
+                return R((twFt * 12.0) / Math.Sqrt(12.0));
+            }
+
+            public double SlendernessRatioKlr(double k, double hwFt, double rIn)
+            {
+                double rRound = Math.Round(rIn, 3);
+                if (rRound <= 0) return 0;
+                return R((k * (hwFt * 12.0)) / rRound);
+            }
+
+            // Step 10: Axial Compression Strength (ACI 318-19 §11.5.3)
+            public double NominalWallAxialStrengthKips(double fcKsi, double agIn2, double k, double hwFt, double twFt)
+            {
+                double hIn = twFt * 12.0;
+                double lcIn = hwFt * 12.0;
+                if (hIn <= 0) return 0;
+                double ratio = (k * lcIn) / (32.0 * hIn);
+                if (ratio >= 1.0) return 0;
+                return R(0.55 * fcKsi * agIn2 * (1.0 - Math.Pow(ratio, 2)));
+            }
+
+            public double DesignWallAxialStrengthKips(double pnKips, double phi = 0.65)
+            {
+                return R(phi * Math.Round(pnKips, 2));
+            }
+
+            public double WallAxialDcr(double puMaxKip, double phiPnKips)
+            {
+                if (phiPnKips <= 0) return 0;
+                return R(puMaxKip / Math.Round(phiPnKips, 2));
+            }
+
+            // Step 11: Circumferential Hoop Force Due to Soil Pressure
+            public double MaxCircumferentialHoopForceKipPerFt(double paMaxPsf, double rclFt)
+            {
+                return R((paMaxPsf / 1000.0) * rclFt);
+            }
+
+            public double CircumferentialCompressiveStressKsf(double nThetaMaxKipPerFt, double twFt)
+            {
+                if (twFt <= 0) return 0;
+                return R(Math.Round(nThetaMaxKipPerFt, 3) / twFt);
+            }
+
+            public double CircumferentialCompressiveStressPsi(double sigmaThetaKsf)
+            {
+                return R((sigmaThetaKsf * 1000.0) / 144.0);
+            }
+
+            // Step 12: Ringwall Out-of-Plane Shear Strength (ACI 318-19 Table 22.5.5.1)
+            public double BarDiameterFromLabelIn(string? barLabel)
+            {
+                return (barLabel ?? "#4").Trim() switch
+                {
+                    "#3" => 0.375,
+                    "#4" => 0.500,
+                    "#5" => 0.625,
+                    "#6" => 0.750,
+                    "#7" => 0.875,
+                    "#8" => 1.000,
+                    "#9" => 1.128,
+                    "#10" => 1.270,
+                    _ => 0.500
+                };
+            }
+
+            public double WallEffectiveDepthIn(double twFt, double coverIn, double barDiameterIn)
+            {
+                return R((twFt * 12.0) - coverIn - (barDiameterIn / 2.0));
+            }
+
+            public double WallShearReinforcementRatio(double asvIn2, double bwIn, double dIn)
+            {
+                if (bwIn * dIn <= 0) return 0;
+                return R(asvIn2 / (bwIn * dIn));
+            }
+
+            public double WallSizeEffectFactorSqrt(double dIn)
+            {
+                return R(Math.Min(1.0, Math.Sqrt(2.0 / (1.0 + (dIn / 10.0)))));
+            }
+
+            public double AxialCompressionShearTermPsi(double nuKips, double agIn2)
+            {
+                if (agIn2 <= 0) return 0;
+                return R((nuKips * 1000.0) / (6.0 * agIn2));
+            }
+
+            public double NominalOutOfPlaneShearKips(double fcPsi, double lambdaS, double rhoW, double nuOver6AgPsi, double bwIn, double dIn, double lambda = 1.0)
+            {
+                double lS = Math.Round(lambdaS, 3);
+                double rW = Math.Round(rhoW, 6);
+                double nuTerm = Math.Round(nuOver6AgPsi, 2);
+                double stressPsi = (8.0 * lS * lambda * Math.Pow(Math.Max(0, rW), 1.0 / 3.0) * Math.Sqrt(Math.Max(0, fcPsi))) + nuTerm;
+                return R((stressPsi * bwIn * dIn) / 1000.0);
+            }
+
+            public double DesignOutOfPlaneShearKips(double vcKips, double phiShear = 0.75)
+            {
+                return R(phiShear * Math.Round(vcKips, 2));
+            }
+
+            public double OutOfPlaneShearDcr(double vuKips, double phiVcKips)
+            {
+                if (phiVcKips <= 0) return 0;
+                return R(vuKips / Math.Round(phiVcKips, 2));
+            }
+
+            // Step 13 & Step 14: Combined Axial-Flexural Strength & ACI P-M Interaction Check
+            public (double aIn, double epsT, double phi, double pnKips, double mnKipFt, double phiPnKips, double phiMnKipFt)
+                EvaluateStripPMAtNeutralAxis(double cIn, double bIn, double hIn, double dPrimeIn, double dIn, double asFaceIn2, double fcKsi, double fyKsi, double esKsi = 29000.0)
+            {
+                if (cIn <= 0 || hIn <= 0) return (0, 0, 0.90, 0, 0, 0, 0);
+
+                double beta1 = BetaOneFactor(fcKsi * 1000.0);
+                double a = beta1 * cIn;
+                double aEff = Math.Min(hIn, a);
+                double ccKips = 0.85 * fcKsi * bIn * aEff;
+
+                // Layer 1 (near compression face, d1 = d')
+                double eps1 = 0.003 * ((cIn - dPrimeIn) / cIn);
+                double fs1 = Math.Max(-fyKsi, Math.Min(fyKsi, esKsi * eps1));
+                double f1 = (a > dPrimeIn && fs1 > 0) ? asFaceIn2 * (fs1 - (0.85 * fcKsi)) : asFaceIn2 * fs1;
+
+                // Layer 2 (near tension face, d2 = d)
+                double eps2 = 0.003 * ((cIn - dIn) / cIn);
+                double fs2 = Math.Max(-fyKsi, Math.Min(fyKsi, esKsi * eps2));
+                double f2 = (a > dIn && fs2 > 0) ? asFaceIn2 * (fs2 - (0.85 * fcKsi)) : asFaceIn2 * fs2;
+
+                double epsT = Math.Max(0.0, -eps2);
+                double epsTy = esKsi > 0 ? fyKsi / esKsi : 0.00207;
+                double phi;
+                if (epsT >= 0.005)
+                    phi = 0.90;
+                else if (epsT <= epsTy)
+                    phi = 0.65;
+                else
+                    phi = 0.65 + (0.25 * ((epsT - epsTy) / (0.005 - epsTy)));
+
+                double pn = ccKips + f1 + f2;
+                double halfH = hIn / 2.0;
+                double mnIn = Math.Abs((ccKips * (halfH - (aEff / 2.0))) + (f1 * (halfH - dPrimeIn)) + (f2 * (halfH - dIn)));
+                double mnFt = mnIn / 12.0;
+
+                double pnRound = Math.Round(pn, 2, MidpointRounding.AwayFromZero);
+                double mnRound = Math.Round(mnFt, 2, MidpointRounding.AwayFromZero);
+                double phiPn = Math.Round(phi * pnRound, 2, MidpointRounding.AwayFromZero);
+                double phiMn = Math.Round(phi * mnRound, 2, MidpointRounding.AwayFromZero);
+
+                return (R(a), R(epsT), R(phi), pnRound, mnRound, phiPn, phiMn);
+            }
+
+            public (double cIn, double aIn, double epsT, double phi, double pnKips, double mnKipFt, double phiMnKipFt, double dcrM)
+                SolveCombinedAxialFlexuralStrength(double puTargetKips, double muDemandKipFt, double bIn, double hIn, double dPrimeIn, double dIn, double asFaceIn2, double fcKsi, double fyKsi, double esKsi = 29000.0)
+            {
+                double low = 0.05;
+                double high = Math.Max(hIn * 2.0, 48.0);
+                for (int i = 0; i < 80; i++)
+                {
+                    double mid = 0.5 * (low + high);
+                    var eval = EvaluateStripPMAtNeutralAxis(mid, bIn, hIn, dPrimeIn, dIn, asFaceIn2, fcKsi, fyKsi, esKsi);
+                    double phiPnExact = eval.phi * eval.pnKips;
+                    if (phiPnExact < puTargetKips)
+                        low = mid;
+                    else
+                        high = mid;
+                }
+
+                double cConv = Math.Round(0.5 * (low + high), 2);
+                var res = EvaluateStripPMAtNeutralAxis(cConv, bIn, hIn, dPrimeIn, dIn, asFaceIn2, fcKsi, fyKsi, esKsi);
+                double pnAtTarget = res.phi > 0 ? Math.Round(puTargetKips / res.phi, 2) : res.pnKips;
+                double dcrM = res.phiMnKipFt > 0 ? R(muDemandKipFt / res.phiMnKipFt) : 0;
+
+                return (cConv, res.aIn, res.epsT, res.phi, pnAtTarget, res.mnKipFt, res.phiMnKipFt, dcrM);
+            }
+
             // 1) Rin = Rcl - B/2
             public double InnerRadiusOfFooting(double radiusToFoundationCenterline, double footingBaseWidth)
             {
