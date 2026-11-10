@@ -1,7 +1,7 @@
 ================================================================================
-SESSION LOG - NOTES 17: SINGLE-LEG (SINGLECOLUMN) ANCHOR BOLT & BASE PLATE
-VERIFICATION (100K, 250K, 500K), GOVERNING LOADS FIX, & DISCREPANCY REPORT
-Last Updated: 2026-11-05
+SESSION LOG - NOTES 17: SINGLE-LEG (SINGLECOLUMN) ANCHOR BOLT, BASE PLATE,
+& 14-STEP RING WALL IMPLEMENTATION & VERIFICATION
+Last Updated: 2026-11-10
 ================================================================================
 
 ### 1. STRICT SCOPE & STANDING RULES
@@ -116,12 +116,47 @@ All 24 output fields in `BasePlateProperties.cs` / `FoundationEquations.BasePlat
 
 ---
 
-### 7. PENDING PROJECT NOTES & NEXT STEPS
-- **Next Up**: Single-Leg Footing verification (if applicable) and/or **Phase 3 — Revisit & Update Single-Leg Ring Wall** (`RingWallFoundation.cs` / `RingWallProperties.cs`) once the user provides the updated Ring Wall PDF (replacing outdated `ringwall100ksingleleg.pdf`).
+### 7. PHASE 3 — SINGLE-LEG RING WALL IMPLEMENTATION & VERIFICATION (`Ringwallsinglelegdesign.pdf`)
+
+#### A. What Was Achieved Today (2026-11-10)
+1. **Full 14-Step Single-Leg Ring Wall Specification Implemented (`Ringwallsinglelegdesign.pdf`, 14 Pages)**:
+   - **Step 1 (Inputs)** & **Step 2 (Geometry & Self-Weight)**: $D_o, D_i, R_o, R_i, A_w, V_w, W_w$, and PIP STE03020 Min Edge Distance $L = b_p/2 + d_b + \max(4d_b, 5\text{ in})$.
+   - **Step 3 (Circumferential Line Loads)**: $w_0, w_M, C, w_{sw}, w_{sw,u}, w_{\max,0}, w_{\min,0}, w_{\max}, w_{\min}$, and uplift/compression status.
+   - **Step 4 (Gross Concrete Area & Max Axial Stress)**: $A_g = 12 t_w$ and $\sigma_{\max}$ (with and without self-weight) vs. $0.85 f'_c$ and $\phi(0.85 f'_c)$.
+   - **Step 5 (Vertical Reinforcement)**: $N_v$ bars per face, $s_v = \pi D_{cl}/N_v$, $A_{s,v}$, $\rho_v$ (6-decimal precision `0.001389`), and $A_{s,\min} = 0.0012 b t_w$.
+   - **Step 6 (Horizontal Hoop Reinforcement)**: $N_h$ bars per face, $s_h = H_w / N_h$, $A_{s,h}$, $\rho_h$ (6-decimal precision `0.001235`), $A_{sh,\min} = 0.00225 b t_w$, and $s_{h,\max}$.
+   - **Step 7 (Active Lateral Soil Pressure)**: $p_a(z) = K_a \gamma_s z$, $p_{a,\max}$, $F_a = \frac{1}{2} K_a \gamma_s H_s^2$, $M_a = F_a H_s / 3$, and factored $F_{a,u} = 1.6 F_a$, $M_{a,u} = 1.6 M_a$.
+   - **Step 8 (Middle-Third Eccentricity Check)**: $e = M_{a,u} / N_u$ vs. $e_{\text{lim}} = t_w / 6$ (`WITHIN KERN` / `OUTSIDE KERN`).
+   - **Steps 9–10 (Slenderness & Axial Compression Capacity for Both $k = 1.0$ & $k = 2.0$)**: $\lambda_h = H_w / t_w$, $r = 0.288 t_w$, $(kl_c/r)_{\text{lim}} = 34$, and side-by-side $kl_c/r$, $P_n$, $\phi P_n$, and $\text{DCR}$ for both $k = 1.0$ (`403.70 kip`, `9.09%`) and $k = 2.0$ (`379.26 kip`, `9.67%`).
+   - **Step 11 (Circumferential Hoop Force)**: $N_{\theta,\max} = p_{a,\max} R_o$ and $\sigma_\theta = N_{\theta,\max} / t_w$.
+   - **Step 12 (Out-of-Plane Shear Check — ACI 318-19 22.5.5.1)**: $d$, $\rho_w$ (`0.001533`), $\lambda_s$, $N_u / (6A_g)$, $V_c$, $\phi V_c$, and $\text{DCR}_V$.
+   - **Step 13 (Combined Axial + Flexural Capacity)**: Iterated bisection neutral-axis solver (`SolveCombinedAxialFlexuralStrength`) solving $P_n(c) = P_u / \phi(c)$ to obtain exact $c, a, \epsilon_t, \phi, P_n, M_n, \phi M_n$, and $\text{DCR}_M$.
+   - **Step 14 (Dynamic 9-Row ACI P-M Interaction Table)**: Live strain-compatibility evaluator (`EvaluateStripPMAtNeutralAxis`) computing $c, a, \epsilon_t, \phi, P_n, M_n, \phi P_n, \phi M_n$ dynamically for $c = 2, 4, 6, 8, 10, 12, 16, 20, 24\text{ in}$.
+
+2. **Database & Startup Bug Fix (`WaterTankDbContext.cs`)**:
+   - Added SQLite schema migration `UpdateRingWallSchema()` for all new Single-Leg Ring Wall columns (`ScVu`, `ScDcl`, `ScBf`, `ScHf`, `ScQa`, `ScGammaSoil`, `ScKa`, `VertBarLabel`, `VertBarArea`, `VertBarCountPerFace`, `HoopBarCountPerFace`, `SlendernessK`).
+   - Fixed startup singleton bug where `WaterTankDbContext.GetInstance()` was called before project open (`_defaultConnectionString == null`); `WaterTankDbContext(string connectionString)` now resets `_instance = null` when switching connection strings.
+
+3. **Input UI & Results Window Polish (`RingWallFoundation.cs`, `RingWallProperties.cs`, `ExportEngineeringSummary.cs`)**:
+   - Grouped Allowable Soil Bearing ($q_a$), Soil Unit Weight ($\gamma_s$), and Active Earth Coeff ($K_a$) under **"Geotechnical Report Inputs"** and removed the right-side diagram in `RingWallFoundation.cs`.
+   - Added interactive **Rebar Selection Table Buttons** (`#4 (Select)`) for both **Vertical Bars (Each Face)** and **Horizontal Hoop Bars (EF)** (`OpenRebarSelectionDialog`), displaying the full ACI 318 / ASTM A615 table (`#3`–`#8`, Bar Diameter, Cross-Sectional Area $A_b$, Typical Use, and Selection Guide).
+   - Polished `RingWallProperties.cs`: 6-decimal reinforcement ratios, `MidpointRounding.AwayFromZero`, widened 3-column layout (`236 px` textboxes), removed step number prefixes (`1.`, `2.`, ..., `14.`), and verified against `resultringwallsingleleg.PNG` (`0 Error(s)`).
+   - Updated `.xlsx` Engineering Summary export (`ExportEngineeringSummary.cs`) for the 14-step Single-Leg Ring Wall module.
+
+4. **Two Minor Typos Logged in `Ringwallsinglelegdesign.pdf`**:
+   - **Page 7 (Step 7 Formula Display)**: Typeset as $F_a = \frac{12}{K_a}\gamma_s H_s^2$ instead of $F_a = \frac{1}{2} K_a \gamma_s H_s^2$ (numerical result `1.519 kip/ft` uses the true $\frac{1}{2} K_a \gamma_s H_s^2$ formula).
+   - **Page 9 (Step 10 Mixed $k = 2.0$ and $k = 1.0$)**: $P_n = 583.48\text{ kip}$ and DCR denominator $379.26\text{ kip}$ (`9.67%`) used $k = 2.0$, whereas the middle line $\phi P_n = 403.70\text{ kip}$ used $k = 1.0$ (`9.09%`). Displaying both $k = 1.0$ and $k = 2.0$ side-by-side resolves this transparently.
 
 ---
 
-### 8. COPY-PASTE RESUME PROMPT (IF DISCONNECTED)
+### 8. WHAT IS LEFT TO DO NEXT
+1. **Heavy Testing of Single-Leg Ring Wall across 100K, 250K, and 500K** (when ready).
+2. **Single-Leg Footing Module Verification / Updates** (if applicable, per user direction).
+3. **Final End-to-End Single-Leg `.xlsx` Engineering Summary Export Verification** across 100K, 250K, and 500K.
+
+---
+
+### 9. COPY-PASTE RESUME PROMPT (IF DISCONNECTED)
 --------------------------------------------------------------------------------
 We are working on the Maguire Water Tank Design Tool (`C:\Users\Mehul.Deep\Desktop\top temp\Nikhil-1\Nikhil\Maguire Water Tank Project\Maguire_WaterTankDesign-Tool\src\WaterTankTool_WFA\WaterTankTool_WFA.sln`).
 
@@ -136,15 +171,15 @@ Strict rules to follow at all times:
 Completed & Verified So Far for Single-Leg (`TankType.SingleColumn`):
 - Unified Single-Leg governing loads (`Mu = Math.Max(0.6 * windM, seismicM) * 1.667` and `Vu = windV * 1.667`) in `LoadService.cs` (`0 Error(s)`).
 - Completed 100% verification of **Single-Leg Anchor Bolt** across fresh **100K**, **250K**, and **500K** projects.
-- Completed 100% verification of **Single-Leg Base Plate** across fresh **100K**, **250K**, and **500K** projects (`resultbaseplate100ksingleleg.PNG`, `resultbaseplate250ksingleleg.PNG`, `resultbaseplate500ksingleleg.PNG`), with full comparison & PDF discrepancy tables logged in `Notes17`.
-- Initial Single-Leg `.xlsx` Engineering Summary export (`ExportEngineeringSummary.cs`) is in place and updated for the final 14-step Single-Leg Ring Wall specification.
-- Phase 3 — Final Single-Leg Ring Wall Module (`Ringwallsinglelegdesign.pdf`, 14 pages / 14 steps):
+- Completed 100% verification of **Single-Leg Base Plate** across fresh **100K**, **250K**, and **500K** projects (`resultbaseplate100ksingleleg.PNG`, `resultbaseplate250ksingleleg.PNG`, `resultbaseplate500ksingleleg.PNG`).
+- Completed **Phase 3 — Final 14-Step Single-Leg Ring Wall Module (`Ringwallsinglelegdesign.pdf`)**:
   * Implemented all 14 steps in `RingWallEntity.cs`, `WaterTankDbContext.cs`, `FoundationEquations.cs`, `RingWallFoundation.cs`, `RingWallProperties.cs`, and `ExportEngineeringSummary.cs`.
-  * Includes Geotechnical Report Inputs heading (`qa`, `gamma_s`, `Ka`) in `RingWallFoundation.cs` (with right-side diagram removed per user request).
-  * Includes both `k = 1.0` and `k = 2.0` slenderness/axial capacity checks, bisection neutral-axis solver (`SolveCombinedAxialFlexuralStrength`), and live dynamic 9-row ACI P-M Interaction Table (`EvaluateStripPMAtNeutralAxis`).
+  * Added Geotechnical Report Inputs heading (`qa`, `gamma_s`, `Ka`), removed right-side diagram, and added interactive ACI 318 / ASTM A615 Rebar Selection Table popup buttons (`#4 (Select)`) for Vertical Bars and Horizontal Hoop Bars in `RingWallFoundation.cs`.
+  * Added both `k = 1.0` and `k = 2.0` slenderness/axial capacity checks, bisection neutral-axis solver (`SolveCombinedAxialFlexuralStrength`), and live dynamic 9-row ACI P-M Interaction Table (`EvaluateStripPMAtNeutralAxis`).
   * Polished `RingWallProperties.cs` (6-decimal reinforcement ratios, widened 3-column layout, step number prefixes removed) and verified against `resultringwallsingleleg.PNG` and `Ringwallsinglelegdesign.pdf` (`0 Error(s)`).
 
-Active Pending Notes & Next Steps:
-1. Proceed with testing Single-Leg Ring Wall across 100K, 250K, and 500K projects (or move to Single-Leg Footing per user direction).
+What Is Left To Do Next:
+1. Test Single-Leg Ring Wall across 100K, 250K, and 500K projects when ready.
+2. Check/verify Single-Leg Footing module (if applicable) and final Single-Leg `.xlsx` Engineering Summary export.
 --------------------------------------------------------------------------------
 ================================================================================
